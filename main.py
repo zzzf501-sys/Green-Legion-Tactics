@@ -94,6 +94,7 @@ BUILDING_DATA = {
         ]
     },
     '资源采集器': {'hp': 15, 'armor': 0, 'gold': 3, 'cost': 8},
+    '据点': {'hp': 20, 'armor': 0, 'gold': 3, 'capture_turret': {'damage': 2, 'attacks': 2, 'range': 5}},
 }
 
 # ============================================================
@@ -379,6 +380,9 @@ class Building(Entity):
         self.tier = tier  # 0-based: 0=T1, 1=T2, 2=T3
         self.is_upgrading = False
         self.upgrade_timer = 0
+        self.is_captured = False  # 据点是否被占领
+        self.turns_since_damaged = 0  # 自回血计数
+        self._damaged_this_turn = False
         self._update_tier_stats()
 
     def _update_tier_stats(self):
@@ -392,6 +396,15 @@ class Building(Entity):
             self.upgrade_cost = t.get('upgrade_cost')
             self.upgrade_time = t.get('upgrade_time')
             self.turret = t.get('turret')
+        elif self.building_type == '据点':
+            d = data
+            self.max_hp = d['hp']
+            self.hp = getattr(self, 'hp', d['hp'])
+            self.armor = d['armor']
+            self.gold_per_turn = d['gold'] if self.is_captured else 0
+            self.upgrade_cost = None
+            self.upgrade_time = None
+            self.turret = d.get('capture_turret') if self.is_captured else None
         else:  # 资源采集器
             self.max_hp = data['hp']
             self.hp = getattr(self, 'hp', data['hp'])
@@ -400,6 +413,35 @@ class Building(Entity):
             self.upgrade_cost = None
             self.upgrade_time = None
             self.turret = None
+
+    def capture(self, new_player_id):
+        """据点被占领"""
+        self.player_id = new_player_id
+        self.is_captured = True
+        heal = int(self.max_hp * 0.3)
+        self.hp = min(self.max_hp, self.hp + heal)
+        self._update_tier_stats()
+        self.turns_since_damaged = 0
+
+    def take_damage(self, amount):
+        """承受伤害，标记受击"""
+        actual = min(amount, self.hp)
+        self.hp -= actual
+        self._damaged_this_turn = True
+        self.turns_since_damaged = 0
+        return actual
+
+    def on_turn_start(self):
+        """回合开始：自回血 + 标记清除"""
+        if self._damaged_this_turn:
+            self.turns_since_damaged = 0
+        else:
+            self.turns_since_damaged += 1
+        self._damaged_this_turn = False
+
+        # 连续两回合未受击 → 第三回合起每回合回2血
+        if self.turns_since_damaged >= 3 and self.hp < self.max_hp:
+            self.hp = min(self.max_hp, self.hp + 2)
 
     def can_upgrade(self):
         return (self.building_type == '大本营' and self.tier < 2
@@ -420,6 +462,10 @@ class Building(Entity):
                 self._update_tier_stats()
                 return True
         return False
+
+    @property
+    def is_dead(self):
+        return self.hp <= 0
 
     def in_heal_range(self, gx, gy):
         """半径2格内可驻扎回血"""
@@ -586,9 +632,10 @@ class SelectionManager:
                     enemies = set()
                     for tx, ty in atk_tiles:
                         t = grid.get_tile(tx, ty)
-                        if t and t.occupant and isinstance(t.occupant, Unit) \
-                                and t.occupant.player_id != player.player_id:
-                            enemies.add((tx, ty))
+                        if t and t.occupant:
+                            occ = t.occupant
+                            if occ.player_id != player.player_id:
+                                enemies.add((tx, ty))
                     if enemies:
                         self.highlight_tiles = enemies
                         self.highlight_color = COLOR_HIGHLIGHT_ATTACK
@@ -608,13 +655,28 @@ class SelectionManager:
                 return
             if (gx, gy) in self.highlight_tiles:
                 target_tile = grid.get_tile(gx, gy)
-                if target_tile and target_tile.occupant and isinstance(target_tile.occupant, Unit):
+                if target_tile and target_tile.occupant:
                     target = target_tile.occupant
                     if target.player_id != player.player_id:
                         unit.attack_target(target)
-                        if target.is_dead:
+                        if isinstance(target, Unit) and target.is_dead:
                             grid.remove(target)
                             player.remove_unit(target)
+                        elif isinstance(target, Building):
+                            if target.is_dead:
+                                if target.building_type == '据点' and not target.is_captured:
+                                    # 据点被占领
+                                    target.capture(player.player_id)
+                                    grid.get_tile(gx, gy).occupant = target
+                                    player.add_building(target)
+                                    # 移除原拥有者（中立无玩家）
+                                else:
+                                    grid.remove(target)
+                                    # 从玩家移除
+                                    for p in engine.players:
+                                        if target in p.buildings:
+                                            p.remove_building(target)
+                                            break
                         self.clear()
                         engine.auto_end_if_no_actions()
                         return
@@ -689,6 +751,9 @@ class Player:
                         u.hp = min(u.max_hp, u.hp + 1)
                         break
             u.is_stationed = False
+        # 建筑自回血
+        for b in self.buildings:
+            b.on_turn_start()
         self.collect_income()
 
     def get_hq(self):
@@ -881,18 +946,30 @@ class Renderer:
         if building.building_type == '大本营':
             name = f'大本营 T{building.tier + 1}'
             sprite = self._get_sprite(name)
+        elif building.building_type == '据点':
+            sprite = self._get_sprite('据点')
         else:
             sprite = self._get_sprite(building.building_type)
         if sprite:
             scaled = pygame.transform.scale(sprite, (int(size * 1.2), int(size * 1.2)))
             self.screen.blit(scaled, (sx - size * 0.1, sy - size * 0.1))
         else:
-            color = PLAYER_COLORS[building.player_id]
+            color = PLAYER_COLORS[max(0, building.player_id)] if building.player_id >= 0 else COLOR_GRAY
             rect = pygame.Rect(sx, sy, size, size)
             pygame.draw.rect(self.screen, color, rect)
             pygame.draw.rect(self.screen, COLOR_WHITE, rect, 2)
             text = self.font.render(building.building_type[:2], True, COLOR_WHITE)
             self.screen.blit(text, (sx + 4, sy + 4))
+
+        # 建筑HP条
+        bar_w = int(size * 0.8)
+        bar_h = max(3, int(size * 0.08))
+        bar_x = sx + (size * 1.2 - bar_w) / 2
+        bar_y = sy - 6
+        ratio = building.hp / building.max_hp
+        hp_color = COLOR_GREEN if ratio > 0.5 else COLOR_GOLD if ratio > 0.25 else COLOR_RED
+        pygame.draw.rect(self.screen, COLOR_DARK, (bar_x, bar_y, bar_w, bar_h))
+        pygame.draw.rect(self.screen, hp_color, (bar_x, bar_y, bar_w * ratio, bar_h))
 
     def _draw_hud(self):
         player = self.engine.get_current_player()
@@ -997,7 +1074,7 @@ class Game:
         ]
 
     def _place_initial_entities(self):
-        """放置初始大本营"""
+        """放置初始大本营和据点"""
         corners = [(2, 2), (MAP_WIDTH - 3, 2), (2, MAP_HEIGHT - 3), (MAP_WIDTH - 3, MAP_HEIGHT - 3)]
         for i, p in enumerate(self.engine.players):
             if i < len(corners):
@@ -1005,7 +1082,16 @@ class Game:
                 b = Building('大本营', cx, cy, i)
                 self.grid.place(b, cx, cy)
                 p.add_building(b)
-                p.gold = 15
+                p.gold = 10  # 初始资金
+
+        # 放置中立据点
+        outposts = [(MAP_WIDTH // 2, MAP_HEIGHT // 2),
+                    (MAP_WIDTH // 4, MAP_HEIGHT // 4 * 3),
+                    (MAP_WIDTH // 4 * 3, MAP_HEIGHT // 4)]
+        for ox, oy in outposts:
+            if not self.grid.get_tile(ox, oy).occupant:
+                op = Building('据点', ox, oy, -1)  # -1 = 中立
+                self.grid.place(op, ox, oy)
 
     def _setup_buttons(self):
         bw, bh = 120, 32

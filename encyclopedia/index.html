@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -183,6 +183,7 @@ body{flex-direction:column}
 <tr><td>火箭技术</td><td>🚀 火箭炮</td><td style="font-size:.85rem;color:#8a8a9a;">超远程火力覆盖</td></tr>
 <tr><td>先进火炮系统</td><td>⚡ 穿甲炮 · 💥 高爆炮</td><td style="font-size:.85rem;color:#8a8a9a;">坦克专用进阶武装</td></tr>
 <tr><td>航空技术</td><td>🛩️ 战斗机 · 💣 轰炸机</td><td style="font-size:.85rem;color:#8a8a9a;">空中打击力量</td></tr>
+<tr><td>防空技术</td><td>🔫 防空车</td><td style="font-size:.85rem;color:#8a8a9a;">对空防御载具</td></tr>
 <tr><td>巨型工事</td><td>🏰 T3 大本营</td><td style="font-size:.85rem;color:#8a8a9a;">每回合 +8 金币</td></tr>
 </tbody></table></div>
 <div style="margin-top:36px;"><div class="section-label" style="font-size:1rem;color:#e8dcc8;">📊 T 级解锁总览</div>
@@ -209,7 +210,8 @@ var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,labe
 '野战炮':{hp:4,armor:1,speed:3,damage:5.5,range:8,price:5,attacks:1,label:'🎯 野战炮',img:'../picture/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
 '装甲车':{hp:7,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../picture/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。'},
 '战斗机':{hp:5,armor:0,speed:10,damage:5,range:3,price:14,attacks:1,label:'🛩️ 战斗机',img:'../picture/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
-'轰炸机':{hp:10,armor:2,speed:4,damage:8,range:2,price:16,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2}};
+'轰炸机':{hp:10,armor:2,speed:4,damage:8,range:2,price:16,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2},
+'防空车':{hp:5,armor:1,speed:5,damage:3,range:3,price:12,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:7,airRange:6}};
 var UK=Object.keys(UD);
 var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。'},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。'}],
 '坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。'},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:3,desc:'牺牲单发穿透力，换装大装药榴弹，硬化目标？不存在的。'}],
@@ -218,7 +220,8 @@ var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.
 '野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-2,dmg:-1,range:0,hp:-1,desc:'减轻结构重量，降低生产成本但削弱火力。'}],
 '装甲车':[{name:'无',cost:0,dmg:0,range:0}],
 '战斗机':[{name:'无',cost:0,dmg:0,range:0}],
-'轰炸机':[{name:'无',cost:0,dmg:0,range:0}]};
+'轰炸机':[{name:'无',cost:0,dmg:0,range:0}],
+'防空车':[{name:'无',cost:0,dmg:0,range:0}]};
 var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[{tier:'T1',hp:20,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png'},{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:8},tag:'tag-t2',img:'../picture/大本营 T2.png'},{tier:'T3',hp:120,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png'}]}};
 function dc(v){return v<=3?'dura-orange':v<=4?'dura-yellow':v<=7?'dura-blue':''}
 function fm(v){return Number(v).toFixed(1)}
@@ -229,8 +232,8 @@ h+='<tr><td>'+k+'</td><td>'+u.hp+'</td><td>'+u.armor+'</td><td class="'+dc(d1)+'
 h+='</tbody></table>';var e=document.getElementById('duraTable');if(e)e.innerHTML=h;}
 function renderCh1(){
 var c=document.getElementById('ch1Content');if(!c)return;
-var h='',tm={'士兵':'tag-t1','坦克':'tag-t2','军用吉普':'tag-t2','火箭炮':'tag-t3','野战炮':'tag-t2','装甲车':'tag-t2','战斗机':'tag-t3','轰炸机':'tag-t3'};
-var tr={'士兵':'T1','坦克':'T2','军用吉普':'T2','火箭炮':'T3','野战炮':'T2','装甲车':'T2','战斗机':'T3','轰炸机':'T3'};
+var h='',tm={'士兵':'tag-t1','坦克':'tag-t2','军用吉普':'tag-t2','火箭炮':'tag-t3','野战炮':'tag-t2','装甲车':'tag-t2','战斗机':'tag-t3','轰炸机':'tag-t3','防空车':'tag-t3'};
+var tr={'士兵':'T1','坦克':'T2','军用吉普':'T2','火箭炮':'T3','野战炮':'T2','装甲车':'T2','战斗机':'T3','轰炸机':'T3','防空车':'T3'};
 UK.forEach(function(k){
 var u=UD[k];var el=EQ[k]||[];var he=el.length>1;
 h+='<div class="unit-card"><div class="unit-header">';
@@ -261,6 +264,7 @@ else if(k==='火箭炮')h+='<div class="tip-box"><span class="tip-label">💡 �
 else if(k==='装甲车')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：运载</span>🚌 可搭载 <strong>8 名</strong> 步兵单位，实现快速战场投送。</div>';
 else if(k==='战斗机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：制空</span>🛩️ 可对空对地，地面单位无法反击空中单位。</div>';
 else if(k==='轰炸机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：对地轰炸</span>💣 仅对地攻击，装弹 2 回合，地面单位无法反击。</div>';
+else if(k==='防空车')h+='<div class="tip-box"><span class="tip-label">💡 双模式：防空</span>🔫 对空伤害'+(u.airDamage||u.damage)+' 射程'+(u.airRange||u.range)+'，对地伤害'+u.damage+' 射程'+u.range+'。地面单位无法反击空中。</div>';
 var d1=u.hp+u.armor,d2=u.hp/2+u.armor,d3=u.hp/3+u.armor;
 h+='<div class="durability-box"><div class="db-label">💀 耐打计算</div><div class="durability-stats">';
 h+='<span class="dura-item"><span class="n">1 下</span> <span class="val">'+fm(d1)+'</span></span>';
@@ -314,26 +318,30 @@ document.getElementById('simEquipB').onchange=updQty;document.getElementById('si
 function apSt(base,eq){var hp=Math.max(.5,base.hp+(eq.hp||0));
 return{...base,hp:hp,damage:base.damage+(eq.dmg||0),range:base.range+(eq.range||0),speed:base.speed+(eq.speed||0),price:base.price+(eq.cost||0),blast:eq.blast||1}}
 function canAtk(att,def){if(!def.type||def.type==='ground')return true;if(def.type==='air'&&att.canTargetAir)return true;return false}
+function eR(att,def){return def&&def.type==='air'&&att.airRange?att.airRange:att.range}
+function eD(att,def){return def&&def.type==='air'&&att.airDamage?att.airDamage:att.damage}
 function runSim(){var na=document.getElementById('simA').value,nb=document.getElementById('simB').value;
 var ea=getEq(na,document.getElementById('simEquipA').value),eb=getEq(nb,document.getElementById('simEquipB').value);
 var fi=document.getElementById('simFirst').value;var uA=apSt(UD[na],ea),uB=apSt(UD[nb],eb);
 uA.equipName=ea.name;uB.equipName=eb.name;var sc=parseInt(document.getElementById('simMul').value)||1;
 var rq=getQty(uA.price,uB.price,sc);var qA=Math.max(rq.qtyA,1),qB=Math.max(rq.qtyB,1);
-var advA=uA.range<uB.range,advB=uB.range<uA.range;var dist=Math.max(uA.range,uB.range);
+var erA=eR(uA,uB),erB=eR(uB,uA);
+var advA=erA<erB,advB=erB<erA;var dist=Math.max(erA,erB);
 var pA=0,pB=0,ret=0,turn=0,rlA=0,rlB=0;var log=[];
 while(qA>0&&qB>0&&turn<200){var aT=fi==='A'?(turn%2===0):(turn%2===1);turn++;var pre=dist;var kill=0,atk=false,rtr=false;
-if(aT){if(advA){dist=Math.max(0,dist-uA.speed)}else if(ret<3&&dist+uA.speed<=uA.range&&qB>0){dist+=uA.speed;ret++;rtr=true}
-if(rlA>0){rlA--}else if(dist<=uA.range&&qA>0&&qB>0&&canAtk(uA,uB)){atk=true;var dm=Math.max(0,uA.damage-uB.armor);
+var _eR=function(a,b){return eR(a,b)};_eR=null;
+if(aT){var erA2=eR(uA,uB);if(advA){dist=Math.max(0,dist-uA.speed)}else if(ret<3&&dist+uA.speed<=erA2&&qB>0){dist+=uA.speed;ret++;rtr=true}
+if(rlA>0){rlA--}else if(dist<=erA2&&qA>0&&qB>0&&canAtk(uA,uB)){atk=true;var dmg=eD(uA,uB);var dm=Math.max(0,dmg-uB.armor);
 if(dm>0){var eff=qA*uA.attacks*(uA.blast||1);if(dm>=uB.hp){kill=Math.min(eff,qB)}
 else{var hk=Math.ceil(uB.hp/dm);pB+=eff*dm;kill=Math.min(Math.floor(pB/uB.hp),Math.floor(eff/hk),qB);pB-=kill*uB.hp}
 qB=Math.max(qB-kill,0)}if(uA.reload)rlA=uA.reload}}
-log.push({turn:turn,actor:'A',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,uA.damage-uB.armor),remainA:qA,remainB:qB})
-}else{if(advB){dist=Math.max(0,dist-uB.speed)}else if(ret<3&&dist+uB.speed<=uB.range&&qA>0){dist+=uB.speed;ret++;rtr=true}
-if(rlB>0){rlB--}else if(dist<=uB.range&&qB>0&&qA>0&&canAtk(uB,uA)){atk=true;var dm=Math.max(0,uB.damage-uA.armor);
+log.push({turn:turn,actor:'A',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,eD(uA,uB)-uB.armor),remainA:qA,remainB:qB})
+}else{var erB2=eR(uB,uA);if(advB){dist=Math.max(0,dist-uB.speed)}else if(ret<3&&dist+uB.speed<=erB2&&qA>0){dist+=uB.speed;ret++;rtr=true}
+if(rlB>0){rlB--}else if(dist<=erB2&&qB>0&&qA>0&&canAtk(uB,uA)){atk=true;var dmg=eD(uB,uA);var dm=Math.max(0,dmg-uA.armor);
 if(dm>0){var eff=qB*uB.attacks*(uB.blast||1);if(dm>=uA.hp){kill=Math.min(eff,qA)}
 else{var hk=Math.ceil(uA.hp/dm);pA+=eff*dm;kill=Math.min(Math.floor(pA/uA.hp),Math.floor(eff/hk),qA);pA-=kill*uA.hp}
 qA=Math.max(qA-kill,0)}if(uB.reload)rlB=uB.reload}}
-log.push({turn:turn,actor:'B',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,uB.damage-uA.armor),remainA:qA,remainB:qB})}}
+log.push({turn:turn,actor:'B',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,eD(uB,uA)-uA.armor),remainA:qA,remainB:qB})}}
 var res;if(qA>0&&qB<=0)res='winA';else if(qB>0&&qA<=0)res='winB';else if(qA<=0&&qB<=0)res='draw';else res='timeout';
 renderSim(na,nb,uA,uB,log,res,turn,qA,qB);}
 function renderSim(na,nb,uA,uB,log,res,tt,fA,fB){var el=document.getElementById('simResult');
@@ -354,15 +362,15 @@ th+='<tr><td>'+r.turn+'</td><td><strong style="color:'+ac+';">'+r.actor+'</stron
 th+='</tbody></table></div>';el.innerHTML=sh+ih+th;}
 function simB(na,ea,nb,eb,fi,sc){var uA=apSt(UD[na],ea),uB=apSt(UD[nb],eb);
 var rq=getQty(uA.price,uB.price,sc);var qA=Math.max(rq.qtyA,1),qB=Math.max(rq.qtyB,1);
-var advA=uA.range<uB.range,advB=uB.range<uA.range;var dist=Math.max(uA.range,uB.range);
+var erA=eR(uA,uB),erB=eR(uB,uA);var advA=erA<erB,advB=erB<erA;var dist=Math.max(erA,erB);
 var pA=0,pB=0,ret=0,turn=0,rlA=0,rlB=0;
 while(qA>0&&qB>0&&turn<200){var aT=fi==='A'?(turn%2===0):(turn%2===1);turn++;
-if(aT){if(advA)dist=Math.max(0,dist-uA.speed);else if(ret<3&&dist+uA.speed<=uA.range&&qB>0){dist+=uA.speed;ret++}
-if(rlA>0){rlA--}else if(dist<=uA.range&&qA>0&&qB>0&&canAtk(uA,uB)){var dm=Math.max(0,uA.damage-uB.armor);
+if(aT){var erA2=eR(uA,uB);if(advA)dist=Math.max(0,dist-uA.speed);else if(ret<3&&dist+uA.speed<=erA2&&qB>0){dist+=uA.speed;ret++}
+if(rlA>0){rlA--}else if(dist<=erA2&&qA>0&&qB>0&&canAtk(uA,uB)){var dmg=eD(uA,uB);var dm=Math.max(0,dmg-uB.armor);
 if(dm>0){var eff=qA*uA.attacks*(uA.blast||1);if(dm>=uB.hp)qB=Math.max(qB-Math.min(eff,qB),0)
 else{var hk=Math.ceil(uB.hp/dm);pB+=eff*dm;var k=Math.min(Math.floor(pB/uB.hp),Math.floor(eff/hk),qB);qB-=k;pB-=k*uB.hp}
-if(uA.reload)rlA=uA.reload}}}else{if(advB)dist=Math.max(0,dist-uB.speed);else if(ret<3&&dist+uB.speed<=uB.range&&qA>0){dist+=uB.speed;ret++}
-if(rlB>0){rlB--}else if(dist<=uB.range&&qB>0&&qA>0&&canAtk(uB,uA)){var dm=Math.max(0,uB.damage-uA.armor);
+if(uA.reload)rlA=uA.reload}}}else{var erB2=eR(uB,uA);if(advB)dist=Math.max(0,dist-uB.speed);else if(ret<3&&dist+uB.speed<=erB2&&qA>0){dist+=uB.speed;ret++}
+if(rlB>0){rlB--}else if(dist<=erB2&&qB>0&&qA>0&&canAtk(uB,uA)){var dmg=eD(uB,uA);var dm=Math.max(0,dmg-uA.armor);
 if(dm>0){var eff=qB*uB.attacks*(uB.blast||1);if(dm>=uA.hp)qA=Math.max(qA-Math.min(eff,qA),0)
 else{var hk=Math.ceil(uA.hp/dm);pA+=eff*dm;var k=Math.min(Math.floor(pA/uA.hp),Math.floor(eff/hk),qA);qA-=k;pA-=k*uA.hp}
 if(uB.reload)rlB=uB.reload}}}}
@@ -372,7 +380,7 @@ function buildAutoTable(){var cfg=[
 {n:'坦克',e:null,l:'🚀 坦克'},{n:'坦克',e:'穿甲炮',l:'🚀 +穿甲'},{n:'坦克',e:'高爆炮',l:'🚀 +高爆'},
 {n:'军用吉普',e:null,l:'🚙 军用吉普'},{n:'火箭炮',e:null,l:'🚀 火箭炮'},
 {n:'野战炮',e:null,l:'🎯 野战炮'},{n:'野战炮',e:'轻量化',l:'🎯 +轻量'},
-{n:'装甲车',e:null,l:'🛡️ 装甲车'},{n:'战斗机',e:null,l:'🛩️ 战斗机'},{n:'轰炸机',e:null,l:'💣 轰炸机'}];
+{n:'装甲车',e:null,l:'🛡️ 装甲车'},{n:'战斗机',e:null,l:'🛩️ 战斗机'},{n:'轰炸机',e:null,l:'💣 轰炸机'},{n:'防空车',e:null,l:'🔫 防空车'}];
 var ge=function(n,en){return en?(EQ[n]||[]).find(function(e){return e.name===en})||(EQ[n]||[])[0]:{name:'无',cost:0,dmg:0,range:0}};
 var N=cfg.length,res=[];for(var i=0;i<N;i++){res[i]=[];for(var j=0;j<N;j++){if(i===j){res[i][j]='-';continue}
 var ea=ge(cfg[i].n,cfg[i].e),eb=ge(cfg[j].n,cfg[j].e);var r1=simB(cfg[i].n,ea,cfg[j].n,eb,'A',3),r2=simB(cfg[i].n,ea,cfg[j].n,eb,'B',3);

@@ -118,7 +118,7 @@ const BUILDING_DATA={
     {hp:120,armor:1,gold:8,turret:{damage:3,attacks:3,range:8}},
   ]},
   '据点':{hp:20,armor:0,gold:3,captureTurret:{damage:2,attacks:2,range:5}},
-  '资源采集器':{hp:15,armor:0,gold:3,cost:8},
+  '资源采集器':{hp:15,armor:0,gold:2,cost:8},
 }
 const EQUIP_DATA={
   '士兵':[{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,canTargetAir:true,tier:'T2',researchCost:5,researchTime:2},
@@ -391,7 +391,8 @@ function nextTurn(){
         b.tickUpgrade()
         if(b.underConstruction){
           b.buildTimer--
-          if(b.buildTimer<=0){b.underConstruction=false;b.gold=BUILDING_DATA[b.type]?BUILDING_DATA[b.type].gold:0;console.log('Building complete:',b.type)}
+          console.log('buildTimer tick:',b.buildTimer,b.type)
+          if(b.buildTimer<=0){b.underConstruction=false;b.gold=2;console.log('Building complete:',b.type)}
         }
       })
       p.collectIncome()

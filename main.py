@@ -734,16 +734,36 @@ class GameEngine:
         return None
 
     def auto_end_if_no_actions(self):
-        """检查当前玩家是否还有可行动单位"""
+        """检查当前玩家是否还有可行动单位，全部完成则自动结束回合"""
         player = self.get_current_player()
         for u in player.units:
             if not u.is_action_done:
-                return
-        # 所有单位都已行动完成
-        pass
+                return False
+        return True
 
 
 # ============================================================
+# UI 按钮
+# ============================================================
+class Button:
+    def __init__(self, x, y, w, h, text, color=COLOR_DARK, text_color=COLOR_WHITE):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.text = text
+        self.color = color
+        self.text_color = text_color
+        self.visible = True
+
+    def draw(self, screen, font):
+        if not self.visible:
+            return
+        pygame.draw.rect(screen, self.color, self.rect, border_radius=4)
+        pygame.draw.rect(screen, COLOR_GRAY, self.rect, 1, border_radius=4)
+        label = font.render(self.text, True, self.text_color)
+        lr = label.get_rect(center=self.rect.center)
+        screen.blit(label, lr)
+
+    def is_hovered(self, pos):
+        return self.visible and self.rect.collidepoint(pos)
 # 渲染器
 # ============================================================
 class Renderer:
@@ -790,6 +810,10 @@ class Renderer:
             for u in p.units:
                 if vr[0] <= u.grid_x <= vr[2] and vr[1] <= u.grid_y <= vr[3]:
                     self._draw_unit(u)
+
+        # 绘制 HQ 菜单
+        if self.sel.selected_building and self.sel.selected_building.building_type == '大本营':
+            self._draw_hq_menu(self.sel.selected_building)
 
         # 绘制UI
         self._draw_hud()
@@ -872,17 +896,45 @@ class Renderer:
 
     def _draw_hud(self):
         player = self.engine.get_current_player()
+        pcolor = PLAYER_COLORS[player.player_id]
+
         # 顶部状态栏
-        info = f'{player.name}  回合 {self.engine.turn_number}  金币: {player.gold}'
-        text = self.font_big.render(info, True, COLOR_WHITE)
-        self.screen.blit(text, (10, 10))
+        pygame.draw.rect(self.screen, COLOR_DARK, (0, 0, SCREEN_WIDTH, 34))
+        info = f' {pcolor[0]}  {player.name}  |  回合 {self.engine.turn_number}  |  🪙 {player.gold}'
+        text = self.font_big.render(info, True, pcolor)
+        self.screen.blit(text, (10, 6))
+
+        # 底部按钮（由外部通过 renderer.buttons 传入）
+        for name, btn in getattr(self, 'buttons', {}).items():
+            if self.engine.game_state != 'PLAYING':
+                btn.visible = False
+                continue
+            if name == 'skip':
+                btn.visible = bool(self.sel.selected_unit and
+                                   self.sel.selected_unit.can_skip())
+            elif name == 'station':
+                unit = self.sel.selected_unit
+                can_station = False
+                if unit and not unit.is_action_done:
+                    for b in player.buildings:
+                        if b.building_type == '大本营' and b.in_heal_range(
+                                unit.grid_x, unit.grid_y):
+                            can_station = True
+                            break
+                btn.visible = can_station
+            btn.draw(self.screen, self.font)
 
         # 选中的单位信息
         if self.sel.selected_unit:
             u = self.sel.selected_unit
-            info2 = f'{u.unit_type}  HP: {u.hp}/{u.max_hp}  伤害: {u.damage}  射程: {u.attack_range}'
+            info2 = f'{u.unit_type}  HP: {u.hp:.1f}/{u.max_hp:.1f}  伤害: {u.damage}  射程: {u.attack_range}'
+            if u.is_action_done:
+                info2 += '  [已行动]'
             t2 = self.font.render(info2, True, COLOR_WHITE)
             self.screen.blit(t2, (10, 40))
+
+        # HQ 菜单（由 Game 触发绘制）
+        pass  # 由 Game 在事件循环中绘制
 
         # Game Over
         if self.engine.game_state == 'GAME_OVER':
@@ -896,6 +948,20 @@ class Renderer:
                 t = self.font_title.render(msg, True, COLOR_GOLD)
                 r = t.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
                 self.screen.blit(t, r)
+
+    def _draw_hq_menu(self, building):
+        """在建筑旁绘制菜单"""
+        sx, sy = self.cam.grid_to_screen(building.grid_x, building.grid_y)
+        cx, cy = int(sx), int(sy - 80)
+        # 背景
+        bw, bh = 144, 200
+        pygame.draw.rect(self.screen, (20, 20, 30, 200),
+                         (cx - 2, cy - 2, bw + 4, bh + 4))
+        pygame.draw.rect(self.screen, COLOR_GRAY,
+                         (cx - 2, cy - 2, bw + 4, bh + 4), 1)
+        # 标题
+        t = self.font.render(f'T{building.tier + 1} 大本营', True, COLOR_GOLD)
+        self.screen.blit(t, (cx + 4, cy + 4))
 
 
 # ============================================================
@@ -920,6 +986,9 @@ class Game:
         # 初始化地图实体
         self._place_initial_entities()
 
+        self._setup_buttons()
+        self.renderer.buttons = self.buttons
+
         # 连接选择管理器到玩家建筑列表
         self.selection._get_player_buildings = lambda pid: [
             b for p in self.engine.players if p.player_id == pid
@@ -937,6 +1006,101 @@ class Game:
                 p.add_building(b)
                 p.gold = 15
 
+    def _setup_buttons(self):
+        bw, bh = 120, 32
+        self.buttons = {
+            'skip': Button(10, SCREEN_HEIGHT - 50, bw, bh, '跳过', COLOR_DARK),
+            'station': Button(140, SCREEN_HEIGHT - 50, bw, bh, '驻扎', (0, 60, 0)),
+            'end_turn': Button(SCREEN_WIDTH - 140, SCREEN_HEIGHT - 50, 130, bh, '结束回合', COLOR_BLUE),
+        }
+        self.hq_menu_buttons = []
+        self.hq_menu_open = False
+
+    def _update_hq_menu(self, building):
+        """生成大本营菜单按钮"""
+        self.hq_menu_buttons.clear()
+        if not building:
+            return
+        player = self.engine.get_current_player()
+        bx, by = building.grid_x, building.grid_y
+        sx, sy = self.camera.grid_to_screen(bx, by)
+        cx, cy = int(sx), int(sy - 80)
+        bw, bh = 140, 28
+        y_off = 0
+
+        # 升级按钮
+        if building.can_upgrade():
+            cost = building.upgrade_cost
+            can_afford = player.gold >= cost
+            self.hq_menu_buttons.append(
+                Button(cx, cy + y_off, bw, bh,
+                       f'T{building.tier + 2} (🪙{cost})',
+                       COLOR_BLUE if can_afford else COLOR_GRAY)
+            )
+            self.hq_menu_buttons[-1].action = ('upgrade', building)
+            y_off += bh + 4
+
+        # 招募按钮（当前Tier解锁的单位）
+        recruit_pool = ['士兵']
+        if building.tier >= 1:
+            recruit_pool.extend(['坦克', '军用吉普', '野战炮', '装甲车'])
+        if building.tier >= 2:
+            recruit_pool.extend(['火箭炮', '战斗机', '轰炸机', '防空车'])
+        for utype in recruit_pool:
+            cost = UNIT_DATA[utype]['price']
+            can_afford = player.gold >= cost
+            self.hq_menu_buttons.append(
+                Button(cx, cy + y_off, bw, bh,
+                       f'{utype} (🪙{int(cost)})',
+                       COLOR_DARK if can_afford else COLOR_GRAY)
+            )
+            self.hq_menu_buttons[-1].action = ('recruit', building, utype)
+            y_off += bh + 4
+
+        # 关闭按钮
+        self.hq_menu_buttons.append(
+            Button(cx, cy + y_off, bw, bh, '关闭', COLOR_RED)
+        )
+        self.hq_menu_buttons[-1].action = ('close',)
+
+    def _execute_hq_action(self, action):
+        if not action:
+            return
+        player = self.engine.get_current_player()
+        if action[0] == 'upgrade':
+            b = action[1]
+            if player.gold >= b.upgrade_cost:
+                player.gold -= b.upgrade_cost
+                b.start_upgrade()
+                self.hq_menu_open = False
+        elif action[0] == 'recruit':
+            b = action[1]
+            utype = action[2]
+            cost = UNIT_DATA[utype]['price']
+            if player.gold >= cost:
+                player.gold -= cost
+                # 在大本营旁边生成单位
+                spawn_pos = self._find_spawn_pos(b.grid_x, b.grid_y)
+                if spawn_pos:
+                    u = Unit(utype, *spawn_pos, player.player_id)
+                    self.grid.place(u, *spawn_pos)
+                    player.add_unit(u)
+        elif action[0] == 'close':
+            self.hq_menu_open = False
+
+    def _find_spawn_pos(self, bx, by):
+        """在大本营附近找空位"""
+        for r in range(1, 4):
+            for dx in range(-r, r + 1):
+                for dy in range(-r, r + 1):
+                    if abs(dx) + abs(dy) == r:
+                        nx, ny = bx + dx, by + dy
+                        if self.grid.in_bounds(nx, ny):
+                            tile = self.grid.get_tile(nx, ny)
+                            if tile and not tile.occupant:
+                                return nx, ny
+        return None
+
     def handle_event(self, event):
         if event.type == pygame.QUIT:
             self.running = False
@@ -944,7 +1108,7 @@ class Game:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.selection.clear()
-            # 快捷键：结束回合
+                self.hq_menu_open = False
             if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                 if self.selection.selected_unit and self.selection.selected_unit.can_skip():
                     self.selection.skip_unit()
@@ -954,6 +1118,27 @@ class Game:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # 左键
                 mx, my = event.pos
+
+                # 检查 HQ 菜单按钮
+                if self.hq_menu_open:
+                    for btn in self.hq_menu_buttons:
+                        if btn.is_hovered((mx, my)):
+                            self._execute_hq_action(btn.action)
+                            return
+
+                # 检查主 UI 按钮
+                for name, btn in self.buttons.items():
+                    if btn.is_hovered((mx, my)):
+                        if name == 'skip' and self.selection.selected_unit:
+                            self.selection.skip_unit()
+                        elif name == 'station' and self.selection.selected_unit:
+                            self._try_station()
+                        elif name == 'end_turn':
+                            self.engine.next_turn()
+                            self.selection.clear()
+                        return
+
+                # 地图点击
                 gx, gy = self.camera.screen_to_grid(mx, my)
                 self.selection.handle_click(gx, gy, self.engine, self.grid)
                 self.camera.start_drag(mx, my)
@@ -972,15 +1157,46 @@ class Game:
                 self.camera.update_drag(*event.pos)
 
         elif event.type == pygame.MOUSEWHEEL:
-            # 备用滚轮处理
             mx, my = pygame.mouse.get_pos()
             if event.y > 0:
                 self.camera.zoom_at(mx, my, 0.15)
             else:
                 self.camera.zoom_at(mx, my, -0.15)
 
+    def _try_station(self):
+        unit = self.selection.selected_unit
+        if not unit or unit.is_action_done:
+            return
+        player = self.engine.get_current_player()
+        for b in player.buildings:
+            if b.building_type == '大本营' and b.in_heal_range(unit.grid_x, unit.grid_y):
+                unit.is_stationed = True
+                unit.is_action_done = True
+                self.selection.clear()
+                return
+
     def update(self):
         self.camera.update()
+
+        # 更新建筑升级计时
+        for p in self.engine.players:
+            for b in p.buildings:
+                b.tick_upgrade()
+
+        # 自动结束回合检查
+        if self.engine.auto_end_if_no_actions():
+            pass  # 玩家可手动点结束回合
+
+        # 选中单位时显示驻扎范围
+        if self.selection.selected_unit:
+            unit = self.selection.selected_unit
+            if not unit.is_action_done:
+                player = self.engine.get_current_player()
+                for b in player.buildings:
+                    if b.building_type == '大本营' and b.in_heal_range(unit.grid_x, unit.grid_y):
+                        self.selection.highlight_color = COLOR_HIGHLIGHT_HEAL
+                        break
+
         # WASD 平移
         keys = pygame.key.get_pressed()
         speed = 10 / self.camera.zoom

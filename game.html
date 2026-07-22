@@ -339,9 +339,9 @@ class Game{
     let cs=[[2,2],[MAP_W-3,2],[2,MAP_H-3],[MAP_W-3,MAP_H-3]]
     for(let i=0;i<n&&i<cs.length;i++){
       let[cx,cy]=cs[i];let b=new Building('大本营',cx,cy,i)
-      this.grid.place(b,cx,cy);curP().addBuilding(b)
+      this.grid.place(b,cx,cy);ENGINE.players[i].addBuilding(b)
     }
-    ENGINE.players.forEach(p=>{if(p.getHQ())p.gold=10})
+    ENGINE.players.forEach(p=>p.gold=10)
     let ops=[[MAP_W/2|0,MAP_H/2|0],[MAP_W/4|0,MAP_H/4*3|0],[MAP_W/4*3|0,MAP_H/4|0]]
     ops.forEach(([ox,oy])=>{let t=this.grid.get(ox,oy);if(t&&!t.occ)this.grid.place(new Building('据点',ox,oy,-1),ox,oy)})
   }

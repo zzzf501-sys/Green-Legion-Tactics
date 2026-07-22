@@ -811,11 +811,11 @@ class Renderer:
                 if vr[0] <= u.grid_x <= vr[2] and vr[1] <= u.grid_y <= vr[3]:
                     self._draw_unit(u)
 
-        # 绘制 HQ 菜单
+        # 绘制 HQ 菜单（含按钮）
         if self.sel.selected_building and self.sel.selected_building.building_type == '大本营':
             self._draw_hq_menu(self.sel.selected_building)
-
-        # 绘制UI
+            for btn in getattr(self, 'hq_buttons', []):
+                btn.draw(self.screen, self.font)
         self._draw_hud()
 
     def _draw_tile(self, gx, gy):
@@ -988,6 +988,7 @@ class Game:
 
         self._setup_buttons()
         self.renderer.buttons = self.buttons
+        self.renderer.hq_buttons = self.hq_menu_buttons
 
         # 连接选择管理器到玩家建筑列表
         self.selection._get_player_buildings = lambda pid: [
@@ -1181,7 +1182,14 @@ class Game:
         # 更新建筑升级计时
         for p in self.engine.players:
             for b in p.buildings:
-                b.tick_upgrade()
+                if b.tick_upgrade():
+                    self.selection.clear()
+
+        # HQ 菜单更新
+        if self.selection.selected_building:
+            if self.selection.selected_building.building_type == '大本营':
+                self._update_hq_menu(self.selection.selected_building)
+                self.hq_menu_open = True
 
         # 自动结束回合检查
         if self.engine.auto_end_if_no_actions():

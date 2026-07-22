@@ -156,7 +156,7 @@ class Camera{
   }
   _clamp(){
     let mx=this.mpw*this.z-this.sw,my=this.mph*this.z-this.sh
-    this.tox=clamp(this.tox,10,-mx-10);this.toy=clamp(this.toy,10,-my-10)
+    this.tox=clamp(this.tox,-Math.max(mx,0),0);this.toy=clamp(this.toy,-Math.max(my,0),0)
   }
 }
 

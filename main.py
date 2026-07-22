@@ -229,9 +229,9 @@ class Camera:
 
     def _clamp_offset(self, scr_w=None, scr_h=None):
         sw = scr_w or SCREEN_WIDTH; sh = scr_h or SCREEN_HEIGHT
-        max_ox = self.map_w*self.zoom-sw; max_oy = self.map_h*self.zoom-sh
-        self.target_offset_x = max(min(self.target_offset_x, 10), -max_ox-10)
-        self.target_offset_y = max(min(self.target_offset_y, 10), -max_oy-10)
+        mx = max(0, self.map_w*self.zoom-sw); my = max(0, self.map_h*self.zoom-sh)
+        self.target_offset_x = max(min(self.target_offset_x, 0), -mx)
+        self.target_offset_y = max(min(self.target_offset_y, 0), -my)
 
 # ============================================================
 # 瓦片与网格

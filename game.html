@@ -262,7 +262,7 @@ class Building{
   }
   capture(pid){
     this.pid=pid;this.captured=true
-    this.hp=Math.min(this.maxHp,this.hp+Math.floor(this.maxHp*.3))
+    this.hp=this.maxHp  // 回满血
     this._updateStats();this.tsd=0
   }
   takeDamage(a){
@@ -488,9 +488,10 @@ class Game{
           }else if(target instanceof Building){
             u.attack(target)
             if(target.dead&&target.type==='据点'&&!target.captured){
-              target.capture(p.id);p.addBuilding(target);this.grid.place(target,target.gx,target.gy)
-              let idx=this.neutralBuildings.indexOf(target)
-              if(idx>=0)this.neutralBuildings.splice(idx,1)
+              target.capture(p.id);p.addBuilding(target)
+              let i=this.neutralBuildings.indexOf(target)
+              if(i>=0)this.neutralBuildings.splice(i,1)
+              console.log('据点 captured by',p.name)
             }
             else if(target.dead){this.grid.remove(target);ENGINE.players.forEach(pp=>pp.removeBuilding(target))}
             clearSel()

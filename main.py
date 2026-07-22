@@ -842,6 +842,12 @@ class Renderer:
         self.font_big = pygame.font.Font(None, 24)
         self.font_title = pygame.font.Font(None, 32)
         self._sprite_cache = {}
+        self._hover_gx = -1
+        self._hover_gy = -1
+
+    def set_hover(self, gx, gy):
+        self._hover_gx = gx
+        self._hover_gy = gy
 
     def _get_sprite(self, name, size=(TILE_SIZE, TILE_SIZE)):
         if name not in self._sprite_cache:
@@ -882,6 +888,34 @@ class Renderer:
             for btn in getattr(self, 'hq_buttons', []):
                 btn.draw(self.screen, self.font)
         self._draw_hud()
+        self._draw_tooltip()
+
+    def _draw_tooltip(self):
+        gx, gy = self._hover_gx, self._hover_gy
+        if gx < 0 or gy < 0: return
+        tile = self.grid.get_tile(gx, gy)
+        if not tile or not tile.occupant: return
+        ent = tile.occupant
+        lines = []
+        if isinstance(ent, Unit):
+            pcolor = PLAYER_COLORS[ent.player_id]
+            lines.append(f'玩家{ent.player_id+1} | {ent.unit_type}')
+            if ent.equip: lines.append(f'装备: {ent.equip.get("name","")}')
+            lines.append(f'HP: {ent.hp:.1f}/{ent.max_hp:.1f} 护甲:{ent.armor}')
+            lines.append(f'伤害:{ent.damage} 射程:{ent.attack_range} 速:{ent.speed}')
+            lines.append('状态:'+('[已行动]' if ent.is_action_done else '[待行动]'))
+        elif isinstance(ent, Building):
+            pcolor = PLAYER_COLORS[ent.player_id] if ent.player_id >= 0 else COLOR_GRAY
+            lines.append(('玩家'+str(ent.player_id+1) if ent.player_id>=0 else '中立')+' | '+ent.building_type)
+            lines.append(f'HP:{int(ent.hp)}/{int(ent.max_hp)} 护甲:{ent.armor}')
+            if ent.building_type=='大本营': lines.append(f'T{ent.tier+1} +{ent.gold_per_turn}🪙')
+            elif ent.building_type=='据点': lines.append('已占领 +'+str(ent.gold_per_turn)+'🪙' if ent.is_captured else '中立 可占领')
+        mx,my=pygame.mouse.get_pos();bw,bh=220,24+len(lines)*18
+        bx=max(10,min(mx+15,SCREEN_WIDTH-bw-10));by=max(10,min(my-10,SCREEN_HEIGHT-bh-10))
+        pygame.draw.rect(self.screen,(20,20,30),(bx,by,bw,bh),border_radius=4)
+        pygame.draw.rect(self.screen,COLOR_GRAY,(bx,by,bw,bh),1,border_radius=4)
+        for i,ln in enumerate(lines):
+            self.screen.blit(self.font.render(ln,True,pcolor if i==0 else COLOR_WHITE),(bx+6,by+4+i*18))
 
     def _draw_tile(self, gx, gy):
         sx, sy = self.cam.grid_to_screen(gx, gy)
@@ -961,11 +995,13 @@ class Renderer:
             text = self.font.render(building.building_type[:2], True, COLOR_WHITE)
             self.screen.blit(text, (sx + 4, sy + 4))
 
-        # 建筑HP条
-        bar_w = int(size * 0.8)
+        # 建筑HP条（以精灵实际位置计算）
+        spr_x = sx - size * 0.1
+        spr_w = size * 1.2
+        bar_w = int(spr_w * 0.7)
         bar_h = max(3, int(size * 0.08))
-        bar_x = sx + (size * 1.2 - bar_w) / 2
-        bar_y = sy - 6
+        bar_x = spr_x + (spr_w - bar_w) / 2
+        bar_y = sy - 8
         ratio = building.hp / building.max_hp
         hp_color = COLOR_GREEN if ratio > 0.5 else COLOR_GOLD if ratio > 0.25 else COLOR_RED
         pygame.draw.rect(self.screen, COLOR_DARK, (bar_x, bar_y, bar_w, bar_h))
@@ -1240,6 +1276,8 @@ class Game:
                 self.camera.end_drag()
 
         elif event.type == pygame.MOUSEMOTION:
+            gx, gy = self.camera.screen_to_grid(*event.pos)
+            self.renderer.set_hover(gx, gy)
             if event.buttons[0]:
                 self.camera.update_drag(*event.pos)
 

@@ -459,7 +459,7 @@ class Game{
       if(hq&&!t.occ&&manh([gx,gy],[hq.gx,hq.gy])<=5&&p.gold>=8){
         p.gold-=8
         let b=new Building('资源采集器',gx,gy,p.id)
-        b.underConstruction=true;b.buildTimer=2
+        b.underConstruction=true;b.buildTimer=2;b.gold=0
         this.grid.place(b,gx,gy);p.addBuilding(b)
         console.log('Building resource collector, ready in 4 turns')
       }

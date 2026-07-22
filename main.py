@@ -469,28 +469,39 @@ class SelectionManager:
 class Player:
     def __init__(self, pid, name):
         self.player_id=pid; self.name=name; self.gold=10; self.units=[]; self.buildings=[]; self.is_alive=True
-    def add_unit(self, u): self.units.append(u)
+    def add_unit(self, u):
+        if u and u not in self.units: self.units.append(u)
     def remove_unit(self, u):
-        if u in self.units: self.units.remove(u)
-        if not self.units and not any(b.building_type=='大本营' for b in self.buildings): self.is_alive=False
-    def add_building(self, b): self.buildings.append(b)
+        if not u: return
+        try:
+            if u in self.units: self.units.remove(u)
+        except: pass
+        if not self.units and not any(b for b in self.buildings if b and b.building_type=='大本营'): self.is_alive=False
+    def add_building(self, b):
+        if b and b not in self.buildings: self.buildings.append(b)
     def remove_building(self, b):
-        if b in self.buildings: self.buildings.remove(b)
-        if b.building_type=='大本营' and not any(b2.building_type=='大本营' for b2 in self.buildings): self.is_alive=False
+        if not b: return
+        try:
+            if b in self.buildings: self.buildings.remove(b)
+        except: pass
+        if b.building_type=='大本营' and not any(b2 for b2 in self.buildings if b2 and b2.building_type=='大本营'): self.is_alive=False
     def collect_income(self):
-        for b in self.buildings: self.gold+=b.gold_per_turn
+        for b in self.buildings:
+            if b: self.gold+=b.gold_per_turn
     def on_turn_start(self):
-        for u in self.units:
+        for u in list(self.units):
+            if not u: continue
             u.reset_turn()
             if u.is_stationed:
                 for b in self.buildings:
-                    if b.building_type=='大本营' and b.in_heal_range(u.grid_x,u.grid_y): u.hp=min(u.max_hp,u.hp+1); break
+                    if b and b.building_type=='大本营' and b.in_heal_range(u.grid_x,u.grid_y): u.hp=min(u.max_hp,u.hp+1); break
             u.is_stationed=False
-        for b in self.buildings: b.on_turn_start()
+        for b in list(self.buildings):
+            if b: b.on_turn_start()
         self.collect_income()
     def get_hq(self):
         for b in self.buildings:
-            if b.building_type=='大本营': return b
+            if b and b.building_type=='大本营': return b
         return None
 
 # ============================================================
@@ -531,21 +542,38 @@ class Renderer:
     def sw(self): return self.cam.scr_w
     def sh(self): return self.cam.scr_h
     def render(self):
-        self.screen.fill(COLOR_BG); vr=self.cam.get_visible_rect()
-        for gx in range(vr[0],vr[2]):
-            for gy in range(vr[1],vr[3]): self._draw_tile(gx,gy)
-        for gx,gy in self.sel.highlight_tiles:
-            if vr[0]<=gx<=vr[2] and vr[1]<=gy<=vr[3]: self._draw_highlight(gx,gy,self.sel.highlight_color)
-        for p in self.engine.players:
-            for b in p.buildings:
-                if vr[0]<=b.grid_x<=vr[2] and vr[1]<=b.grid_y<=vr[3]: self._draw_building(b)
-        for p in self.engine.players:
-            for u in p.units:
-                if vr[0]<=u.grid_x<=vr[2] and vr[1]<=u.grid_y<=vr[3]: self._draw_unit(u)
-        if self.sel.selected_building and self.sel.selected_building.building_type=='大本营':
-            self._draw_hq_panel(self.sel.selected_building)
-            for btn in self.hq_buttons: btn.draw(self.screen)
-        self._draw_hud(); self._draw_tooltip()
+        if not all([self.screen, self.cam, self.grid, self.sel, self.engine]): return
+        try: self.screen.fill(COLOR_BG)
+        except: return
+        try:
+            vr=self.cam.get_visible_rect()
+            for gx in range(vr[0],vr[2]):
+                for gy in range(vr[1],vr[3]): self._draw_tile(gx,gy)
+            if self.sel.highlight_tiles:
+                for gx,gy in list(self.sel.highlight_tiles):
+                    try:
+                        if vr[0]<=gx<=vr[2] and vr[1]<=gy<=vr[3]: self._draw_highlight(gx,gy,self.sel.highlight_color)
+                    except: pass
+            for p in list(self.engine.players):
+                if not p: continue
+                for b in list(p.buildings):
+                    try:
+                        if b and vr[0]<=b.grid_x<=vr[2] and vr[1]<=b.grid_y<=vr[3]: self._draw_building(b)
+                    except: pass
+            for p in list(self.engine.players):
+                if not p: continue
+                for u in list(p.units):
+                    try:
+                        if u and vr[0]<=u.grid_x<=vr[2] and vr[1]<=u.grid_y<=vr[3]: self._draw_unit(u)
+                    except: pass
+            if self.sel.selected_building and self.sel.selected_building.building_type=='大本营':
+                self._draw_hq_panel(self.sel.selected_building)
+                for btn in self.hq_buttons: btn.draw(self.screen)
+        except: pass
+        try: self._draw_hud()
+        except: pass
+        try: self._draw_tooltip()
+        except: pass
     def _draw_tile(self, gx, gy):
         sx,sy=self.cam.grid_to_screen(gx,gy); t=self.grid.get_tile(gx,gy)
         if not t: return
@@ -589,19 +617,29 @@ class Renderer:
         pygame.draw.rect(self.screen,(15,15,25,220),(0,30,204,self.sh()-30))
         pygame.draw.rect(self.screen,COLOR_GRAY,(0,30,204,self.sh()-30),1)
     def _draw_hud(self):
-        p=self.engine.get_current_player(); pc=PLAYER_COLORS[p.player_id]
-        pygame.draw.rect(self.screen,COLOR_DARK,(0,0,self.sw(),34))
-        load_font(24).render(f' {p.name}  |  回合 {self.engine.turn_number}  |  🪙{p.gold}',True,pc)
+        if not self.engine: return
+        try:
+            p=self.engine.get_current_player()
+            if not p: return
+            pc=PLAYER_COLORS[p.player_id] if p.player_id<len(PLAYER_COLORS) else COLOR_WHITE
+            pygame.draw.rect(self.screen,COLOR_DARK,(0,0,self.sw(),34))
+            lbl=load_font(24).render(f'{p.name} | 回合{self.engine.turn_number} | 🪙{p.gold}',True,pc)
+            self.screen.blit(lbl,(10,6))
+        except: pass
         for name,btn in self.buttons.items():
-            if self.engine.game_state!='PLAYING': btn.visible=False; continue
-            if name=='skip': btn.visible=bool(self.sel.selected_unit and self.sel.selected_unit.can_skip())
-            elif name=='station':
-                u=self.sel.selected_unit; can=False
-                if u and not u.is_action_done:
-                    for b in p.buildings:
-                        if b.building_type=='大本营' and b.in_heal_range(u.grid_x,u.grid_y): can=True; break
-                btn.visible=can
-            btn.draw(self.screen)
+            try:
+                btn.visible=False
+                if self.engine and self.engine.game_state=='PLAYING':
+                    if name=='skip': btn.visible=bool(self.sel and self.sel.selected_unit and self.sel.selected_unit.can_skip())
+                    elif name=='station' and self.sel:
+                        u=self.sel.selected_unit; can=False
+                        if u and not u.is_action_done and p:
+                            for b in (p.buildings or []):
+                                if b and b.building_type=='大本营' and b.in_heal_range(u.grid_x,u.grid_y): can=True; break
+                        btn.visible=can
+                    elif name=='end_turn': btn.visible=True
+                btn.draw(self.screen)
+            except: pass
         if self.sel.selected_unit:
             u=self.sel.selected_unit
             t2=f'{u.unit_type}  HP:{u.hp:.1f}/{u.max_hp:.1f}  伤害:{u.damage}  射程:{u.attack_range}'+('  [Done]' if u.is_action_done else '')
@@ -725,6 +763,10 @@ class Game:
                             t=self.grid.get_tile(nx,ny)
                             if t and not t.occupant: return nx,ny
         return None
+    def _safe_camera(self): return self.camera is not None
+    def _safe_engine(self): return self.engine is not None
+    def _safe_sel(self): return self.selection is not None
+
     def handle_event(self, event):
         if event.type==pygame.QUIT: self.running=False
         elif event.type==pygame.KEYDOWN:
@@ -802,31 +844,95 @@ class Game:
         btns=self._menu_buttons if self._menu_state=='MAIN' else self._player_sel_buttons
         for btn in btns: btn.draw(self.screen)
     def update(self):
-        self.camera.update()
-        for p in self.engine.players:
-            for b in p.buildings:
-                if b.tick_upgrade(): self.selection.clear()
-        if self.selection.selected_building:
-            if self.selection.selected_building.building_type=='大本营':
-                self._update_hq_menu(self.selection.selected_building); self.hq_menu_open=True
-        if self.selection.selected_unit:
+        if not self.camera or not self.engine: return
+        try: self.camera.update()
+        except: pass
+        # 建筑升级
+        for p in list(self.engine.players):
+            if not p: continue
+            for b in list(p.buildings):
+                try:
+                    if b and b.tick_upgrade() and self.selection: self.selection.clear()
+                except: pass
+        # HQ菜单
+        if self.selection and self.selection.selected_building:
+            b=self.selection.selected_building
+            if b and b.building_type=='大本营':
+                try: self._update_hq_menu(b); self.hq_menu_open=True
+                except: pass
+        # 驻扎高亮
+        if self.selection and self.selection.selected_unit:
             u=self.selection.selected_unit
-            if not u.is_action_done:
-                for b in self.engine.get_current_player().buildings:
-                    if b.building_type=='大本营' and b.in_heal_range(u.grid_x,u.grid_y):
-                        self.selection.highlight_color=COLOR_HIGHLIGHT_HEAL; break
-        self.engine.auto_end_if_no_actions()
-        keys=pygame.key.get_pressed(); sp=10/self.camera.zoom
-        if keys[pygame.K_w] or keys[pygame.K_UP]: self.camera.pan(0,sp)
-        if keys[pygame.K_s] or keys[pygame.K_DOWN]: self.camera.pan(0,-sp)
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]: self.camera.pan(sp,0)
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: self.camera.pan(-sp,0)
+            if u and not u.is_action_done:
+                p=self._safe_get_player()
+                if p:
+                    for b in (p.buildings or []):
+                        if b and b.building_type=='大本营' and b.in_heal_range(u.grid_x,u.grid_y):
+                            self.selection.highlight_color=COLOR_HIGHLIGHT_HEAL; break
+        # WASD
+        try:
+            sp=10/max(0.1,self.camera.zoom); keys=pygame.key.get_pressed()
+            if keys[pygame.K_w] or keys[pygame.K_UP]: self.camera.pan(0,sp)
+            if keys[pygame.K_s] or keys[pygame.K_DOWN]: self.camera.pan(0,-sp)
+            if keys[pygame.K_a] or keys[pygame.K_LEFT]: self.camera.pan(sp,0)
+            if keys[pygame.K_d] or keys[pygame.K_RIGHT]: self.camera.pan(-sp,0)
+        except: pass
+    def _safe_get_player(self):
+        try: return self.engine.get_current_player() if self.engine else None
+        except: return None
+
     def run(self):
+        turn_notify = 0  # 回合切换提示计时
+        last_turn = -1
+        crash_log = []
         while self.running:
-            for event in pygame.event.get(): self.handle_event(event)
-            if self.game_state=='MENU': self._draw_menu()
-            elif self.game_state=='PLAYING': self.update(); self.renderer.render()
-            pygame.display.flip(); self.clock.tick(FPS)
+            try:
+                for event in pygame.event.get():
+                    try: self.handle_event(event)
+                    except Exception as e: crash_log.append(f'event:{e}')
+                if self.game_state=='MENU':
+                    self._draw_menu()
+                elif self.game_state=='PLAYING':
+                    try:
+                        self.update()
+                        # 回合切换提示
+                        if self.engine and self.engine.turn_number != last_turn:
+                            last_turn = self.engine.turn_number
+                            turn_notify = 60  # 显示1秒
+                        if turn_notify > 0:
+                            turn_notify -= 1
+                            p = self._safe_get_player()
+                            if p and self.renderer:
+                                ov = pygame.Surface((self.screen_w, self.screen_h))
+                                ov.set_alpha(180); ov.fill(COLOR_BLACK)
+                                self.renderer.screen.blit(ov, (0, 0))
+                                txt = f'第 {self.engine.turn_number} 回合 — {p.name}'
+                                c = PLAYER_COLORS[p.player_id]
+                                t = load_font(48).render(txt, True, c)
+                                self.renderer.screen.blit(t, t.get_rect(center=(self.screen_w//2, self.screen_h//2)))
+                        if self.renderer:
+                            self.renderer.render()
+                    except Exception as e:
+                        crash_log.append(f'update/render:{e}')
+                        if len(crash_log) > 20: crash_log.pop(0)
+                        # 尝试重建渲染
+                        if self.renderer: self.renderer.render()
+                pygame.display.flip()
+                self.clock.tick(FPS)
+            except Exception as e:
+                crash_log.append(f'frame:{e}')
+                if len(crash_log) > 20: crash_log.pop(0)
+                pygame.display.flip()
+                self.clock.tick(FPS)
+        # 崩溃日志
+        if crash_log and self.renderer:
+            try:
+                self.screen.fill(COLOR_BLACK)
+                for i, err in enumerate(crash_log[-10:]):
+                    self.screen.blit(load_font(16).render(err, True, COLOR_RED), (10, 10+i*18))
+                pygame.display.flip()
+                pygame.time.wait(3000)
+            except: pass
         pygame.quit()
 
 # ============================================================

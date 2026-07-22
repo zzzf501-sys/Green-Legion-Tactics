@@ -311,12 +311,30 @@ function initEngine(n){
   for(let i=0;i<n;i++)ENGINE.players.push(new Player(i,'玩家'+(i+1)))
 }
 function curP(){return ENGINE.players[ENGINE.cur]}
+function showGameOver(winner){
+  ENGINE.state='GAME_OVER'
+  let el=document.getElementById('gameOver')
+  el.style.display='flex'
+  document.getElementById('goTxt').textContent=(winner?winner.name:'?')+' 获胜！'
+  // 摄像头居中到胜者基地
+  if(G&&G.cam){
+    let hq=winner?winner.getHQ():null
+    if(hq)G.cam.centerOn(hq.gx,hq.gy)
+  }
+  // 3秒后显示再来一局按钮
+  setTimeout(function(){
+    let btn=document.createElement('button')
+    btn.className='btn btn-primary';btn.style.cssText='position:absolute;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 40px;font-size:18px;z-index:60'
+    btn.textContent='再来一局';btn.onclick=function(){location.reload()}
+    document.body.appendChild(btn)
+  },2000)
+}
 function nextTurn(){
   ENGINE.turn++
   for(let i=0;i<ENGINE.players.length;i++){ENGINE.cur=(ENGINE.cur+1)%ENGINE.players.length;if(curP().alive)break}
   curP().turnStart()
   let alive=ENGINE.players.filter(p=>p.alive)
-  if(alive.length<=1){ENGINE.state='GAME_OVER';document.getElementById('gameOver').style.display='flex';document.getElementById('goTxt').textContent=(alive[0]?alive[0].name:'?')+' 获胜！'}
+  if(alive.length<=1){showGameOver(alive[0]||null);return}
   showTurnNotify()
   if(G&&G.cam){let hq=curP().getHQ();if(hq)G.cam.centerOn(hq.gx,hq.gy)}
 }
@@ -359,6 +377,7 @@ class Game{
     }else if(SEL.phase==='MOVE'){
       let u=SEL.u;if(!u)return
       if(SEL.hl.has(gx+','+gy)){
+        if(t.occ && t.occ!==u){clearSel();return} // 格子有单位/建筑，不能重叠
         this.grid.remove(u);u.moveTo(gx,gy);t.occ=u
         if(u.canAttack()){
           let at=getTilesInRange(gx,gy,u.range);let en=new Set()

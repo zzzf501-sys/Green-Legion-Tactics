@@ -506,23 +506,24 @@ class Game{
       let af=pp.gold>=b.upgradeCost
       html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._hqUpgrade()">⬆ T'+(b.tier+2)+' 🪙'+b.upgradeCost+'</button>'
     }
-    // 研究装备
-    let showResearch=false
+    // 研究装备（按T级过滤）
+    let tierLabel=['T1','T2','T3']
     for(let ut in EQUIP_DATA){
       if(!EQUIP_DATA[ut])continue
       EQUIP_DATA[ut].forEach(eq=>{
+        let eqTier=(eq.tier==='T2'?1:eq.tier==='T3'?2:0)
+        if(eqTier>b.tier)return  // 大本营等级不够，不显示
         if(pp.researched[eq.name])return
         if(pp.researching&&pp.researching.name===eq.name){
           html+='<div class="hq-btn" style="color:#7acc7a;text-align:center">🔬 '+eq.name+' 研究中... '+pp.researching.timer+'回合</div>'
-          showResearch=true;return
+          return
         }
         let af=pp.gold>=(eq.researchCost||99)
         html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._research(\''+eq.name+'\','+(eq.researchCost||0)+','+(eq.researchTime||1)+')">🔬 '+eq.name+' 🪙'+(eq.researchCost||0)+'</button>'
-        showResearch=true
       })
     }
-    // 招募
-    let pool=['士兵'];if(b.tier>=1)pool.push('坦克','军用吉普','野战炮','装甲车')
+    // 招募（按T级）
+    let pool=['士兵','军用吉普','装甲车'];if(b.tier>=1)pool.push('坦克','野战炮')
     if(b.tier>=2)pool.push('火箭炮','战斗机','轰炸机','防空车')
     pool.forEach(ut=>{
       let cost=UNIT_DATA[ut].price;let af=pp.gold>=cost
@@ -537,7 +538,7 @@ class Game{
     let pp=curP()
     let html='<div class="title">⚑ '+(b.pid===pp.id?'已占领':b.pid>=0?'敌方':'中立')+'据点  🪙'+pp.gold+'</div>'
     if(b.pid===pp.id){
-      let pool=['士兵'];if(pp.getHQ()&&pp.getHQ().tier>=1)pool.push('坦克','军用吉普','野战炮','装甲车')
+      let pool=['士兵','军用吉普','装甲车'];if(pp.getHQ()&&pp.getHQ().tier>=1)pool.push('坦克','野战炮')
       if(pp.getHQ()&&pp.getHQ().tier>=2)pool.push('火箭炮','战斗机','轰炸机','防空车')
       pool.forEach(ut=>{
         let cost=UNIT_DATA[ut].price;let af=pp.gold>=cost

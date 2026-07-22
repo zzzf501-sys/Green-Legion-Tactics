@@ -208,12 +208,12 @@ var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,labe
 '军用吉普':{hp:3,armor:0,speed:8,damage:2,range:3,price:3,attacks:1,label:'🚙 军用吉普',img:'../picture/军用吉普.png',weapon:'车载机枪',quote:'轻便快速的侦察载具，来去如风，一击即走。'},
 '火箭炮':{hp:8,armor:0.5,speed:2,damage:7,range:15,price:15,attacks:1,label:'🚀 火箭炮',img:'../picture/火箭炮.png',weapon:'多管火箭巢',quote:'超远程火力覆盖，敌后纵深的噩梦。'},
 '野战炮':{hp:4,armor:1,speed:3,damage:5.5,range:8,price:5,attacks:1,label:'🎯 野战炮',img:'../picture/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
-'装甲车':{hp:7,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../picture/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。'},
+'装甲车':{hp:7,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../picture/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。',canTargetAir:true},
 '战斗机':{hp:5,armor:0,speed:10,damage:5,range:3,price:14,attacks:1,label:'🛩️ 战斗机',img:'../picture/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
 '轰炸机':{hp:10,armor:2,speed:4,damage:8,range:2,price:16,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2},
-'防空车':{hp:5,armor:1,speed:5,damage:3,range:3,price:12,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:7,airRange:6}};
+'防空车':{hp:5,armor:1,speed:5,damage:3,range:3,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:7,airRange:8}};
 var UK=Object.keys(UD);
-var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。'},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。'}],
+var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。',canTargetAir:true},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。',canTargetAir:true}],
 '坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。'},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:3,desc:'牺牲单发穿透力，换装大装药榴弹，硬化目标？不存在的。'}],
 '军用吉普':[{name:'无',cost:0,dmg:0,range:0}],
 '火箭炮':[{name:'无',cost:0,dmg:0,range:0}],
@@ -246,7 +246,7 @@ h+='<div class="stat-card"><div class="label">❤️ 生命</div><div class="val
 h+='<div class="stat-card"><div class="label">🛡️ 护甲</div><div class="value">'+u.armor+'</div></div>';
 h+='<div class="stat-card"><div class="label">💨 移速</div><div class="value">'+u.speed+'</div></div>';
 h+='<div class="stat-card"><div class="label">🪙 价格</div><div class="value">'+u.price+'</div></div></div>';
-if(u.type)h+='<div style="color:#8a8a9a;font-size:.85rem;margin-bottom:10px;">类型：'+(u.type==='air'?'🛩️ 空中单位':'')+(u.canTargetAir?' · 可对空':' · 仅对地')+(u.reload?' · 装弹 '+u.reload+'回合':'')+'</div>';
+if(u.type||u.canTargetAir)h+='<div style="color:#8a8a9a;font-size:.85rem;margin-bottom:10px;">'+(u.type==='air'?'🛩️ 空中单位':'')+(u.canTargetAir?' · 可对空':' · 仅对地')+(u.reload?' · 装弹 '+u.reload+'回合':'')+'</div>';
 var dd=u.attacks>1&&u.damage>0?u.damage+'×'+u.attacks:u.damage;
 h+='<div class="section-label">初始武器：'+u.weapon+'</div><table><thead><tr><th>属性</th><th>数值</th></tr></thead><tbody>';
 h+='<tr><td>伤害</td><td>'+dd+'</td></tr><tr><td>射程</td><td>'+u.range+'</td></tr></tbody></table>';
@@ -262,7 +262,7 @@ var cl=eq.cost>=0?'🪙 '+eq.cost+' 元':'<span style="color:#7acc7a;">价格 '+
 h+='<div class="equip-card"><h4>'+eq.name+'</h4><div class="desc">'+(eq.desc||'')+'</div><div class="stats" style="margin-bottom:4px;">'+cl+'</div><div class="stats">'+s+'</div></div>'});h+='</div>'}
 if(k==='坦克')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>高爆炮的范围爆炸效果在面对密集步兵阵型时极为致命，一发入魂。</div>';
 else if(k==='火箭炮')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>全游戏最远射程，可在敌方反击范围外安全输出。</div>';
-else if(k==='装甲车')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：运载</span>🚌 可搭载 <strong>8 名</strong> 步兵单位，实现快速战场投送。</div>';
+else if(k==='装甲车')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：运载 · 对空</span>🚌 可搭载 <strong>8 名</strong> 步兵单位；🔫 可对空射击。</div>';
 else if(k==='战斗机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：制空</span>🛩️ 可对空对地，地面单位无法反击空中单位。</div>';
 else if(k==='轰炸机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：对地轰炸</span>💣 仅对地攻击，装弹 2 回合，地面单位无法反击。</div>';
 else if(k==='防空车')h+='<div class="tip-box"><span class="tip-label">💡 双模式：防空</span>🔫 对空伤害'+(u.airDamage||u.damage)+' 射程'+(u.airRange||u.range)+'，对地伤害'+u.damage+' 射程'+u.range+'。地面单位无法反击空中。</div>';
@@ -317,7 +317,7 @@ function oc(){fillEquip('simEquipA',sa.value);fillEquip('simEquipB',sb.value);up
 sa.onchange=oc;sb.onchange=oc;document.getElementById('simEquipA').onchange=updQty;
 document.getElementById('simEquipB').onchange=updQty;document.getElementById('simMul').onchange=updQty;oc()}
 function apSt(base,eq){var hp=Math.max(.5,base.hp+(eq.hp||0));
-return{...base,hp:hp,damage:base.damage+(eq.dmg||0),range:base.range+(eq.range||0),speed:base.speed+(eq.speed||0),price:base.price+(eq.cost||0),blast:eq.blast||1}}
+return{...base,hp:hp,damage:base.damage+(eq.dmg||0),range:base.range+(eq.range||0),speed:base.speed+(eq.speed||0),price:base.price+(eq.cost||0),blast:eq.blast||1,canTargetAir:base.canTargetAir||eq.canTargetAir||false}}
 function canAtk(att,def){if(!def.type||def.type==='ground')return true;if(def.type==='air'&&att.canTargetAir)return true;return false}
 function eR(att,def){return def&&def.type==='air'&&att.airRange?att.airRange:att.range}
 function eD(att,def){return def&&def.type==='air'&&att.airDamage?att.airDamage:att.damage}

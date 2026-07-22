@@ -549,13 +549,18 @@ function backToMenu(){
   document.getElementById('menu').style.display='flex'
 }
 function openEncyclopedia(){
-  window.open('encyclopedia/index.html','_blank')
+  try{window.open('encyclopedia/index.html','_blank')}catch(e){}
 }
 function startGame(n){
   document.getElementById('player-sel').style.display='none'
   document.getElementById('gameOver').style.display='none'
   initEngine(n)
-  new Game()
+  try{
+    new Game()
+  }catch(e){
+    alert('游戏初始化失败: '+e.message+'\n'+e.stack)
+    return
+  }
   showTurnNotify()
 }
 

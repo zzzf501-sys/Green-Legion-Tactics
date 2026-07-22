@@ -333,7 +333,7 @@ class Game{
     this.selUnit=null;this.selBuilding=null
     this._placeInit()
     this._centerOnCur()
-    this._updateUI()
+    this._updateButtons()
   }
   _placeInit(){
     let n=ENGINE.players.length
@@ -387,7 +387,7 @@ class Game{
         }
       }else clearSel()
     }
-    this._updateUI()
+    this._updateButtons()
   }
   _selUnit(u){
     SEL.u=u;SEL.b=null
@@ -396,7 +396,7 @@ class Game{
     }else if(u.canAttack()){
       SEL.hl=getTilesInRange(u.gx,u.gy,u.range);SEL.hc='#ff000060';SEL.phase='ATK'
     }else{SEL.phase='SEL';SEL.hl.clear()}
-    this._updateUI()
+    this._updateButtons()
   }
   _showHQ(b){
     let p=document.getElementById('hq-panel');p.style.display='flex'
@@ -417,7 +417,7 @@ class Game{
   _hqUpgrade(){
     let b=SEL.b;if(!b)return
     let p=curP()
-    if(b.canUpgrade()&&p.gold>=b.upgradeCost){p.gold-=b.upgradeCost;b.startUpgrade();this._showHQ(b);this._updateUI()}
+    if(b.canUpgrade()&&p.gold>=b.upgradeCost){p.gold-=b.upgradeCost;b.startUpgrade();this._showHQ(b);this._updateButtons()}
   }
   _recruit(ut){
     let b=SEL.b;if(!b)return;let p=curP();let cost=UNIT_DATA[ut].price
@@ -426,7 +426,7 @@ class Game{
     if(!pos)return
     p.gold-=cost
     let u=new Unit(ut,pos[0],pos[1],p.id);this.grid.place(u,pos[0],pos[1]);p.addUnit(u)
-    this._showHQ(b);this._updateUI()
+    this._showHQ(b);this._updateButtons()
   }
   _findSpawn(bx,by){
     for(let r=1;r<4;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++)
@@ -439,29 +439,38 @@ class Game{
     let nd=[]
     this.dying.forEach(d=>{d.alpha-=8;if(d.alpha>0)nd.push(d)})
     this.dying=nd
-    this._updateUI()
+    this._updateHUD()
   }
-  _updateUI(){
-    let p=curP()
-    document.getElementById('hudName').textContent=p.name
-    document.getElementById('hudName').style.color=PLAYER_COLORS[p.id]
-    document.getElementById('hudTurn').textContent='回合 '+ENGINE.turn
-    document.getElementById('hudGold').textContent='🪙'+p.gold
-    document.getElementById('info').textContent=SEL.u?SEL.u.type+' HP:'+SEL.u.hp.toFixed(1)+'/'+SEL.u.maxHp+' 伤害:'+SEL.u.damage+' 射程:'+SEL.u.range+(SEL.u.done?' [Done]':''):''
-    let bb=document.getElementById('bottom-btns')
-    bb.innerHTML=''
-    if(SEL.u&&!SEL.u.done){
-      bb.innerHTML+='<button class="btn" onclick="skipUnit()">跳过</button>'
-      if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(SEL.u.gx,SEL.u.gy)))
-        bb.innerHTML+='<button class="btn btn-primary" onclick="stationUnit()">驻扎</button>'
-    }
-    bb.innerHTML+='<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
+  _updateHUD(){
+    try{
+      let p=curP();if(!p)return
+      document.getElementById('hudName').textContent=p.name
+      document.getElementById('hudName').style.color=PLAYER_COLORS[p.id]
+      document.getElementById('hudTurn').textContent='回合 '+ENGINE.turn
+      document.getElementById('hudGold').textContent='🪙'+p.gold
+      document.getElementById('info').textContent=SEL.u?SEL.u.type+' HP:'+SEL.u.hp.toFixed(1)+'/'+SEL.u.maxHp+' 伤害:'+SEL.u.damage+' 射程:'+SEL.u.range+(SEL.u.done?' [Done]':''):''
+    }catch(e){}
+  }
+  _updateButtons(){
+    try{
+      let bb=document.getElementById('bottom-btns')
+      if(!bb)return
+      // 只在按钮不存在或状态改变时重建
+      let html=''
+      if(SEL.u&&!SEL.u.done){
+        html+='<button class="btn" onclick="skipUnit()">跳过</button>'
+        if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(SEL.u.gx,SEL.u.gy)))
+          html+='<button class="btn btn-primary" onclick="stationUnit()">驻扎</button>'
+      }
+      html+='<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
+      if(bb.innerHTML!==html)bb.innerHTML=html
+    }catch(e){}
   }
 }
-function skipUnit(){if(SEL.u&&!SEL.u.done){SEL.u.done=true;clearSel();G._updateUI()}}
+function skipUnit(){if(SEL.u&&!SEL.u.done){SEL.u.done=true;clearSel();G._updateButtons()}}
 function stationUnit(){
   let u=SEL.u;if(!u||u.done)return
-  if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy))){u.stationed=true;u.done=true;clearSel();G._updateUI()}
+  if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy))){u.stationed=true;u.done=true;clearSel();G._updateButtons()}
 }
 function endTurn(){
   try{

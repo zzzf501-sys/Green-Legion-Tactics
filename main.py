@@ -344,7 +344,10 @@ class Building(Entity):
         if self.is_upgrading:
             self.upgrade_timer-=1
             if self.upgrade_timer<=0:
-                self.tier+=1; self.is_upgrading=False; self.hp=self.max_hp; self._update_tier_stats(); return True
+                self.tier+=1; self.is_upgrading=False
+                self._update_tier_stats()  # 先更新属性（max_hp变为新等级的值）
+                self.hp=self.max_hp  # 再回满血
+                return True
         return False
     def in_heal_range(self, gx, gy): return manhattan((self.grid_x,self.grid_y),(gx,gy))<=2
 
@@ -610,7 +613,9 @@ class Renderer:
         pygame.draw.rect(self.screen,COLOR_DARK,(bx,by,bw,bh)); pygame.draw.rect(self.screen,hc,(bx,by,bw*r,bh))
     def _draw_building(self, building):
         sx,sy=self.cam.grid_to_screen(building.grid_x,building.grid_y); sz=TILE_SIZE*self.cam.zoom
-        if building.building_type=='大本营': sp=self._get_sprite(f'大本营 T{building.tier+1}')
+        if building.building_type=='大本营':
+            name='大本营T3' if building.tier>=2 else f'大本营 T{building.tier+1}'
+            sp=self._get_sprite(name)
         elif building.building_type=='据点': sp=self._get_sprite('据点')
         else: sp=self._get_sprite(building.building_type)
         if sp:

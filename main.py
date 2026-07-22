@@ -1328,12 +1328,16 @@ class Game:
                 self.camera.end_drag()
 
         elif event.type == pygame.MOUSEMOTION:
+            if self.game_state == 'MENU' or not self.camera:
+                return
             gx, gy = self.camera.screen_to_grid(*event.pos)
             self.renderer.set_hover(gx, gy)
             if event.buttons[0]:
                 self.camera.update_drag(*event.pos)
 
         elif event.type == pygame.MOUSEWHEEL:
+            if self.game_state == 'MENU' or not self.camera:
+                return
             mx, my = pygame.mouse.get_pos()
             if event.y > 0:
                 self.camera.zoom_at(mx, my, 0.15)

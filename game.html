@@ -118,6 +118,7 @@ const BUILDING_DATA={
     {hp:120,armor:1,gold:8,turret:{damage:3,attacks:3,range:8}},
   ]},
   '据点':{hp:20,armor:0,gold:3,captureTurret:{damage:2,attacks:2,range:5}},
+  '资源采集器':{hp:15,armor:0,gold:3,cost:8},
 }
 const EQUIP_DATA={
   '士兵':[{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,canTargetAir:true,tier:'T2',researchCost:5,researchTime:2},
@@ -258,6 +259,9 @@ class Building{
       let d=BUILDING_DATA['据点']
       this.maxHp=d.hp;this.hp=this.hp||d.hp;this.armor=d.armor
       this.gold=this.captured?d.gold:0;this.turret=this.captured?d.captureTurret:null
+    }else{
+      let d=BUILDING_DATA[this.type]
+      if(d){this.maxHp=d.hp;this.hp=this.hp||d.hp;this.armor=d.armor;this.gold=d.gold;this.turret=null}
     }
   }
   capture(pid){

@@ -335,13 +335,13 @@ if(aT){var erA2=eR(uA,uB);if(advA){dist=Math.max(0,dist-uA.speed)}else if(ret<3&
 if(rlA>0){rlA--}else if(dist<=erA2&&qA>0&&qB>0&&canAtk(uA,uB)){atk=true;var dmg=eD(uA,uB);var dm=Math.max(0,dmg-uB.armor);
 if(dm>0){var eff=qA*uA.attacks*(uA.blast||1);if(dm>=uB.hp){kill=Math.min(eff,qB)}
 else{var hk=Math.ceil(uB.hp/dm);pB+=eff*dm;kill=Math.min(Math.floor(pB/uB.hp),Math.floor(eff/hk),qB);pB-=kill*uB.hp}
-qB=Math.max(qB-kill,0)}if(uA.reload)rlA=uA.reload}}
+qB=Math.max(qB-kill,0)}if(uA.reload)rlA=uA.reload}
 log.push({turn:turn,actor:'A',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,eD(uA,uB)-uB.armor),remainA:qA,remainB:qB})
 }else{var erB2=eR(uB,uA);if(advB){dist=Math.max(0,dist-uB.speed)}else if(ret<3&&dist+uB.speed<=erB2&&qA>0){dist+=uB.speed;ret++;rtr=true}
 if(rlB>0){rlB--}else if(dist<=erB2&&qB>0&&qA>0&&canAtk(uB,uA)){atk=true;var dmg=eD(uB,uA);var dm=Math.max(0,dmg-uA.armor);
 if(dm>0){var eff=qB*uB.attacks*(uB.blast||1);if(dm>=uA.hp){kill=Math.min(eff,qA)}
 else{var hk=Math.ceil(uA.hp/dm);pA+=eff*dm;kill=Math.min(Math.floor(pA/uA.hp),Math.floor(eff/hk),qA);pA-=kill*uA.hp}
-qA=Math.max(qA-kill,0)}if(uB.reload)rlB=uB.reload}}
+qA=Math.max(qA-kill,0)}if(uB.reload)rlB=uB.reload}
 log.push({turn:turn,actor:'B',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,eD(uB,uA)-uA.armor),remainA:qA,remainB:qB})}}
 var res;if(qA>0&&qB<=0)res='winA';else if(qB>0&&qA<=0)res='winB';else if(qA<=0&&qB<=0)res='draw';else res='timeout';
 renderSim(na,nb,uA,uB,log,res,turn,qA,qB);}

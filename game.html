@@ -458,7 +458,7 @@ class Game{
       if(hq&&!t.occ&&manh([gx,gy],[hq.gx,hq.gy])<=5&&p.gold>=8){
         p.gold-=8
         let b=new Building('资源采集器',gx,gy,p.id)
-        b.underConstruction=true;b.buildTimer=4
+        b.underConstruction=true;b.buildTimer=2
         this.grid.place(b,gx,gy);p.addBuilding(b)
         console.log('Building resource collector, ready in 4 turns')
       }
@@ -660,7 +660,8 @@ class Game{
       document.getElementById('hudName').textContent=p.name
       document.getElementById('hudName').style.color=PLAYER_COLORS[p.id]
       document.getElementById('hudTurn').textContent='回合 '+ENGINE.turn
-      document.getElementById('hudGold').textContent='🪙'+p.gold
+      let income=p.buildings.reduce((s,b)=>s+(b.gold||0),0)
+      document.getElementById('hudGold').textContent='🪙'+p.gold+'  (+'+income+'/回合)'
       document.getElementById('info').textContent=SEL.u?SEL.u.type+' HP:'+SEL.u.hp.toFixed(1)+'/'+SEL.u.maxHp+' 伤害:'+SEL.u.damage+' 射程:'+SEL.u.range+(SEL.u.done?' [Done]':''):''
     }catch(e){}
   }
@@ -852,7 +853,7 @@ function drawBuilding(b){
   if(img&&img.complete&&img.naturalWidth>0){
     try{ctx.drawImage(img,sx,sy,sz,sz)}catch(e){}
     // 血条
-    let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy-6
+    let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
     let ratio=Math.max(0,b.hp/b.maxHp)
     ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
     ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
@@ -871,15 +872,15 @@ function drawBuilding(b){
     ctx.fillStyle=COL_WHITE;ctx.font='bold '+Math.floor(sz*.4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
     ctx.fillText('⚑',sx+sz/2,sy+sz/2)
   }
-  let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy-6
+  let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
   let ratio=Math.max(0,b.hp/b.maxHp)
   ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
   ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
   // 建造中进度条
   if(b.underConstruction){
-    ctx.fillStyle='#8888ff80';ctx.fillRect(sx,sy-12,sz,6)
+    ctx.fillStyle='#8888ff80';ctx.fillRect(sx+2,sy+2,sz-4,4)
     let pct=1-(b.buildTimer||4)/4
-    ctx.fillStyle='#4444ff';ctx.fillRect(sx,sy-12,sz*pct,6)
+    ctx.fillStyle='#4444ff';ctx.fillRect(sx+2,sy+2,(sz-4)*pct,4)
   }
 }
 function drawDying(d){

@@ -173,7 +173,7 @@ class Grid{
         this.tiles[x][y]={gx:x,gy:y,terrain:t,occ:null,mc:{grass:1,road:.5,forest:2,water:99,mountain:3}[t]||1}
       }
     }
-    Math.seed=42
+
   }
   ib(x,y){return x>=0&&x<MAP_W&&y>=0&&y<MAP_H}
   get(x,y){return this.ib(x,y)?this.tiles[x][y]:null}
@@ -361,7 +361,7 @@ class Game{
         this.grid.remove(u);u.moveTo(gx,gy);t.occ=u
         if(u.canAttack()){
           let at=getTilesInRange(gx,gy,u.range);let en=new Set()
-          for(let k of at){let[tok]=k.split(',');let[tx,ty]=[+tok,+k.split(',')[1]];let tt=this.grid.get(tx,ty);if(tt&&tt.occ&&tt.occ.pid!==p.id&&tt.occ instanceof Unit)en.add(k)}
+          for(let k of at){let[tok]=k.split(',');let[tx,ty]=[+tok,+k.split(',')[1]];let tt=this.grid.get(tx,ty);if(tt&&tt.occ&&tt.occ.pid!==p.id&&(tt.occ instanceof Unit||tt.occ instanceof Building))en.add(k)}
           if(en.size){SEL.hl=en;SEL.hc='#ff000060';SEL.phase='ATK';return}
         }
         u.done=true;clearSel()
@@ -543,7 +543,7 @@ function showTurnNotify(){
 // ==================== 鼠标/键盘事件 ====================
 let mpx=0,mpy=0,md=false
 cvs.addEventListener('mousedown',e=>{
-  if(!G){if(e.button===0){let bx=e.clientX,by=e.clientY;document.getElementById('menu').style.display='none'};return}
+  if(!G)return
   if(e.button===0){md=true;G.cam.startDrag(e.clientX,e.clientY);let[gx,gy]=G.cam.s2g(e.clientX,e.clientY);G._handleClick(gx,gy)}
   if(e.button===2){e.preventDefault()}
 })
@@ -559,7 +559,7 @@ cvs.addEventListener('mousemove',e=>{
     let o=t.occ;let lines=[]
     if(o instanceof Unit)lines=(o.pid>=0?'玩家'+(o.pid+1)+' | ':'中立 | ')+o.type+' HP:'+o.hp.toFixed(1)+'/'+o.maxHp+' 护甲:'+o.armor+' 伤害:'+o.damage+' 射程:'+o.range+(o.done?' [Done]':' [Ready]')
     else lines=(o.pid>=0?'玩家'+(o.pid+1):'中立')+' | '+o.type+' HP:'+Math.floor(o.hp)+'/'+Math.floor(o.maxHp)+' 护甲:'+o.armor+(o.type==='大本营'?' T'+(o.tier+1):'')
-    tip.textContent=lines;tip.style.display='block';tip.style.left=Math.min(e.clientX+15,W-270)+'px';tip.style.top=Math.min(e.clientY-10,H-60)+'px'
+    tip.textContent=lines;tip.style.display='block';tip.style.left=Math.max(10,Math.min(e.clientX+15,W-270))+'px';tip.style.top=Math.min(e.clientY-10,H-60)+'px'
   }else tip.style.display='none'
 })
 cvs.addEventListener('mouseup',e=>{if(e.button===0&&G&&G.cam){md=false;G.cam.endDrag()}})
@@ -579,7 +579,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft')G.cam.pan(sp,0)
   if(e.key==='d'||e.key==='D'||e.key==='ArrowRight')G.cam.pan(-sp,0)
   if(e.key==='Escape')clearSel()
-  if(e.key==='Enter')endTurn()
+  if(e.key==='Enter'&&ENGINE.state==='PLAYING')endTurn()
 })
 
 // ==================== 菜单函数 ====================

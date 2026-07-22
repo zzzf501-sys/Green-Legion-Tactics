@@ -362,7 +362,7 @@ var th='<div class="sim-table-wrap"><table><thead><tr><th>#</th><th>行动</th><
 var dl=log.length<=25?log:log.slice(-25);if(log.length>25)th+='<tr><td colspan="6" style="color:#5a5a6a;font-size:.8rem;">⋯ 省略前 '+(log.length-25)+' 回合</td></tr>';
 dl.forEach(function(r){var ac=r.actor==='A'?'#5ab0f0':'#f06050';var df=r.postDist-r.preDist;
 var ch=r.retreated?'后退 '+df+' ⤴':(df<0?'前进 '+(-df):(df>0?'后退 '+df:'不动'));
-var at=r.attacked?(r.kill>0?'<span class="'+(r.actor==='A'?'sim-kill-b':'sim-kill-a')+'">攻击，消灭 '+r.kill+' 个</span>':(r.dmg>0?'<span style="color:#8a8a30;">未击杀</span>':'<span style="color:#6a4a4a;">打不动</span>')):'<span style="color:#5a5a6a;">射程外</span>';
+var at=r.attacked?(r.kill>0?'<span class="'+(r.actor==='A'?'sim-kill-b':'sim-kill-a')+'">攻击，消灭 '+r.kill+' 个</span>':(r.dmg>0?'<span style="color:#8a8a30;">未击杀</span>':'<span style="color:#6a4a4a;">打不动</span>')):'<span style="color:#5a5a6a;">待机</span>';
 th+='<tr><td>'+r.turn+'</td><td><strong style="color:'+ac+';">'+r.actor+'</strong></td><td class="sim-dist">'+r.preDist+' → '+r.postDist+'</td><td>'+at+'</td><td class="sim-remain">'+r.remainA+'</td><td class="sim-remain">'+r.remainB+'</td></tr>'});
 th+='</tbody></table></div>';el.innerHTML=sh+ih+th;}
 function simB(na,ea,nb,eb,fi,sc){var uA=apSt(UD[na],ea),uB=apSt(UD[nb],eb);

@@ -536,48 +536,6 @@ function showTurnNotify(){
   el.style.display='flex';notifyTimer=50
 }
 
-// ==================== 鼠标/键盘事件 ====================
-let mpx=0,mpy=0,md=false
-cvs.addEventListener('mousedown',e=>{
-  if(!G)return
-  if(e.button===0){md=true;G.cam.startDrag(e.clientX,e.clientY);let[gx,gy]=G.cam.s2g(e.clientX,e.clientY);G._handleClick(gx,gy)}
-  if(e.button===2){e.preventDefault()}
-})
-cvs.addEventListener('mousemove',e=>{
-  mpx=e.clientX;mpy=e.clientY
-  if(!G)return
-  if(md)G.cam.updateDrag(e.clientX,e.clientY)
-  // 悬停提示
-  let[gx,gy]=G.cam.s2g(e.clientX,e.clientY)
-  let t=G.grid.get(gx,gy)
-  let tip=document.getElementById('tooltip')
-  if(t&&t.occ){
-    let o=t.occ;let lines=[]
-    if(o instanceof Unit)lines=(o.pid>=0?'玩家'+(o.pid+1)+' | ':'中立 | ')+o.type+' HP:'+o.hp.toFixed(1)+'/'+o.maxHp+' 护甲:'+o.armor+' 伤害:'+o.damage+' 射程:'+o.range+(o.done?' [Done]':' [Ready]')
-    else lines=(o.pid>=0?'玩家'+(o.pid+1):'中立')+' | '+o.type+' HP:'+Math.floor(o.hp)+'/'+Math.floor(o.maxHp)+' 护甲:'+o.armor+(o.type==='大本营'?' T'+(o.tier+1):'')
-    tip.textContent=lines;tip.style.display='block';tip.style.left=Math.max(10,Math.min(e.clientX+15,W-270))+'px';tip.style.top=Math.min(e.clientY-10,H-60)+'px'
-  }else tip.style.display='none'
-})
-cvs.addEventListener('mouseup',e=>{if(e.button===0&&G&&G.cam){md=false;G.cam.endDrag()}})
-cvs.addEventListener('wheel',e=>{
-  e.preventDefault()
-  if(!G||!G.cam)return
-  if(e.deltaY<0)G.cam.zoomAt(e.clientX,e.clientY,.15)
-  else G.cam.zoomAt(e.clientX,e.clientY,-.15)
-},{passive:false})
-cvs.addEventListener('contextmenu',e=>e.preventDefault())
-document.addEventListener('keydown',e=>{
-  if(e.key==='F11'){e.preventDefault();if(!document.fullscreenElement)document.body.requestFullscreen();else document.exitFullscreen();return}
-  if(!G)return
-  let sp=8/Math.max(.1,G.cam.z)
-  if(e.key==='w'||e.key==='W'||e.key==='ArrowUp')G.cam.pan(0,sp)
-  if(e.key==='s'||e.key==='S'||e.key==='ArrowDown')G.cam.pan(0,-sp)
-  if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft')G.cam.pan(sp,0)
-  if(e.key==='d'||e.key==='D'||e.key==='ArrowRight')G.cam.pan(-sp,0)
-  if(e.key==='Escape')clearSel()
-  if(e.key==='Enter'&&ENGINE.state==='PLAYING')endTurn()
-})
-
 // ==================== 菜单函数 ====================
 function showPlayerSel(){
   document.getElementById('menu').style.display='none'
@@ -612,10 +570,41 @@ function gameLoop(){
 }
 
 // ==================== 初始化 ====================
+function setupEvents(){
+  let md=false
+  cvs.addEventListener('mousedown',e=>{
+    if(!G)return
+    if(e.button===0){md=true;G.cam.startDrag(e.clientX,e.clientY);let[gx,gy]=G.cam.s2g(e.clientX,e.clientY);G._handleClick(gx,gy)}
+    if(e.button===2)e.preventDefault()
+  })
+  cvs.addEventListener('mousemove',e=>{
+    if(!G)return
+    if(md)G.cam.updateDrag(e.clientX,e.clientY)
+    let[gx,gy]=G.cam.s2g(e.clientX,e.clientY);let t=G.grid.get(gx,gy);let tip=document.getElementById('tooltip')
+    if(t&&t.occ){
+      let o=t.occ;let lines=''
+      if(o instanceof Unit)lines=(o.pid>=0?'玩家'+(o.pid+1)+' | ':'中立 | ')+o.type+' HP:'+o.hp.toFixed(1)+'/'+o.maxHp+' 护甲:'+o.armor+' 伤害:'+o.damage+' 射程:'+o.range+(o.done?' [Done]':' [Ready]')
+      else lines=(o.pid>=0?'玩家'+(o.pid+1):'中立')+' | '+o.type+' HP:'+Math.floor(o.hp)+'/'+Math.floor(o.maxHp)+' 护甲:'+o.armor+(o.type==='大本营'?' T'+(o.tier+1):'')
+      tip.textContent=lines;tip.style.display='block';tip.style.left=Math.max(10,Math.min(e.clientX+15,W-270))+'px';tip.style.top=Math.min(e.clientY-10,H-60)+'px'
+    }else tip.style.display='none'
+  })
+  cvs.addEventListener('mouseup',e=>{if(e.button===0&&G&&G.cam){md=false;G.cam.endDrag()}})
+  cvs.addEventListener('wheel',e=>{e.preventDefault();if(!G||!G.cam)return;if(e.deltaY<0)G.cam.zoomAt(e.clientX,e.clientY,.15);else G.cam.zoomAt(e.clientX,e.clientY,-.15)},{passive:false})
+  cvs.addEventListener('contextmenu',e=>e.preventDefault())
+  document.addEventListener('keydown',e=>{
+    if(e.key==='F11'){e.preventDefault();if(!document.fullscreenElement)document.body.requestFullscreen();else document.exitFullscreen();return}
+    if(!G)return;let sp=8/Math.max(.1,G.cam.z)
+    if(e.key==='w'||e.key==='W'||e.key==='ArrowUp')G.cam.pan(0,sp)
+    if(e.key==='s'||e.key==='S'||e.key==='ArrowDown')G.cam.pan(0,-sp)
+    if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft')G.cam.pan(sp,0)
+    if(e.key==='d'||e.key==='D'||e.key==='ArrowRight')G.cam.pan(-sp,0)
+    if(e.key==='Escape')clearSel()
+    if(e.key==='Enter'&&ENGINE.state==='PLAYING')endTurn()
+  })
+}
 window.addEventListener('load',()=>{
   cvs=document.getElementById('gc');ctx=cvs.getContext('2d')
-  resize()
-  gameLoop()
+  resize();setupEvents();gameLoop()
 })
 window.addEventListener('resize',resize)
 </script>

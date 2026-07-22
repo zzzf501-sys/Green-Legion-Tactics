@@ -161,9 +161,11 @@ def apply_equip(stats, equip):
 class Camera:
     """处理视口平移与缩放"""
 
-    def __init__(self, map_pixels_w, map_pixels_h):
+    def __init__(self, map_pixels_w, map_pixels_h, scr_w=SCREEN_WIDTH, scr_h=SCREEN_HEIGHT):
         self.map_w = map_pixels_w
         self.map_h = map_pixels_h
+        self.scr_w = scr_w
+        self.scr_h = scr_h
         self.offset_x = 0
         self.offset_y = 0
         self.zoom = 1.0
@@ -192,7 +194,7 @@ class Camera:
     def pan(self, dx, dy):
         self.target_offset_x += dx
         self.target_offset_y += dy
-        self._clamp_offset()
+        self._clamp_offset(self.scr_w, self.scr_h)
 
     def start_drag(self, sx, sy):
         self._dragging = True
@@ -203,7 +205,7 @@ class Camera:
         if self._dragging:
             self.target_offset_x = self._drag_offset[0] + (sx - self._drag_start[0])
             self.target_offset_y = self._drag_offset[1] + (sy - self._drag_start[1])
-            self._clamp_offset()
+            self._clamp_offset(self.scr_w, self.scr_h)
 
     def end_drag(self):
         self._dragging = False
@@ -215,12 +217,12 @@ class Camera:
         self.target_zoom = max(MIN_ZOOM, min(MAX_ZOOM, self.target_zoom + delta))
         self.target_offset_x = sx - wx * self.target_zoom
         self.target_offset_y = sy - wy * self.target_zoom
-        self._clamp_offset()
+        self._clamp_offset(self.scr_w, self.scr_h)
 
     def get_visible_rect(self):
         """返回可视区域的网格范围 (min_gx, min_gy, max_gx, max_gy)"""
         left, top = self.screen_to_world(0, 0)
-        right, bottom = self.screen_to_world(SCREEN_WIDTH, SCREEN_HEIGHT)
+        right, bottom = self.screen_to_world(self.scr_w, self.scr_h)
         return (max(0, int(left // TILE_SIZE)),
                 max(0, int(top // TILE_SIZE)),
                 min(MAP_WIDTH - 1, int(right // TILE_SIZE) + 1),
@@ -233,10 +235,12 @@ class Camera:
         self.offset_x += (self.target_offset_x - self.offset_x) * lerp
         self.offset_y += (self.target_offset_y - self.offset_y) * lerp
 
-    def _clamp_offset(self):
+    def _clamp_offset(self, scr_w=None, scr_h=None):
         """防止摄像机越界"""
-        max_ox = self.map_w * self.zoom - SCREEN_WIDTH
-        max_oy = self.map_h * self.zoom - SCREEN_HEIGHT
+        sw = scr_w or SCREEN_WIDTH
+        sh = scr_h or SCREEN_HEIGHT
+        max_ox = self.map_w * self.zoom - sw
+        max_oy = self.map_h * self.zoom - sh
         self.target_offset_x = max(min(self.target_offset_x, 10), -max_ox - 10)
         self.target_offset_y = max(min(self.target_offset_y, 10), -max_oy - 10)
 
@@ -1083,18 +1087,10 @@ class Renderer:
                 self.screen.blit(t, r)
 
     def _draw_hq_menu(self, building):
-        """在建筑旁绘制菜单"""
-        sx, sy = self.cam.grid_to_screen(building.grid_x, building.grid_y)
-        cx, cy = int(sx), int(sy - 80)
-        # 背景
-        bw, bh = 144, 200
-        pygame.draw.rect(self.screen, (20, 20, 30, 200),
-                         (cx - 2, cy - 2, bw + 4, bh + 4))
-        pygame.draw.rect(self.screen, COLOR_GRAY,
-                         (cx - 2, cy - 2, bw + 4, bh + 4), 1)
-        # 标题
-        t = self.font.render(f'T{building.tier + 1} 大本营', True, COLOR_GOLD)
-        self.screen.blit(t, (cx + 4, cy + 4))
+        """左侧面板 — 背景，按钮由 Game 绘制"""
+        pw = 200
+        pygame.draw.rect(self.screen, (15, 15, 25, 220), (0, 30, pw + 4, SCREEN_HEIGHT - 30))
+        pygame.draw.rect(self.screen, COLOR_GRAY, (0, 30, pw + 4, SCREEN_HEIGHT - 30), 1)
 
 
 # ============================================================
@@ -1132,8 +1128,8 @@ class Game:
         self._menu_state = 'MAIN'  # MAIN or PLAYER_SEL
 
     def _start_game(self, player_count):
-        map_pixels = MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE
-        self.camera = Camera(*map_pixels)
+        mp = MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE
+        self.camera = Camera(*mp, self.screen_w, self.screen_h)
         self.grid = Grid(MAP_WIDTH, MAP_HEIGHT)
         self.selection = SelectionManager()
         self.engine = GameEngine(player_count)
@@ -1175,32 +1171,36 @@ class Game:
         }
         self.hq_menu_buttons = []
         self.hq_menu_open = False
+        self.screen_w = SCREEN_WIDTH
+        self.screen_h = SCREEN_HEIGHT
 
     def _update_hq_menu(self, building):
-        """生成大本营菜单按钮"""
+        """生成大本营菜单按钮 — 左侧面板"""
         self.hq_menu_buttons.clear()
         if not building:
             return
         player = self.engine.get_current_player()
-        bx, by = building.grid_x, building.grid_y
-        sx, sy = self.camera.grid_to_screen(bx, by)
-        cx, cy = int(sx), int(sy - 80)
-        bw, bh = 140, 28
-        y_off = 0
+        pw, bw, bh = 200, 180, 30
+        y_off = 36
+
+        # 面板标题
+        self.hq_menu_buttons.append(
+            Button(10, y_off, pw, 36, f'🏰 T{building.tier+1} 大本营 🪙{player.gold}', COLOR_DARK, COLOR_GOLD)
+        )
+        y_off += 40
 
         # 升级按钮
         if building.can_upgrade():
             cost = building.upgrade_cost
             can_afford = player.gold >= cost
             self.hq_menu_buttons.append(
-                Button(cx, cy + y_off, bw, bh,
-                       f'T{building.tier + 2} (🪙{cost})',
+                Button(10, y_off, bw, bh, f'⬆ T{building.tier+2} 🪙{cost}',
                        COLOR_BLUE if can_afford else COLOR_GRAY)
             )
             self.hq_menu_buttons[-1].action = ('upgrade', building)
             y_off += bh + 4
 
-        # 招募按钮（当前Tier解锁的单位）
+        # 招募按钮
         recruit_pool = ['士兵']
         if building.tier >= 1:
             recruit_pool.extend(['坦克', '军用吉普', '野战炮', '装甲车'])
@@ -1209,17 +1209,20 @@ class Game:
         for utype in recruit_pool:
             cost = UNIT_DATA[utype]['price']
             can_afford = player.gold >= cost
+            txt = f'{utype}'
+            if utype in ('战斗机', '轰炸机', '军用吉普', '火箭炮', '装甲车'):
+                txt = utype[:4]
             self.hq_menu_buttons.append(
-                Button(cx, cy + y_off, bw, bh,
-                       f'{utype} (🪙{int(cost)})',
+                Button(10, y_off, bw, bh,
+                       f'{txt} 🪙{int(cost)}',
                        COLOR_DARK if can_afford else COLOR_GRAY)
             )
             self.hq_menu_buttons[-1].action = ('recruit', building, utype)
-            y_off += bh + 4
+            y_off += bh + 3
 
         # 关闭按钮
         self.hq_menu_buttons.append(
-            Button(cx, cy + y_off, bw, bh, '关闭', COLOR_RED)
+            Button(10, y_off + 4, bw, bh, '❌ 关闭', COLOR_RED)
         )
         self.hq_menu_buttons[-1].action = ('close',)
 
@@ -1269,11 +1272,16 @@ class Game:
             if event.key == pygame.K_F11:
                 self._fullscreen = not self._fullscreen
                 if self._fullscreen:
-                    self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                    info = pygame.display.Info()
+                    self.screen_w, self.screen_h = info.current_w, info.current_h
+                    self.screen = pygame.display.set_mode((self.screen_w, self.screen_h), pygame.FULLSCREEN)
                 else:
-                    self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                    self.screen_w, self.screen_h = SCREEN_WIDTH, SCREEN_HEIGHT
+                    self.screen = pygame.display.set_mode((self.screen_w, self.screen_h), pygame.RESIZABLE)
                 if self.renderer:
                     self.renderer.screen = self.screen
+                if self.camera:
+                    self.camera.scr_w, self.camera.scr_h = self.screen_w, self.screen_h
 
             if self.game_state == 'MENU':
                 return  # 菜单状态下仅处理 F11

@@ -1099,34 +1099,50 @@ class Renderer:
 # 主游戏类
 # ============================================================
 class Game:
-    def __init__(self, player_count=2):
+    def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption('绿色军团 — 热座回合制策略游戏')
         self._fullscreen = False
         self.clock = pygame.time.Clock()
         self.running = True
+        self.game_state = 'MENU'
+        self.camera = None
+        self.grid = None
+        self.selection = None
+        self.engine = None
+        self.renderer = None
+        self.buttons = {}
+        self.hq_menu_buttons = []
+        self.hq_menu_open = False
+        self._setup_menu()
 
+    def _setup_menu(self):
+        bw, bh = 260, 50; cx = (SCREEN_WIDTH - bw) // 2; cy = SCREEN_HEIGHT // 2 - 60
+        self._menu_buttons = [
+            Button(cx, cy, bw, bh, '🎮 开始游戏', (40, 80, 40), COLOR_WHITE),
+            Button(cx, cy + 70, bw, bh, '📖 百科全书', (40, 40, 80), COLOR_WHITE),
+        ]
+        self._player_sel_buttons = []
+        for i, n in enumerate([2, 3, 4]):
+            self._player_sel_buttons.append(
+                Button(cx - 90 + i * 90, cy + 70, 80, 50, f'{n}人', (60, 60, 60), COLOR_WHITE))
+        self._menu_state = 'MAIN'  # MAIN or PLAYER_SEL
+
+    def _start_game(self, player_count):
         map_pixels = MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE
         self.camera = Camera(*map_pixels)
         self.grid = Grid(MAP_WIDTH, MAP_HEIGHT)
         self.selection = SelectionManager()
         self.engine = GameEngine(player_count)
-        self.renderer = Renderer(
-            self.screen, self.camera, self.grid, self.selection, self.engine)
-
-        # 初始化地图实体
-        self._place_initial_entities()
-
+        self.renderer = Renderer(self.screen, self.camera, self.grid, self.selection, self.engine)
         self._setup_buttons()
         self.renderer.buttons = self.buttons
         self.renderer.hq_buttons = self.hq_menu_buttons
-
-        # 连接选择管理器到玩家建筑列表
         self.selection._get_player_buildings = lambda pid: [
-            b for p in self.engine.players if p.player_id == pid
-            for b in p.buildings
-        ]
+            b for p in self.engine.players if p.player_id == pid for b in p.buildings]
+        self._place_initial_entities()
+        self.game_state = 'PLAYING'
 
     def _place_initial_entities(self):
         """放置初始大本营和据点"""
@@ -1248,16 +1264,21 @@ class Game:
             self.running = False
 
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                self.selection.clear()
-                self.hq_menu_open = False
             if event.key == pygame.K_F11:
                 self._fullscreen = not self._fullscreen
                 if self._fullscreen:
                     self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                 else:
                     self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-                self.renderer.screen = self.screen
+                if self.renderer:
+                    self.renderer.screen = self.screen
+
+            if self.game_state == 'MENU':
+                return  # 菜单状态下仅处理 F11
+
+            if event.key == pygame.K_ESCAPE:
+                self.selection.clear()
+                self.hq_menu_open = False
             if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                 if self.selection.selected_unit and self.selection.selected_unit.can_skip():
                     self.selection.skip_unit()
@@ -1265,8 +1286,13 @@ class Game:
                     self.engine.next_turn()
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # 左键
+            if event.button == 1:
                 mx, my = event.pos
+
+                # 菜单状态
+                if self.game_state == 'MENU':
+                    self._handle_menu_click(mx, my)
+                    return
 
                 # 检查 HQ 菜单按钮
                 if self.hq_menu_open:
@@ -1367,12 +1393,48 @@ class Game:
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
             self.camera.pan(-speed, 0)
 
+    def _handle_menu_click(self, mx, my):
+        if self._menu_state == 'MAIN':
+            for btn in self._menu_buttons:
+                if btn.is_hovered((mx, my)):
+                    if btn.text == '🎮 开始游戏':
+                        self._menu_state = 'PLAYER_SEL'
+                    elif btn.text == '📖 百科全书':
+                        import webbrowser
+                        import os
+                        html = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                            'encyclopedia', 'index.html')
+                        webbrowser.open(html)
+                    return
+        elif self._menu_state == 'PLAYER_SEL':
+            for btn in self._player_sel_buttons:
+                if btn.is_hovered((mx, my)):
+                    count = int(btn.text[0])
+                    self._start_game(count)
+                    return
+
+    def _draw_menu(self):
+        self.screen.fill(COLOR_BG)
+        title = load_font(48).render('绿色军团', True, (200, 220, 160))
+        sub = load_font(20).render('热座回合制策略游戏', True, COLOR_GRAY)
+        tr = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 150))
+        sr = sub.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))
+        self.screen.blit(title, tr)
+        self.screen.blit(sub, sr)
+
+        btns = self._menu_buttons if self._menu_state == 'MAIN' else self._player_sel_buttons
+        for btn in btns:
+            btn.draw(self.screen, load_font(22))
+
     def run(self):
         while self.running:
             for event in pygame.event.get():
                 self.handle_event(event)
-            self.update()
-            self.renderer.render()
+            if self.game_state == 'MENU':
+                self._draw_menu()
+            elif self.game_state == 'PLAYING':
+                self.update()
+                self.renderer.render()
             pygame.display.flip()
             self.clock.tick(FPS)
         pygame.quit()
@@ -1388,5 +1450,5 @@ class Game:
 # 入口
 # ============================================================
 if __name__ == '__main__':
-    game = Game(player_count=2)
+    game = Game()
     game.run()

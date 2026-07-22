@@ -1171,8 +1171,6 @@ class Game:
         }
         self.hq_menu_buttons = []
         self.hq_menu_open = False
-        self.screen_w = SCREEN_WIDTH
-        self.screen_h = SCREEN_HEIGHT
 
     def _update_hq_menu(self, building):
         """生成大本营菜单按钮 — 左侧面板"""

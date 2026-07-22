@@ -566,14 +566,18 @@ function startGame(n){
 
 // ==================== 主循环 ====================
 function gameLoop(){
+  // 诊断：始终在画布显示状态
+  try{if(ctx){
+    ctx.fillStyle='#1a1a2a';ctx.fillRect(0,0,W,H)
+    ctx.fillStyle='#ff4040';ctx.font='14px monospace';ctx.textAlign='left';ctx.textBaseline='top'
+    ctx.fillText('G='+(!!G)+' ST='+ENGINE.state+' P='+ENGINE.players.length,10,10)
+  }}catch(e){}
   if(G&&ENGINE.state==='PLAYING'){
     try{G.update()}catch(e){}
     try{render()}catch(e){
       if(ctx){ctx.fillStyle='#ff0000';ctx.font='20px sans-serif';ctx.fillText('Render ERR: '+e.message,50,100)}
     }
   }else if(ctx){
-    // 等待游戏开始，画布显示提示
-    ctx.fillStyle='#1a1a2a';ctx.fillRect(0,0,W,H)
     ctx.fillStyle='#6a6a7a';ctx.font='18px sans-serif';ctx.textAlign='center'
     ctx.fillText('等待开始...',W/2,H/2)
   }

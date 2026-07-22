@@ -12,7 +12,9 @@
 import pygame
 import math
 import heapq
+import warnings
 from collections import deque
+warnings.filterwarnings('ignore', category=UserWarning, module='pygame')
 
 # ============================================================
 # 常量与配置
@@ -1286,13 +1288,12 @@ class Game:
                     self.engine.next_turn()
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
+            if self.game_state == 'MENU' or not self.camera:
+                if event.button == 1:
+                    self._handle_menu_click(*event.pos)
+                return
             if event.button == 1:
                 mx, my = event.pos
-
-                # 菜单状态
-                if self.game_state == 'MENU':
-                    self._handle_menu_click(mx, my)
-                    return
 
                 # 检查 HQ 菜单按钮
                 if self.hq_menu_open:
@@ -1324,6 +1325,8 @@ class Game:
                 self.camera.zoom_at(*event.pos, -0.15)
 
         elif event.type == pygame.MOUSEBUTTONUP:
+            if self.game_state == 'MENU' or not self.camera:
+                return
             if event.button == 1:
                 self.camera.end_drag()
 

@@ -26,8 +26,19 @@ canvas:active{cursor:grabbing}
 .btn-danger:hover{background:#5a2a2a}
 .btn-blue{background:#1a2a3a;border-color:#3a5a7a;color:#aacada}
 .btn-blue:hover{background:#2a4a5a}
-#bottom-btns{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+#bottom-btns{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:3}
 #bottom-btns .btn{min-width:100px;text-align:center}
+#unit-detail{position:absolute;bottom:0;left:0;right:0;height:90px;background:rgba(15,15,25,.92);border-top:1px solid #2a2a3e;display:none;align-items:center;padding:8px 16px;gap:16px;z-index:2}
+#unit-detail .ud-icon{width:72px;height:72px;border-radius:50%;border:2px solid #4a4a6a;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;background:#0a0a12}
+#unit-detail .ud-icon canvas{width:100%;height:100%;border-radius:50%}
+#unit-detail .ud-info{flex:1;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:12px;min-width:200px}
+#unit-detail .ud-info .ud-row{width:100%;display:flex;gap:16px;color:#b0b0c0}
+#unit-detail .ud-info .ud-row span{white-space:nowrap}
+#unit-detail .ud-info .ud-label{color:#6a6a7a;margin-right:2px}
+#unit-detail .ud-info .ud-val{color:#f0e6c0;font-weight:600}
+#unit-detail .ud-info .ud-hp{color:#7acc7a}
+#unit-detail .ud-info .ud-ap{color:#cc7a7a}
+#unit-detail .ud-actions{display:flex;gap:6px;flex-shrink:0}
 #menu{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#14141e,#0a0a0f);pointer-events:auto}
 #menu h1{font-size:52px;color:#c8d8a8;text-shadow:0 0 30px rgba(200,216,168,.15);margin-bottom:4px}
 #menu .sub{color:#5a5a6a;font-size:16px;margin-bottom:40px}
@@ -61,6 +72,7 @@ canvas:active{cursor:grabbing}
   <div id="hud"><span class="pname" id="hudName"></span><span class="turn" id="hudTurn"></span><span class="gold" id="hudGold"></span></div>
   <div id="info"></div>
   <div id="bottom-btns"></div>
+  <div id="unit-detail"><div class="ud-icon" id="udIcon"></div><div class="ud-info" id="udInfo"></div><div class="ud-actions" id="udActions"></div></div>
   <div id="hq-panel"></div>
   <div id="turn-notify"><div class="txt" id="notifyTxt"></div></div>
   <div id="tooltip"></div>
@@ -596,26 +608,56 @@ class Game{
   _updateButtons(){
     try{
       let bb=document.getElementById('bottom-btns')
+      let ud=document.getElementById('unit-detail')
+      let ui=document.getElementById('udInfo')
+      let ua=document.getElementById('udActions')
+      let ic=document.getElementById('udIcon')
       if(!bb)return
-      let html=''
-      if(SEL.u&&!SEL.u.done){
-        html+='<button class="btn" onclick="skipUnit()">跳过</button>'
-        if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(SEL.u.gx,SEL.u.gy)))
-          html+='<button class="btn btn-primary" onclick="stationUnit()">驻扎</button>'
-      }
-      // 装备购买
-      if(SEL.u&&!SEL.u.equip){
-        let pp=curP();let eqList=EQUIP_DATA[SEL.u.type]
-        if(eqList){
-          eqList.forEach(eq=>{
-            if(pp.researched[eq.name]&&pp.gold>=eq.cost)
-              html+='<button class="btn btn-primary" onclick="G._equipUnit(\''+eq.name+'\')">'+eq.name+' 🪙'+eq.cost+'</button>'
-          })
+      // 底部结束回合按钮
+      bb.innerHTML='<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
+      // 单位详情栏
+      let u=SEL.u
+      if(u){
+        ud.style.display='flex'
+        // 图标（用canvas绘制小单位图标）
+        let cvs=ic.querySelector('canvas')||document.createElement('canvas')
+        if(!ic.querySelector('canvas')){cvs.width=64;cvs.height=64;cvs.style.cssText='width:100%;height:100%;border-radius:50%';ic.innerHTML='';ic.appendChild(cvs)}
+        let cx=cvs.getContext('2d');cx.clearRect(0,0,64,64)
+        // 在canvas画单位形状
+        cx.fillStyle=PLAYER_COLORS[u.pid];cx.strokeStyle='#444';cx.lineWidth=2
+        if(u.type==='士兵'||u.type==='军用吉普'){cx.beginPath();cx.arc(32,32,24,0,Math.PI*2);cx.fill();cx.stroke()}
+        else if(u.type==='坦克'||u.type==='装甲车'){cx.fillRect(8,10,48,44);cx.strokeRect(8,10,48,44)}
+        else if(u.isAir){cx.beginPath();cx.moveTo(32,8);cx.lineTo(56,32);cx.lineTo(32,56);cx.lineTo(8,32);cx.closePath();cx.fill();cx.stroke()}
+        else{cx.beginPath();cx.arc(32,32,24,0,Math.PI*2);cx.fill();cx.stroke()}
+        // 信息
+        let hpPct=Math.round(u.hp/u.maxHp*100)
+        let hpColor=hpPct>50?'ud-hp':hpPct>25?'#d4c040':'ud-ap'
+        let rows='<div class="ud-row"><span>'+u.type+'</span><span style="color:'+PLAYER_COLORS[u.pid]+'">玩家'+(u.pid+1)+'</span></div>'
+        rows+='<div class="ud-row"><span>❤️ <span class="ud-val" style="color:'+hpColor+'">'+u.hp.toFixed(1)+'/'+u.maxHp.toFixed(1)+'</span></span><span>🛡️ <span class="ud-val">'+u.armor+'</span></span><span>💨 <span class="ud-val">'+u.speed+'</span></span><span>🔫 <span class="ud-val">'+u.damage+'</span></span><span>🎯 <span class="ud-val">'+u.range+'</span></span></div>'
+        if(u.equip)rows+='<div class="ud-row"><span>🛠️ <span class="ud-val">'+u.equip.name+'</span></span></div>'
+        if(u.done)rows+='<div class="ud-row"><span style="color:#6a6a7a">[已行动]</span></div>'
+        ui.innerHTML=rows
+        // 操作按钮
+        let acts=''
+        if(!u.done){
+          acts+='<button class="btn" onclick="skipUnit()" style="font-size:12px;padding:4px 12px">跳过</button>'
+          if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy)))
+            acts+='<button class="btn btn-primary" onclick="stationUnit()" style="font-size:12px;padding:4px 12px">驻扎</button>'
+          // 装备
+          if(!u.equip){
+            let eqs=EQUIP_DATA[u.type]
+            if(eqs)eqs.forEach(eq=>{
+              if(curP().researched[eq.name]&&curP().gold>=eq.cost)
+                acts+='<button class="btn btn-primary" onclick="G._equipUnit(\''+eq.name+'\')" style="font-size:11px;padding:4px 8px">'+eq.name+'</button>'
+            })
+          }
         }
+        acts+='<button class="btn btn-danger" onclick="clearSel()" style="font-size:12px;padding:4px 12px">取消</button>'
+        ua.innerHTML=acts
+      }else{
+        ud.style.display='none'
       }
-      html+='<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
-      if(bb.innerHTML!==html)bb.innerHTML=html
-    }catch(e){}
+    }catch(e){console.error(e)}
   }
 }
 function skipUnit(){if(SEL.u&&!SEL.u.done){SEL.u.done=true;clearSel();G._updateButtons()}}

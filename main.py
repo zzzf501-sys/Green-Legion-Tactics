@@ -492,8 +492,8 @@ class Pathfinder:
                     continue
                 tile = grid.get_tile(nx, ny)
                 occ = tile.occupant
-                if occ and isinstance(occ, Unit) and occ.player_id != unit.player_id:
-                    continue  # 敌方单位阻挡
+                if occ and occ != unit and occ.player_id != unit.player_id:
+                    continue  # 敌方单位或建筑阻挡
                 new_cost = current + tile.movement_cost
                 if new_cost <= max_moves and (nx, ny) not in cost_so_far:
                     cost_so_far[(nx, ny)] = new_cost
@@ -521,7 +521,7 @@ class Pathfinder:
                     continue
                 tile = grid.get_tile(nx, ny)
                 occ = tile.occupant
-                if (nx, ny) != (gx, gy) and occ and isinstance(occ, Unit) and occ.player_id != unit.player_id:
+                if (nx, ny) != (gx, gy) and occ and occ.player_id != (unit.player_id if unit else -2):
                     continue
                 new_cost = cost_so_far[(cx, cy)] + tile.movement_cost
                 if (nx, ny) not in cost_so_far or new_cost < cost_so_far[(nx, ny)]:
@@ -579,13 +579,13 @@ class SelectionManager:
             self.highlight_color = COLOR_HIGHLIGHT_MOVE
             self.action_phase = 'MOVE_PHASE'
         else:
-            self._show_attack_range(unit)
+            self._show_attack_range(unit, grid)
             self.action_phase = 'ATTACK_PHASE'
 
-    def _show_attack_range(self, unit):
+    def _show_attack_range(self, unit, grid):
         if unit.can_attack():
             self.highlight_tiles = Pathfinder.get_tiles_in_range(
-                None, (unit.grid_x, unit.grid_y), unit.attack_range)
+                grid, (unit.grid_x, unit.grid_y), unit.attack_range)
             self.highlight_color = COLOR_HIGHLIGHT_ATTACK
         else:
             self.highlight_tiles.clear()

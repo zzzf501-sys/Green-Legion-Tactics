@@ -471,62 +471,58 @@ function endTurn(){
 function render(){
   if(!G||!ctx)return
   ctx.fillStyle=COL_BG;ctx.fillRect(0,0,W,H)
-  let vr=G.cam.getVR();let cam=G.cam
-  ctx.save();ctx.translate(cam.ox,cam.oy);ctx.scale(cam.z,cam.z)
+  let vr=G.cam.getVR()
   for(let x=vr[0];x<vr[2];x++)for(let y=vr[1];y<vr[3];y++)drawTile(x,y)
   for(let k of SEL.hl){let[gx,gy]=k.split(',');drawHL(+gx,+gy,SEL.hc)}
   ENGINE.players.forEach(p=>p.buildings.forEach(b=>{if(b.gx>=vr[0]&&b.gx<vr[2]&&b.gy>=vr[1]&&b.gy<vr[3])drawBuilding(b)}))
   ENGINE.players.forEach(p=>p.units.forEach(u=>{if(u.gx>=vr[0]&&u.gx<vr[2]&&u.gy>=vr[1]&&u.gy<vr[3])drawUnit(u)}))
   G.dying.forEach(d=>drawDying(d))
-  ctx.restore()
 }
 
 function drawTile(x,y){
-  let[sx,sy]=G.cam.g2s(x,y)
+  let[sx,sy]=G.cam.g2s(x,y);let sz=TS*G.cam.z
   let t=G.grid.get(x,y);if(!t)return
   let base=(x+y)%2===0?COL_GL:COL_GD
   let tc={'water':'#283250','forest':'#1e3c1e','mountain':'#3c3728','road':'#37322d'}
-  ctx.fillStyle=tc[t.terrain]||base;ctx.fillRect(sx,sy,TS,TS)
-  ctx.strokeStyle='#282828';ctx.lineWidth=1;ctx.strokeRect(sx,sy,TS,TS)
+  ctx.fillStyle=tc[t.terrain]||base;ctx.fillRect(sx,sy,sz,sz)
+  ctx.strokeStyle='#282828';ctx.lineWidth=1;ctx.strokeRect(sx,sy,sz,sz)
 }
 function drawHL(gx,gy,c){
-  let[sx,sy]=G.cam.g2s(gx,gy)
-  ctx.fillStyle=c;ctx.fillRect(sx,sy,TS,TS)
+  let[sx,sy]=G.cam.g2s(gx,gy);let sz=TS*G.cam.z
+  ctx.fillStyle=c;ctx.fillRect(sx,sy,sz,sz)
 }
 function drawUnit(u){
-  let[sx,sy]=G.cam.g2s(u.gx,u.gy)
-  let cx=sx+TS/2,cy=sy+TS/2,r=TS/2.5
+  let[sx,sy]=G.cam.g2s(u.gx,u.gy);let sz=TS*G.cam.z;let hsz=sz/2
+  let cx=sx+hsz,cy=sy+hsz,r=hsz*.8
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2)
   ctx.fillStyle=PLAYER_COLORS[u.pid];ctx.fill()
   ctx.strokeStyle='#666';ctx.lineWidth=1;ctx.stroke()
-  if(!u.done){ctx.beginPath();ctx.arc(cx,cy,r+3,0,Math.PI*2);ctx.strokeStyle=COL_WHITE;ctx.lineWidth=2;ctx.stroke()}
-  let bw=TS*.7,bh=4,bx=sx+(TS-bw)/2,by=sy+TS-bh-3
+  if(!u.done){ctx.beginPath();ctx.arc(cx,cy,r+sz*.05,0,Math.PI*2);ctx.strokeStyle=COL_WHITE;ctx.lineWidth=2;ctx.stroke()}
+  let bw=sz*.7,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
   let ratio=u.hp/u.maxHp
   ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
   ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
 }
 function drawBuilding(b){
-  let[sx,sy]=G.cam.g2s(b.gx,b.gy);let sz=TS*1.2
-  let cx=sx+TS/2,cy=sy+TS/2
+  let[sx,sy]=G.cam.g2s(b.gx,b.gy);let sz=TS*G.cam.z;let hsz=sz/2
   if(b.type==='大本营'){
     let colors=['#3a6a3a','#3a5a8a','#8a5a3a']
     ctx.fillStyle=colors[b.tier]||'#3a5a3a'
   }else if(b.type==='据点'){ctx.fillStyle=b.pid>=0?PLAYER_COLORS[b.pid]:'#6a6a7a'}
   else{ctx.fillStyle='#4a4a5a'}
-  ctx.fillRect(sx+4,sy+4,TS-8,TS-8)
-  ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+4,sy+4,TS-8,TS-8)
-  ctx.fillStyle=COL_WHITE;ctx.font='20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
-  ctx.fillText(b.type[0],cx,cy)
-  let bw=TS*.6,bh=4,bx=sx+(TS-bw)/2,by=sy-6
+  ctx.fillRect(sx+2,sy+2,sz-4,sz-4)
+  ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)
+  ctx.fillStyle=COL_WHITE;ctx.font=Math.floor(sz*.35)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
+  ctx.fillText(b.type[0],sx+sz/2,sy+sz/2)
+  let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy-6
   let ratio=Math.max(0,b.hp/b.maxHp)
   ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
   ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
 }
 function drawDying(d){
-  let u=d.ent;let[sx,sy]=G.cam.g2s(u.gx,u.gy)
-  let cx=sx+TS/2,cy=sy+TS/2,r=TS/2.5
+  let u=d.ent;let[sx,sy]=G.cam.g2s(u.gx,u.gy);let sz=TS*G.cam.z
   ctx.globalAlpha=d.alpha/255
-  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2)
+  ctx.beginPath();ctx.arc(sx+sz/2,sy+sz/2,sz/3,0,Math.PI*2)
   ctx.fillStyle=PLAYER_COLORS[u.pid];ctx.fill()
   ctx.globalAlpha=1
 }

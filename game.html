@@ -383,7 +383,7 @@ class Game{
     let seed=42;Math.random=function(){seed=(seed*9301+49297)%233280;return seed/233280}
     this.grid=new Grid()
     this.cam=new Camera(MAP_W*TS,MAP_H*TS,W,H)
-    this.dying=[];this.buildMode=null;this.ghostPos=null
+    this.dying=[];this.neutralBuildings=[];this.buildMode=null;this.ghostPos=null
     this.selUnit=null;this.selBuilding=null
     this._placeInit()
     this._centerOnCur()
@@ -405,18 +405,20 @@ class Game{
     let my=(cs[0][1]+cs[1][1])>>1  // 两个基地y中点 (都是8)
     let t=this.grid.get(mx,my)
     console.log('Midpoint tile at',mx,my,'occupied?',t?!!t.occ:'null')
-    if(t&&!t.occ){
-      this.grid.place(new Building('据点',mx,my,-1),mx,my)
-      placed++;console.log('PLACED outpost at',mx,my)
-    }else{
-      // 备选：放旁边
+    function placeOp(gx,gy){
+      let b=new Building('据点',gx,gy,-1)
+      this.grid.place(b,gx,gy);this.neutralBuildings.push(b);placed++
+    }
+    if(t&&!t.occ){placeOp.call(this,mx,my);console.log('PLACED outpost at',mx,my)}
+    else{
       for(let d of[[1,0],[-1,0],[0,1],[0,-1]]){
         let t2=this.grid.get(mx+d[0],my+d[1])
-        if(t2&&!t2.occ){this.grid.place(new Building('据点',mx+d[0],my+d[1],-1),mx+d[0],my+d[1]);placed++;break}
+        if(t2&&!t2.occ){placeOp.call(this,mx+d[0],my+d[1]);break}
       }
     }
     if(n>2){let cx=MAP_W/2|0,cy=MAP_H/2|0
-      if(!this.grid.get(cx,cy).occ){this.grid.place(new Building('据点',cx,cy,-1),cx,cy);placed++}
+      let t=this.grid.get(cx,cy)
+      if(t&&!t.occ)placeOp.call(this,cx,cy)
     }
     console.log('Total outposts placed:',placed)
   }
@@ -471,7 +473,11 @@ class Game{
             clearSel()
           }else if(target instanceof Building){
             u.attack(target)
-            if(target.dead&&target.type==='据点'&&!target.captured){target.capture(p.id);p.addBuilding(target);this.grid.place(target,target.gx,target.gy)}
+            if(target.dead&&target.type==='据点'&&!target.captured){
+              target.capture(p.id);p.addBuilding(target);this.grid.place(target,target.gx,target.gy)
+              let idx=this.neutralBuildings.indexOf(target)
+              if(idx>=0)this.neutralBuildings.splice(idx,1)
+            }
             else if(target.dead){this.grid.remove(target);ENGINE.players.forEach(pp=>pp.removeBuilding(target))}
             clearSel()
           }
@@ -715,7 +721,9 @@ function render(){
   ctx.fillText('R:'+ENGINE.state+' VR:'+vr.join(',')+' Z:'+G.cam.z.toFixed(1),10,50)
   for(let x=vr[0];x<vr[2];x++)for(let y=vr[1];y<vr[3];y++)drawTile(x,y)
   for(let k of SEL.hl){let[gx,gy]=k.split(',');drawHL(+gx,+gy,SEL.hc)}
+  // 玩家建筑 + 中立建筑
   ENGINE.players.forEach(p=>p.buildings.forEach(b=>{if(b.gx>=vr[0]&&b.gx<vr[2]&&b.gy>=vr[1]&&b.gy<vr[3])drawBuilding(b)}))
+  if(G.neutralBuildings)G.neutralBuildings.forEach(b=>{if(b.gx>=vr[0]&&b.gx<vr[2]&&b.gy>=vr[1]&&b.gy<vr[3])drawBuilding(b)})
   ENGINE.players.forEach(p=>p.units.forEach(u=>{if(u.gx>=vr[0]&&u.gx<vr[2]&&u.gy>=vr[1]&&u.gy<vr[3])drawUnit(u)}))
   G.dying.forEach(d=>drawDying(d))
   // 建造虚影

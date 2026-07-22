@@ -107,6 +107,16 @@ const BUILDING_DATA={
   ]},
   '据点':{hp:20,armor:0,gold:3,captureTurret:{damage:2,attacks:2,range:5}},
 }
+const EQUIP_DATA={
+  '士兵':[{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,canTargetAir:true,tier:'T2',researchCost:5,researchTime:2},
+          {name:'反器械枪',cost:1.5,dmg:4,range:2,canTargetAir:true,tier:'T2',researchCost:5,researchTime:2}],
+  '坦克':[{name:'穿甲炮',cost:2,dmg:3,range:1,tier:'T3',researchCost:10,researchTime:3},
+          {name:'高爆炮',cost:1,dmg:-2,blast:3,tier:'T3',researchCost:10,researchTime:3}],
+  '军用吉普':[{name:'火箭助推',cost:1,speed:5,hp:1,tier:'T2',researchCost:5,researchTime:2}],
+  '火箭炮':[{name:'对空雷达',cost:3,range:1,canTargetAir:true,tier:'T3',researchCost:10,researchTime:3}],
+  '野战炮':[{name:'轻量化',cost:-2,dmg:-1,hp:-1,tier:'T2',researchCost:5,researchTime:2},
+            {name:'巨炮',cost:6,dmg:7,range:4,speed:-1,hp:3,tier:'T3',researchCost:10,researchTime:3}],
+}
 
 // ==================== 工具函数 ====================
 function manh(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])}
@@ -284,6 +294,8 @@ function clearSel(){
 class Player{
   constructor(id,name){
     this.id=id;this.name=name;this.gold=10;this.units=[];this.buildings=[];this.alive=true
+    this.researched={}   // {equipName: true} 已研究完成的装备
+    this.researching=null // {name, timer} 正在研究的装备
   }
   addUnit(u){if(u&&!this.units.includes(u))this.units.push(u)}
   removeUnit(u){
@@ -359,13 +371,19 @@ class Game{
     for(let i=0;i<n&&i<cs.length;i++){
       let[cx,cy]=cs[i];let b=new Building('大本营',cx,cy,i)
       this.grid.place(b,cx,cy);ENGINE.players[i].addBuilding(b)
-      // 每个玩家旁边加中立据点
-      let ox=cx+5,oy=cy+5
-      if(this.grid.ib(ox,oy)&&!this.grid.get(ox,oy).occ)this.grid.place(new Building('据点',ox,oy,-1),ox,oy)
     }
     ENGINE.players.forEach(p=>p.gold=10)
-    // 地图中央据点
-    let cc=MAP_W/2|0;[[cc,cc],[cc-10,cc+10],[cc+10,cc-10]].forEach(([ox,oy])=>{
+    // 玩家之间的中立据点
+    let outposts=[]
+    for(let i=0;i<n;i++){
+      for(let j=i+1;j<n;j++){
+        let mx=(cs[i][0]+cs[j][0])>>1,my=(cs[i][1]+cs[j][1])>>1
+        outposts.push([mx,my])
+      }
+    }
+    // 加中心据点
+    let cc=MAP_W/2|0;outposts.push([cc,cc],[cc-8,cc+8],[cc+8,cc-8])
+    outposts.forEach(([ox,oy])=>{
       if(this.grid.ib(ox,oy)&&!this.grid.get(ox,oy).occ)this.grid.place(new Building('据点',ox,oy,-1),ox,oy)
     })
   }
@@ -386,8 +404,14 @@ class Game{
     if(SEL.phase==='SEL'){
       if(o&&o.pid===p.id){
         if(o instanceof Building&&o.type==='大本营'){SEL.b=o;this._showHQ(o);return}
+        if(o instanceof Building&&o.type==='据点'&&o.pid===p.id){SEL.b=o;this._showOutpost(o);return}
         if(o instanceof Unit){this._selUnit(o);return}
       }
+      // 点击中立据点可以攻击，已占领的可当基地用
+      if(o instanceof Building&&o.type==='据点'&&o.pid!==p.id&&o.pid!==-1){
+        // 是敌方据点，攻击模式下可打
+      }
+      if(o instanceof Building&&o.type==='据点'&&o.pid===-1){SEL.b=o;this._showOutpost(o);return}
       clearSel()
     }else if(SEL.phase==='MOVE'){
       let u=SEL.u;if(!u)return
@@ -432,29 +456,97 @@ class Game{
     }else{SEL.phase='SEL';SEL.hl.clear()}
     this._updateButtons()
   }
+  _equipUnit(eqName){
+    let u=SEL.u;if(!u)return
+    let pp=curP()
+    if(!pp.researched[eqName]||u.equip)return  // 没研究或已有装备
+    let eqList=EQUIP_DATA[u.type]
+    if(!eqList)return
+    let eq=eqList.find(e=>e.name===eqName)
+    if(!eq||pp.gold<eq.cost)return
+    pp.gold-=eq.cost
+    // 重新创建单位应用装备
+    let nu=new Unit(u.type,u.gx,u.gy,u.pid,eq)
+    nu.moved=u.moved;nu.attacked=u.attacked;nu.done=u.done;nu.stationed=u.stationed;nu.hp=u.hp
+    this.grid.remove(u);let idx=pp.units.indexOf(u)
+    if(idx>=0)pp.units[idx]=nu
+    this.grid.place(nu,nu.gx,nu.gy)
+    SEL.u=nu
+    this._updateButtons()
+  }
   _showHQ(b){
     let p=document.getElementById('hq-panel');p.style.display='flex'
-    let html='<div class="title">🏰 T'+(b.tier+1)+' HQ  🪙'+curP().gold+'</div>'
+    let pp=curP()
+    let html='<div class="title">🏰 T'+(b.tier+1)+' HQ  🪙'+pp.gold+'</div>'
     if(b.upgrading){
       html+='<div class="hq-btn" style="color:#caba6a;text-align:center">⬆ 升级中... '+b.upTimer+'回合</div>'
     }else if(b.canUpgrade()){
-      let af=curP().gold>=b.upgradeCost
+      let af=pp.gold>=b.upgradeCost
       html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._hqUpgrade()">⬆ T'+(b.tier+2)+' 🪙'+b.upgradeCost+'</button>'
     }
+    // 研究装备
+    let showResearch=false
+    for(let ut in EQUIP_DATA){
+      if(!EQUIP_DATA[ut])continue
+      EQUIP_DATA[ut].forEach(eq=>{
+        if(pp.researched[eq.name])return
+        if(pp.researching&&pp.researching.name===eq.name){
+          html+='<div class="hq-btn" style="color:#7acc7a;text-align:center">🔬 '+eq.name+' 研究中... '+pp.researching.timer+'回合</div>'
+          showResearch=true;return
+        }
+        let af=pp.gold>=(eq.researchCost||99)
+        html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._research(\''+eq.name+'\','+(eq.researchCost||0)+','+(eq.researchTime||1)+')">🔬 '+eq.name+' 🪙'+(eq.researchCost||0)+'</button>'
+        showResearch=true
+      })
+    }
+    // 招募
     let pool=['士兵'];if(b.tier>=1)pool.push('坦克','军用吉普','野战炮','装甲车')
     if(b.tier>=2)pool.push('火箭炮','战斗机','轰炸机','防空车')
     pool.forEach(ut=>{
-      let cost=UNIT_DATA[ut].price;let af=curP().gold>=cost
+      let cost=UNIT_DATA[ut].price;let af=pp.gold>=cost
       html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._recruit(\''+ut+'\')">'+ut+' 🪙'+cost+'</button>'
     })
-    html+='<button class="hq-btn'+(curP().gold>=8?' afford':'')+'" onclick="G._startBuild()">⛏️ 资源采集器 🪙8</button>'
+    html+='<button class="hq-btn'+(pp.gold>=8?' afford':'')+'" onclick="G._startBuild()">⛏️ 资源采集器 🪙8</button>'
     html+='<button class="hq-btn close" onclick="clearSel()">❌ 关闭</button>'
     p.innerHTML=html
+  }
+  _showOutpost(b){
+    let p=document.getElementById('hq-panel');p.style.display='flex'
+    let pp=curP()
+    let html='<div class="title">⚑ '+(b.pid===pp.id?'已占领':b.pid>=0?'敌方':'中立')+'据点  🪙'+pp.gold+'</div>'
+    if(b.pid===pp.id){
+      let pool=['士兵'];if(pp.getHQ()&&pp.getHQ().tier>=1)pool.push('坦克','军用吉普','野战炮','装甲车')
+      if(pp.getHQ()&&pp.getHQ().tier>=2)pool.push('火箭炮','战斗机','轰炸机','防空车')
+      pool.forEach(ut=>{
+        let cost=UNIT_DATA[ut].price;let af=pp.gold>=cost
+        html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._recruitFrom(\''+ut+'\','+b.gx+','+b.gy+')">'+ut+' 🪙'+cost+'</button>'
+      })
+      html+='<button class="hq-btn close" onclick="clearSel()">❌ 关闭</button>'
+    }else if(b.pid===-1){
+      html+='<div class="hq-btn" style="color:#8a8a8a;text-align:center">中立据点 — 攻占后归你</div>'
+      html+='<button class="hq-btn close" onclick="clearSel()">❌ 关闭</button>'
+    }
+    p.innerHTML=html
+  }
+  _research(name,cost,time){
+    let pp=curP()
+    if(pp.gold<cost||pp.researched[name]||(pp.researching&&pp.researching.name===name))return
+    pp.gold-=cost;pp.researching={name:name,timer:time}
+    if(SEL.b)this._showHQ(SEL.b);this._updateButtons()
   }
   _hqUpgrade(){
     let b=SEL.b;if(!b)return
     let p=curP()
     if(b.canUpgrade()&&p.gold>=b.upgradeCost){p.gold-=b.upgradeCost;b.startUpgrade();this._showHQ(b);this._updateButtons()}
+  }
+  _recruitFrom(ut,bx,by){
+    let p=curP();let cost=UNIT_DATA[ut].price
+    if(p.gold<cost)return
+    let pos=this._findSpawn(bx,by)
+    if(!pos)return
+    p.gold-=cost
+    let u=new Unit(ut,pos[0],pos[1],p.id);this.grid.place(u,pos[0],pos[1]);p.addUnit(u)
+    this._updateButtons()
   }
   _recruit(ut){
     let b=SEL.b;if(!b)return;let p=curP();let cost=UNIT_DATA[ut].price
@@ -482,6 +574,13 @@ class Game{
     let nd=[]
     this.dying.forEach(d=>{d.alpha-=5;if(d.alpha>0)nd.push(d)})
     this.dying=nd
+    // 研究计时
+    ENGINE.players.forEach(p=>{
+      if(p.researching){
+        p.researching.timer--
+        if(p.researching.timer<=0){p.researched[p.researching.name]=true;p.researching=null}
+      }
+    })
     this._updateHUD()
   }
   _updateHUD(){
@@ -498,12 +597,21 @@ class Game{
     try{
       let bb=document.getElementById('bottom-btns')
       if(!bb)return
-      // 只在按钮不存在或状态改变时重建
       let html=''
       if(SEL.u&&!SEL.u.done){
         html+='<button class="btn" onclick="skipUnit()">跳过</button>'
         if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(SEL.u.gx,SEL.u.gy)))
           html+='<button class="btn btn-primary" onclick="stationUnit()">驻扎</button>'
+      }
+      // 装备购买
+      if(SEL.u&&!SEL.u.equip){
+        let pp=curP();let eqList=EQUIP_DATA[SEL.u.type]
+        if(eqList){
+          eqList.forEach(eq=>{
+            if(pp.researched[eq.name]&&pp.gold>=eq.cost)
+              html+='<button class="btn btn-primary" onclick="G._equipUnit(\''+eq.name+'\')">'+eq.name+' 🪙'+eq.cost+'</button>'
+          })
+        }
       }
       html+='<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
       if(bb.innerHTML!==html)bb.innerHTML=html

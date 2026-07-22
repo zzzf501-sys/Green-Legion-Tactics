@@ -155,7 +155,7 @@ body{flex-direction:column}
 </div>
 </div>
 <div class="chapter active" id="ch1">
-<div class="chapter-header"><h2>⚔️ 兵种大全</h2><div class="ch-meta"><span>第一章</span><span>·</span><span>已收录 8 个兵种</span><span>·</span><span>最后更新 2026-07-22</span></div></div>
+<div class="chapter-header"><h2>⚔️ 兵种大全</h2><div class="ch-meta"><span>第一章</span><span>·</span><span>已收录 9 个兵种</span><span>·</span><span>最后更新 2026-07-22</span></div></div>
 <div id="ch1Content"></div>
 </div>
 <div class="chapter" id="ch2">
@@ -190,7 +190,7 @@ body{flex-direction:column}
 <table><thead><tr><th>T 级</th><th>解锁兵种</th><th>解锁装备</th><th>建筑升级</th></tr></thead><tbody>
 <tr><td><span class="unit-tag tag-t1" style="margin:0;padding:1px 10px;">T1</span></td><td>士兵</td><td>—</td><td>T1 大本营</td></tr>
 <tr><td><span class="unit-tag tag-t2" style="margin:0;padding:1px 10px;">T2</span></td><td>坦克 · 军用吉普 · 野战炮 · 装甲车</td><td>射手步枪 · 反器械枪</td><td>T2 大本营</td></tr>
-<tr><td><span class="unit-tag tag-t3" style="margin:0;padding:1px 10px;">T3</span></td><td>火箭炮 · 战斗机 · 轰炸机</td><td>穿甲炮 · 高爆炮 · 轻量化</td><td>T3 大本营</td></tr>
+<tr><td><span class="unit-tag tag-t3" style="margin:0;padding:1px 10px;">T3</span></td><td>火箭炮 · 战斗机 · 轰炸机 · 防空车</td><td>穿甲炮 · 高爆炮 · 轻量化</td><td>T3 大本营</td></tr>
 </tbody></table></div>
 </div>
 <div class="chapter" id="ch4"><div class="chapter-header"><h2>⛏️ 资源指南</h2><div class="ch-meta"><span>第四章</span><span>·</span><span>即将推出</span></div></div><div class="placeholder-chapter"><div class="big-icon">💰</div><p>资源章节正在规划中，敬请期待。</p></div></div>
@@ -222,7 +222,8 @@ var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.
 '战斗机':[{name:'无',cost:0,dmg:0,range:0}],
 '轰炸机':[{name:'无',cost:0,dmg:0,range:0}],
 '防空车':[{name:'无',cost:0,dmg:0,range:0}]};
-var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[{tier:'T1',hp:20,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png'},{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:8},tag:'tag-t2',img:'../picture/大本营 T2.png'},{tier:'T3',hp:120,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png'}]}};
+var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[{tier:'T1',hp:20,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png'},{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:8},tag:'tag-t2',img:'../picture/大本营 T2.png'},{tier:'T3',hp:120,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png'}]},
+'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。',tiers:[{tier:'T1',hp:15,armor:0,gold:5,upgrade:{cost:8,time:4},tag:'tag-t1',img:'../picture/资源采集器.png'},{tier:'T2',hp:30,armor:0.5,gold:10,upgrade:{cost:20,time:6},tag:'tag-t2',img:'../picture/资源采集器.png'},{tier:'T3',hp:60,armor:1,gold:20,upgrade:null,tag:'tag-t3',img:'../picture/资源采集器.png'}]}};
 function dc(v){return v<=3?'dura-orange':v<=4?'dura-yellow':v<=7?'dura-blue':''}
 function fm(v){return Number(v).toFixed(1)}
 function renderDura(){

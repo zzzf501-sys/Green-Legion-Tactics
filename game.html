@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>绿色军团 — 热座回合制策略游戏</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#d0d0d8;font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;overflow:hidden;user-select:none}
+#game-wrap{position:relative;width:100vw;height:100vh;overflow:hidden}
+canvas{display:block;background:#1a1a2a;cursor:grab}
+canvas:active{cursor:grabbing}
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#ui>*{pointer-events:auto}
+#hud{position:absolute;top:0;left:0;right:0;height:36px;background:rgba(20,20,30,0.9);border-bottom:1px solid #2a2a3e;display:flex;align-items:center;padding:0 12px;gap:12px;font-size:14px}
+#hud .pname{font-weight:700}
+#hud .gold{color:#caba6a}
+#hud .turn{color:#7a7a8a}
+#info{position:absolute;top:40px;left:10px;font-size:13px;color:#b0b0c0;text-shadow:0 1px 3px #000;pointer-events:none}
+.btn{background:#2a2a3e;border:1px solid #4a4a5e;border-radius:6px;color:#d0d0d8;padding:6px 16px;font-size:13px;font-family:inherit;cursor:pointer;pointer-events:auto;transition:.15s}
+.btn:hover{background:#3a3a5e;border-color:#6a6a8a}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:#1a3a1a;border-color:#3a6a3a;color:#aadaaa}
+.btn-primary:hover{background:#2a5a2a}
+.btn-danger{background:#3a1a1a;border-color:#6a3a3a;color:#daaaaa}
+.btn-danger:hover{background:#5a2a2a}
+.btn-blue{background:#1a2a3a;border-color:#3a5a7a;color:#aacada}
+.btn-blue:hover{background:#2a4a5a}
+#bottom-btns{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+#bottom-btns .btn{min-width:100px;text-align:center}
+#menu{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#14141e,#0a0a0f);pointer-events:auto}
+#menu h1{font-size:52px;color:#c8d8a8;text-shadow:0 0 30px rgba(200,216,168,.15);margin-bottom:4px}
+#menu .sub{color:#5a5a6a;font-size:16px;margin-bottom:40px}
+#menu .menu-btn{background:linear-gradient(135deg,#1a1a28,#14141e);border:1px solid #3a3a5e;border-radius:10px;color:#c0c0d0;padding:14px 60px;font-size:18px;font-family:inherit;cursor:pointer;margin:6px;transition:.2s;min-width:240px}
+#menu .menu-btn:hover{background:linear-gradient(135deg,#2a2a3e,#1a1a28);border-color:#5a5a8a;color:#f0e6c0;transform:scale(1.03)}
+#menu .menu-btn.green{background:linear-gradient(135deg,#1a2a1a,#141e14);border-color:#3a5a3a}
+#menu .menu-btn.green:hover{background:linear-gradient(135deg,#2a3a2a,#1a2a1a);border-color:#5a8a5a}
+#menu .menu-btn.blue{background:linear-gradient(135deg,#1a1a2a,#14141e);border-color:#3a3a5a}
+#menu .menu-btn.blue:hover{background:linear-gradient(135deg,#2a2a3e,#1a1a28);border-color:#5a5a8a}
+#player-sel{display:none;flex-direction:column;align-items:center;gap:16px}
+#player-sel h2{color:#8a8a9a;font-size:20px}
+#player-sel .btn{padding:12px 40px;font-size:18px}
+#turn-notify{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);pointer-events:none;z-index:10}
+#turn-notify .txt{font-size:44px;font-weight:700;text-shadow:0 0 40px rgba(255,255,255,.1)}
+#hq-panel{position:absolute;top:36px;left:0;width:210px;height:calc(100% - 36px);background:rgba(15,15,25,.95);border-right:1px solid #2a2a3e;display:none;flex-direction:column;padding:10px;gap:4px;z-index:5;pointer-events:auto}
+#hq-panel .title{color:#caba6a;font-size:14px;padding:8px 6px;border-bottom:1px solid #2a2a3e;margin-bottom:6px}
+#hq-panel .hq-btn{background:#1a1a28;border:1px solid #2a2a3e;border-radius:5px;color:#c0c0d0;padding:7px 10px;font-size:12px;font-family:inherit;cursor:pointer;text-align:left;transition:.1s}
+#hq-panel .hq-btn:hover{background:#2a2a3e;border-color:#4a4a6a}
+#hq-panel .hq-btn:active{transform:scale(.97)}
+#hq-panel .hq-btn.afford{background:#1a2a1a;border-color:#3a5a3a}
+#hq-panel .hq-btn.close{background:#2a1a1a;border-color:#5a3a3a;color:#daaaaa;margin-top:auto}
+#tooltip{position:absolute;display:none;background:rgba(15,15,25,.95);border:1px solid #3a3a5e;border-radius:6px;padding:8px 12px;font-size:12px;line-height:1.6;z-index:20;pointer-events:none;max-width:260px}
+.game-over{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:50;pointer-events:auto}
+.game-over .txt{font-size:48px;color:#caba6a;text-shadow:0 0 30px rgba(202,186,106,.3)}
+</style>
+</head>
+<body>
+<div id="game-wrap">
+<canvas id="gc"></canvas>
+<div id="ui">
+  <div id="hud"><span class="pname" id="hudName"></span><span class="turn" id="hudTurn"></span><span class="gold" id="hudGold"></span></div>
+  <div id="info"></div>
+  <div id="bottom-btns"></div>
+  <div id="hq-panel"></div>
+  <div id="turn-notify"><div class="txt" id="notifyTxt"></div></div>
+  <div id="tooltip"></div>
+  <div class="game-over" id="gameOver"><div class="txt" id="goTxt"></div></div>
+</div>
+<div id="menu">
+  <h1>绿色军团</h1>
+  <div class="sub">热座回合制策略游戏</div>
+  <button class="menu-btn green" onclick="showPlayerSel()">🎮 开始游戏</button>
+  <button class="menu-btn blue" onclick="openEncyclopedia()">📖 百科全书</button>
+</div>
+<div id="player-sel">
+  <h2>选择人数</h2>
+  <div><button class="btn btn-blue" onclick="startGame(2)">2 人</button><button class="btn btn-blue" onclick="startGame(3)">3 人</button><button class="btn btn-blue" onclick="startGame(4)">4 人</button></div>
+  <button class="btn btn-danger" onclick="backToMenu()">返回</button>
+</div>
+<script>
+// ==================== 常量 ====================
+const TS=64; const MAP_W=80; const MAP_H=80; const FPS=60
+const MIN_Z=0.4; const MAX_Z=2.5
+const PLAYER_COLORS=['#3c78ff','#ff3c3c','#3cdc3c','#ffdc3c']
+const COL_BG='#1a1a2a'; const COL_GL='#2a2f22'; const COL_GD='#22271c'
+const COL_WHITE='#ffffff'; const COL_GOLD='#caba6a'; const COL_GRAY='#6a6a7a'
+const COL_DARK='#14141e'
+
+// ==================== 数据 ====================
+const UNIT_DATA={
+  '士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1},
+  '坦克':{hp:10,armor:2,speed:5,damage:4,range:3,price:7,attacks:1},
+  '军用吉普':{hp:3,armor:0,speed:8,damage:2,range:3,price:3,attacks:1},
+  '火箭炮':{hp:8,armor:.5,speed:2,damage:7,range:15,price:15,attacks:1},
+  '野战炮':{hp:4,armor:1,speed:3,damage:5.5,range:8,price:5,attacks:1},
+  '装甲车':{hp:7,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,canTargetAir:true},
+  '战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,isAir:true,canTargetAir:true},
+  '轰炸机':{hp:20,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,isAir:true,blast:3,reload:2},
+  '防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,canTargetAir:true,airDamage:8,airRange:14},
+}
+const U_NAMES=Object.keys(UNIT_DATA)
+const BUILDING_DATA={
+  '大本营':{tiers:[
+    {hp:20,armor:0,gold:3,upgradeCost:10,upgradeTime:3},
+    {hp:50,armor:.5,gold:5,upgradeCost:30,upgradeTime:8,turret:{damage:2,attacks:2,range:5}},
+    {hp:120,armor:1,gold:8,turret:{damage:3,attacks:3,range:8}},
+  ]},
+  '据点':{hp:20,armor:0,gold:3,captureTurret:{damage:2,attacks:2,range:5}},
+}
+
+// ==================== 工具函数 ====================
+function manh(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])}
+function neighbors(gx,gy){return[[0,1],[0,-1],[1,0],[-1,0]].map(d=>[gx+d[0],gy+d[1]])}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+function lerp(a,b,t){return a+(b-a)*t}
+
+// ==================== 游戏状态 ====================
+let G=null,ctx=null,cvs=null
+let W=window.innerWidth,H=window.innerHeight
+
+function resize(){
+  W=window.innerWidth;H=window.innerHeight
+  if(cvs){cvs.width=W;cvs.height=H}
+  if(G&&G.cam)G.cam.sw=W,G.cam.sh=H
+}
+
+// ==================== 摄像机 ====================
+class Camera{
+  constructor(mpw,mph,sw,sh){
+    this.mpw=mpw;this.mph=mph;this.sw=sw;this.sh=sh
+    this.ox=0;this.oy=0;this.z=1;this.tz=1;this.tox=0;this.toy=0
+    this.drag=false;this.dsx=0;this.dsy=0;this.dox=0;this.doy=0
+  }
+  w2s(wx,wy){return[wx*this.z+this.ox,wy*this.z+this.oy]}
+  s2w(sx,sy){return[(sx-this.ox)/this.z,(sy-this.oy)/this.z]}
+  s2g(sx,sy){let[wxx,wyy]=this.s2w(sx,sy);return[Math.floor(wxx/TS),Math.floor(wyy/TS)]}
+  g2s(gx,gy){return this.w2s(gx*TS,gy*TS)}
+  centerOn(gx,gy){
+    this.tox=this.sw/2-gx*TS*this.z;this.toy=this.sh/2-gy*TS*this.z
+    this._clamp()
+  }
+  pan(dx,dy){this.tox+=dx;this.toy+=dy;this._clamp()}
+  startDrag(sx,sy){this.drag=true;this.dsx=sx;this.dsy=sy;this.dox=this.ox;this.doy=this.oy}
+  endDrag(){this.drag=false}
+  zoomAt(sx,sy,dz){
+    let[wx,wy]=this.s2w(sx,sy)
+    this.tz=clamp(this.tz+dz,MIN_Z,MAX_Z)
+    this.tox=sx-wx*this.tz;this.toy=sy-wy*this.tz;this._clamp()
+  }
+  getVR(){
+    let[l,t]=this.s2w(0,0);let[r,b]=this.s2w(this.sw,this.sh)
+    return[clamp(Math.floor(l/TS),0,MAP_W-1),clamp(Math.floor(t/TS),0,MAP_H-1),clamp(Math.ceil(r/TS)+1,0,MAP_W),clamp(Math.ceil(b/TS)+1,0,MAP_H)]
+  }
+  update(){
+    this.z=lerp(this.z,this.tz,.15);this.ox=lerp(this.ox,this.tox,.15);this.oy=lerp(this.oy,this.toy,.15)
+  }
+  _clamp(){
+    let mx=this.mpw*this.z-this.sw,my=this.mph*this.z-this.sh
+    this.tox=clamp(this.tox,10,-mx-10);this.toy=clamp(this.toy,10,-my-10)
+  }
+}
+
+// ==================== 网格 ====================
+class Grid{
+  constructor(){
+    this.tiles=[]
+    for(let x=0;x<MAP_W;x++){
+      this.tiles[x]=[]
+      for(let y=0;y<MAP_H;y++){
+        let r=Math.random()
+        let t='grass'
+        if(r<.03)t='water';else if(r<.08)t='forest';else if(r<.10)t='mountain'
+        this.tiles[x][y]={gx:x,gy:y,terrain:t,occ:null,mc:{grass:1,road:.5,forest:2,water:99,mountain:3}[t]||1}
+      }
+    }
+    Math.seed=42
+  }
+  ib(x,y){return x>=0&&x<MAP_W&&y>=0&&y<MAP_H}
+  get(x,y){return this.ib(x,y)?this.tiles[x][y]:null}
+  place(e,x,y){let t=this.get(x,y);if(t){t.occ=e;e.gx=x;e.gy=y}}
+  remove(e){let t=this.get(e.gx,e.gy);if(t&&t.occ===e)t.occ=null}
+}
+
+// ==================== 实体 ====================
+class Unit{
+  constructor(type,gx,gy,pid){
+    let d=UNIT_DATA[type]
+    this.type=type;this.gx=gx;this.gy=gy;this.pid=pid
+    this.hp=d.hp;this.maxHp=d.hp;this.armor=d.armor;this.speed=d.speed
+    this.damage=d.damage;this.range=d.range;this.attacks=d.attacks||1;this.price=d.price
+    this.isAir=d.isAir||false;this.canTargetAir=d.canTargetAir||false
+    this.blast=d.blast||1;this.reload=d.reload||0
+    this.moved=false;this.attacked=false;this.done=false;this.stationed=false;this.rl=0
+  }
+  reset(){this.moved=false;this.attacked=false;this.done=false;if(this.rl>0)this.rl--}
+  canMove(){return!this.moved&&!this.done}
+  canAttack(){return this.moved&&!this.attacked&&!this.done&&this.rl===0}
+  moveTo(x,y){this.gx=x;this.gy=y;this.moved=true}
+  eR(t){return t&&t.isAir&&this.airRange?this.airRange:this.range}
+  eD(t){return t&&t.isAir&&this.airDamage?this.airDamage:this.damage}
+  attack(t){
+    let dmg=Math.max(0,this.eD(t)-t.armor)*this.attacks*this.blast
+    t.takeDamage(dmg)
+    this.attacked=true;this.done=true
+    if(this.reload>0)this.rl=this.reload
+    return dmg
+  }
+  takeDamage(a){a=Math.min(a,this.hp);this.hp-=a;return a}
+  get dead(){return this.hp<=0}
+}
+class Building{
+  constructor(type,gx,gy,pid,tier=0){
+    this.type=type;this.gx=gx;this.gy=gy;this.pid=pid;this.tier=tier
+    this.upgrading=false;this.upTimer=0;this.captured=false;this.tsd=0;this.dmgThisTurn=false
+    this._updateStats()
+  }
+  _updateStats(){
+    if(this.type==='大本营'){
+      let t=BUILDING_DATA['大本营'].tiers[this.tier]
+      this.maxHp=t.hp;this.hp=this.hp||t.hp;this.armor=t.armor;this.gold=t.gold
+      this.upgradeCost=t.upgradeCost;this.upgradeTime=t.upgradeTime;this.turret=t.turret
+    }else if(this.type==='据点'){
+      let d=BUILDING_DATA['据点']
+      this.maxHp=d.hp;this.hp=this.hp||d.hp;this.armor=d.armor
+      this.gold=this.captured?d.gold:0;this.turret=this.captured?d.captureTurret:null
+    }
+  }
+  capture(pid){
+    this.pid=pid;this.captured=true
+    this.hp=Math.min(this.maxHp,this.hp+Math.floor(this.maxHp*.3))
+    this._updateStats();this.tsd=0
+  }
+  takeDamage(a){
+    a=Math.min(a,this.hp);this.hp-=a;this.dmgThisTurn=true;this.tsd=0;return a
+  }
+  turnStart(){
+    this.tsd=this.dmgThisTurn?0:this.tsd+1;this.dmgThisTurn=false
+    if(this.tsd>=3&&this.hp<this.maxHp)this.hp=Math.min(this.maxHp,this.hp+2)
+  }
+  canUpgrade(){return this.type==='大本营'&&this.tier<2&&!this.upgrading}
+  startUpgrade(){this.upgrading=true;this.upTimer=this.upgradeTime}
+  tickUpgrade(){
+    if(!this.upgrading)return false
+    this.upTimer--
+    if(this.upTimer<=0){this.tier++;this.upgrading=false;this._updateStats();this.hp=this.maxHp;return true}
+    return false
+  }
+  inHeal(gx,gy){return manh([this.gx,this.gy],[gx,gy])<=2}
+  get dead(){return this.hp<=0}
+}
+
+// ==================== 寻路 ====================
+function computeMoveRange(grid,sx,sy,mv,unit){
+  let cost={};cost[sx+','+sy]=0;let q=[[sx,sy]];let r=new Set()
+  while(q.length){
+    let[cx,cy]=q.shift();let cc=cost[cx+','+cy]
+    for(let[nx,ny] of neighbors(cx,cy)){
+      if(!grid.ib(nx,ny))continue
+      let t=grid.get(nx,ny);let o=t.occ
+      if(o&&o!==unit&&o.pid!==unit.pid)continue
+      let nc=cc+t.mc
+      if(nc<=mv&&!(nx+','+ny in cost)){cost[nx+','+ny]=nc;q.push([nx,ny]);r.add(nx+','+ny)}
+    }
+  }
+  return r
+}
+function getTilesInRange(cx,cy,rad){
+  let r=new Set()
+  for(let dx=-rad;dx<=rad;dx++)for(let dy=-rad;dy<=rad;dy++)
+    if(Math.abs(dx)+Math.abs(dy)<=rad)r.add((cx+dx)+','+(cy+dy))
+  return r
+}
+
+// ==================== 选择管理器 ====================
+let SEL={u:null,b:null,hl:new Set(),hc:'#ffff0040',phase:'SEL'}
+
+function clearSel(){
+  SEL.u=null;SEL.b=null;SEL.hl.clear();SEL.phase='SEL'
+  document.getElementById('hq-panel').style.display='none'
+}
+
+// ==================== 玩家 ====================
+class Player{
+  constructor(id,name){
+    this.id=id;this.name=name;this.gold=10;this.units=[];this.buildings=[];this.alive=true
+  }
+  addUnit(u){if(u&&!this.units.includes(u))this.units.push(u)}
+  removeUnit(u){
+    let i=this.units.indexOf(u);if(i>=0)this.units.splice(i,1)
+    if(!this.units.length&&!this.buildings.some(b=>b.type==='大本营'))this.alive=false
+  }
+  addBuilding(b){if(b&&!this.buildings.includes(b))this.buildings.push(b)}
+  removeBuilding(b){
+    let i=this.buildings.indexOf(b);if(i>=0)this.buildings.splice(i,1)
+    if(b.type==='大本营'&&!this.buildings.some(b2=>b2.type==='大本营'))this.alive=false
+  }
+  collectIncome(){this.buildings.forEach(b=>this.gold+=b.gold||0)}
+  turnStart(){
+    this.units.forEach(u=>{u.reset();if(u.stationed){this.buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy))&&(u.hp=Math.min(u.maxHp,u.hp+1))};u.stationed=false})
+    this.buildings.forEach(b=>b.turnStart())
+    this.collectIncome()
+  }
+  getHQ(){return this.buildings.find(b=>b.type==='大本营')}
+}
+
+// ==================== 游戏引擎 ====================
+let ENGINE={players:[],cur:0,turn:1,state:'MENU'}
+function initEngine(n){
+  ENGINE.players=[];ENGINE.cur=0;ENGINE.turn=1;ENGINE.state='PLAYING'
+  for(let i=0;i<n;i++)ENGINE.players.push(new Player(i,'玩家'+(i+1)))
+}
+function curP(){return ENGINE.players[ENGINE.cur]}
+function nextTurn(){
+  ENGINE.turn++
+  for(let i=0;i<ENGINE.players.length;i++){ENGINE.cur=(ENGINE.cur+1)%ENGINE.players.length;if(curP().alive)break}
+  curP().turnStart()
+  let alive=ENGINE.players.filter(p=>p.alive)
+  if(alive.length<=1){ENGINE.state='GAME_OVER';document.getElementById('gameOver').style.display='flex';document.getElementById('goTxt').textContent=(alive[0]?alive[0].name:'?')+' 获胜！'}
+  showTurnNotify()
+  if(G&&G.cam){let hq=curP().getHQ();if(hq)G.cam.centerOn(hq.gx,hq.gy)}
+}
+function allDone(){return curP().units.every(u=>u.done)}
+
+// ==================== 主游戏 ====================
+class Game{
+  constructor(){
+    G=this
+    let seed=42;Math.random=function(){seed=(seed*9301+49297)%233280;return seed/233280}
+    this.grid=new Grid()
+    this.cam=new Camera(MAP_W*TS,MAP_H*TS,W,H)
+    this.dying=[]
+    this.selUnit=null;this.selBuilding=null
+    this._placeInit()
+    this._centerOnCur()
+    this._updateUI()
+  }
+  _placeInit(){
+    let n=ENGINE.players.length
+    let cs=[[2,2],[MAP_W-3,2],[2,MAP_H-3],[MAP_W-3,MAP_H-3]]
+    for(let i=0;i<n&&i<cs.length;i++){
+      let[cx,cy]=cs[i];let b=new Building('大本营',cx,cy,i)
+      this.grid.place(b,cx,cy);curP().addBuilding(b)
+    }
+    ENGINE.players.forEach(p=>{if(p.getHQ())p.gold=10})
+    let ops=[[MAP_W/2|0,MAP_H/2|0],[MAP_W/4|0,MAP_H/4*3|0],[MAP_W/4*3|0,MAP_H/4|0]]
+    ops.forEach(([ox,oy])=>{let t=this.grid.get(ox,oy);if(t&&!t.occ)this.grid.place(new Building('据点',ox,oy,-1),ox,oy)})
+  }
+  _centerOnCur(){let hq=curP().getHQ();if(hq)this.cam.centerOn(hq.gx,hq.gy)}
+  _handleClick(gx,gy){
+    let p=curP();let t=this.grid.get(gx,gy);if(!t)return
+    let o=t.occ
+    if(SEL.phase==='SEL'){
+      if(o&&o.pid===p.id){
+        if(o instanceof Building&&o.type==='大本营'){SEL.b=o;this._showHQ(o);return}
+        if(o instanceof Unit){this._selUnit(o);return}
+      }
+      clearSel()
+    }else if(SEL.phase==='MOVE'){
+      let u=SEL.u;if(!u)return
+      if(SEL.hl.has(gx+','+gy)){
+        this.grid.remove(u);u.moveTo(gx,gy);t.occ=u
+        if(u.canAttack()){
+          let at=getTilesInRange(gx,gy,u.range);let en=new Set()
+          for(let k of at){let[tok]=k.split(',');let[tx,ty]=[+tok,+k.split(',')[1]];let tt=this.grid.get(tx,ty);if(tt&&tt.occ&&tt.occ.pid!==p.id&&tt.occ instanceof Unit)en.add(k)}
+          if(en.size){SEL.hl=en;SEL.hc='#ff000060';SEL.phase='ATK';return}
+        }
+        u.done=true;clearSel()
+      }else if(o instanceof Unit&&o.pid===p.id){this._selUnit(o)}
+      else clearSel()
+    }else if(SEL.phase==='ATK'){
+      let u=SEL.u;if(!u)return
+      if(SEL.hl.has(gx+','+gy)){
+        let tt=this.grid.get(gx,gy)
+        if(tt&&tt.occ&&tt.occ.pid!==p.id){
+          let target=tt.occ
+          if(target instanceof Unit){
+            u.attack(target)
+            if(target.dead){this.grid.remove(target);p.removeUnit(target);this.dying.push({ent:target,alpha:255,type:'u'})}
+            clearSel()
+          }else if(target instanceof Building){
+            u.attack(target)
+            if(target.dead&&target.type==='据点'&&!target.captured){target.capture(p.id);p.addBuilding(target);this.grid.place(target,target.gx,target.gy)}
+            else if(target.dead){this.grid.remove(target);ENGINE.players.forEach(pp=>pp.removeBuilding(target))}
+            clearSel()
+          }
+        }
+      }else clearSel()
+    }
+    this._updateUI()
+  }
+  _selUnit(u){
+    SEL.u=u;SEL.b=null
+    if(u.canMove()){
+      SEL.hl=computeMoveRange(this.grid,u.gx,u.gy,u.speed,u);SEL.hc='#ffff0040';SEL.phase='MOVE'
+    }else if(u.canAttack()){
+      SEL.hl=getTilesInRange(u.gx,u.gy,u.range);SEL.hc='#ff000060';SEL.phase='ATK'
+    }else{SEL.phase='SEL';SEL.hl.clear()}
+    this._updateUI()
+  }
+  _showHQ(b){
+    let p=document.getElementById('hq-panel');p.style.display='flex'
+    let html='<div class="title">🏰 T'+(b.tier+1)+' HQ  🪙'+curP().gold+'</div>'
+    if(b.canUpgrade()){
+      let af=curP().gold>=b.upgradeCost
+      html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._hqUpgrade()">⬆ T'+(b.tier+2)+' 🪙'+b.upgradeCost+'</button>'
+    }
+    let pool=['士兵'];if(b.tier>=1)pool.push('坦克','军用吉普','野战炮','装甲车')
+    if(b.tier>=2)pool.push('火箭炮','战斗机','轰炸机','防空车')
+    pool.forEach(ut=>{
+      let cost=UNIT_DATA[ut].price;let af=curP().gold>=cost
+      html+='<button class="hq-btn'+(af?' afford':'')+'" onclick="G._recruit(\''+ut+'\')">'+ut+' 🪙'+cost+'</button>'
+    })
+    html+='<button class="hq-btn close" onclick="clearSel()">❌ 关闭</button>'
+    p.innerHTML=html
+  }
+  _hqUpgrade(){
+    let b=SEL.b;if(!b)return
+    let p=curP()
+    if(b.canUpgrade()&&p.gold>=b.upgradeCost){p.gold-=b.upgradeCost;b.startUpgrade();this._showHQ(b);this._updateUI()}
+  }
+  _recruit(ut){
+    let b=SEL.b;if(!b)return;let p=curP();let cost=UNIT_DATA[ut].price
+    if(p.gold<cost)return
+    let pos=this._findSpawn(b.gx,b.gy)
+    if(!pos)return
+    p.gold-=cost
+    let u=new Unit(ut,pos[0],pos[1],p.id);this.grid.place(u,pos[0],pos[1]);p.addUnit(u)
+    this._showHQ(b);this._updateUI()
+  }
+  _findSpawn(bx,by){
+    for(let r=1;r<4;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++)
+      if(Math.abs(dx)+Math.abs(dy)===r){let t=this.grid.get(bx+dx,by+dy);if(t&&!t.occ)return[bx+dx,by+dy]}
+    return null
+  }
+  update(){
+    this.cam.update()
+    ENGINE.players.forEach(p=>p.buildings.forEach(b=>{if(b.tickUpgrade())clearSel()}))
+    let nd=[]
+    this.dying.forEach(d=>{d.alpha-=8;if(d.alpha>0)nd.push(d)})
+    this.dying=nd
+    this._updateUI()
+  }
+  _updateUI(){
+    let p=curP()
+    document.getElementById('hudName').textContent=p.name
+    document.getElementById('hudName').style.color=PLAYER_COLORS[p.id]
+    document.getElementById('hudTurn').textContent='回合 '+ENGINE.turn
+    document.getElementById('hudGold').textContent='🪙'+p.gold
+    document.getElementById('info').textContent=SEL.u?SEL.u.type+' HP:'+SEL.u.hp.toFixed(1)+'/'+SEL.u.maxHp+' 伤害:'+SEL.u.damage+' 射程:'+SEL.u.range+(SEL.u.done?' [Done]':''):''
+    let bb=document.getElementById('bottom-btns')
+    bb.innerHTML=''
+    if(SEL.u&&!SEL.u.done){
+      bb.innerHTML+='<button class="btn" onclick="skipUnit()">跳过</button>'
+      if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(SEL.u.gx,SEL.u.gy)))
+        bb.innerHTML+='<button class="btn btn-primary" onclick="stationUnit()">驻扎</button>'
+    }
+    bb.innerHTML+='<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
+  }
+}
+function skipUnit(){if(SEL.u&&!SEL.u.done){SEL.u.done=true;clearSel();G._updateUI()}}
+function stationUnit(){
+  let u=SEL.u;if(!u||u.done)return
+  if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy))){u.stationed=true;u.done=true;clearSel();G._updateUI()}
+}
+function endTurn(){
+  clearSel();nextTurn()
+  if(G)G._centerOnCur()
+}
+
+// ==================== 渲染 ====================
+function render(){
+  if(!G||!ctx)return
+  ctx.fillStyle=COL_BG;ctx.fillRect(0,0,W,H)
+  let vr=G.cam.getVR();let cam=G.cam
+  ctx.save();ctx.translate(cam.ox,cam.oy);ctx.scale(cam.z,cam.z)
+  for(let x=vr[0];x<vr[2];x++)for(let y=vr[1];y<vr[3];y++)drawTile(x,y)
+  for(let k of SEL.hl){let[gx,gy]=k.split(',');drawHL(+gx,+gy,SEL.hc)}
+  ENGINE.players.forEach(p=>p.buildings.forEach(b=>{if(b.gx>=vr[0]&&b.gx<vr[2]&&b.gy>=vr[1]&&b.gy<vr[3])drawBuilding(b)}))
+  ENGINE.players.forEach(p=>p.units.forEach(u=>{if(u.gx>=vr[0]&&u.gx<vr[2]&&u.gy>=vr[1]&&u.gy<vr[3])drawUnit(u)}))
+  G.dying.forEach(d=>drawDying(d))
+  ctx.restore()
+}
+
+function drawTile(x,y){
+  let[sx,sy]=G.cam.g2s(x,y)
+  let t=G.grid.get(x,y);if(!t)return
+  let base=(x+y)%2===0?COL_GL:COL_GD
+  let tc={'water':'#283250','forest':'#1e3c1e','mountain':'#3c3728','road':'#37322d'}
+  ctx.fillStyle=tc[t.terrain]||base;ctx.fillRect(sx,sy,TS,TS)
+  ctx.strokeStyle='#282828';ctx.lineWidth=1;ctx.strokeRect(sx,sy,TS,TS)
+}
+function drawHL(gx,gy,c){
+  let[sx,sy]=G.cam.g2s(gx,gy)
+  ctx.fillStyle=c;ctx.fillRect(sx,sy,TS,TS)
+}
+function drawUnit(u){
+  let[sx,sy]=G.cam.g2s(u.gx,u.gy)
+  let cx=sx+TS/2,cy=sy+TS/2,r=TS/2.5
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2)
+  ctx.fillStyle=PLAYER_COLORS[u.pid];ctx.fill()
+  ctx.strokeStyle='#666';ctx.lineWidth=1;ctx.stroke()
+  if(!u.done){ctx.beginPath();ctx.arc(cx,cy,r+3,0,Math.PI*2);ctx.strokeStyle=COL_WHITE;ctx.lineWidth=2;ctx.stroke()}
+  let bw=TS*.7,bh=4,bx=sx+(TS-bw)/2,by=sy+TS-bh-3
+  let ratio=u.hp/u.maxHp
+  ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
+  ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
+}
+function drawBuilding(b){
+  let[sx,sy]=G.cam.g2s(b.gx,b.gy);let sz=TS*1.2
+  let cx=sx+TS/2,cy=sy+TS/2
+  if(b.type==='大本营'){
+    let colors=['#3a6a3a','#3a5a8a','#8a5a3a']
+    ctx.fillStyle=colors[b.tier]||'#3a5a3a'
+  }else if(b.type==='据点'){ctx.fillStyle=b.pid>=0?PLAYER_COLORS[b.pid]:'#6a6a7a'}
+  else{ctx.fillStyle='#4a4a5a'}
+  ctx.fillRect(sx+4,sy+4,TS-8,TS-8)
+  ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+4,sy+4,TS-8,TS-8)
+  ctx.fillStyle=COL_WHITE;ctx.font='20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
+  ctx.fillText(b.type[0],cx,cy)
+  let bw=TS*.6,bh=4,bx=sx+(TS-bw)/2,by=sy-6
+  let ratio=Math.max(0,b.hp/b.maxHp)
+  ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
+  ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
+}
+function drawDying(d){
+  let u=d.ent;let[sx,sy]=G.cam.g2s(u.gx,u.gy)
+  let cx=sx+TS/2,cy=sy+TS/2,r=TS/2.5
+  ctx.globalAlpha=d.alpha/255
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2)
+  ctx.fillStyle=PLAYER_COLORS[u.pid];ctx.fill()
+  ctx.globalAlpha=1
+}
+
+// ==================== 回合提示 ====================
+let notifyTimer=0
+function showTurnNotify(){
+  let el=document.getElementById('turn-notify');let p=curP()
+  document.getElementById('notifyTxt').textContent='第 '+ENGINE.turn+' 回合 — '+p.name
+  document.getElementById('notifyTxt').style.color=PLAYER_COLORS[p.id]
+  el.style.display='flex';notifyTimer=50
+}
+
+// ==================== 鼠标/键盘事件 ====================
+let mpx=0,mpy=0,md=false
+cvs.addEventListener('mousedown',e=>{
+  if(!G){if(e.button===0){let bx=e.clientX,by=e.clientY;document.getElementById('menu').style.display='none'};return}
+  if(e.button===0){md=true;G.cam.startDrag(e.clientX,e.clientY);let[gx,gy]=G.cam.s2g(e.clientX,e.clientY);G._handleClick(gx,gy)}
+  if(e.button===2){e.preventDefault()}
+})
+cvs.addEventListener('mousemove',e=>{
+  mpx=e.clientX;mpy=e.clientY
+  if(!G)return
+  if(md)G.cam.updateDrag(e.clientX,e.clientY)
+  // 悬停提示
+  let[gx,gy]=G.cam.s2g(e.clientX,e.clientY)
+  let t=G.grid.get(gx,gy)
+  let tip=document.getElementById('tooltip')
+  if(t&&t.occ){
+    let o=t.occ;let lines=[]
+    if(o instanceof Unit)lines=(o.pid>=0?'玩家'+(o.pid+1)+' | ':'中立 | ')+o.type+' HP:'+o.hp.toFixed(1)+'/'+o.maxHp+' 护甲:'+o.armor+' 伤害:'+o.damage+' 射程:'+o.range+(o.done?' [Done]':' [Ready]')
+    else lines=(o.pid>=0?'玩家'+(o.pid+1):'中立')+' | '+o.type+' HP:'+Math.floor(o.hp)+'/'+Math.floor(o.maxHp)+' 护甲:'+o.armor+(o.type==='大本营'?' T'+(o.tier+1):'')
+    tip.textContent=lines;tip.style.display='block';tip.style.left=Math.min(e.clientX+15,W-270)+'px';tip.style.top=Math.min(e.clientY-10,H-60)+'px'
+  }else tip.style.display='none'
+})
+cvs.addEventListener('mouseup',e=>{if(e.button===0&&G&&G.cam){md=false;G.cam.endDrag()}})
+cvs.addEventListener('wheel',e=>{
+  e.preventDefault()
+  if(!G||!G.cam)return
+  if(e.deltaY<0)G.cam.zoomAt(e.clientX,e.clientY,.15)
+  else G.cam.zoomAt(e.clientX,e.clientY,-.15)
+},{passive:false})
+cvs.addEventListener('contextmenu',e=>e.preventDefault())
+document.addEventListener('keydown',e=>{
+  if(e.key==='F11'){e.preventDefault();if(!document.fullscreenElement)document.body.requestFullscreen();else document.exitFullscreen();return}
+  if(!G)return
+  let sp=8/Math.max(.1,G.cam.z)
+  if(e.key==='w'||e.key==='W'||e.key==='ArrowUp')G.cam.pan(0,sp)
+  if(e.key==='s'||e.key==='S'||e.key==='ArrowDown')G.cam.pan(0,-sp)
+  if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft')G.cam.pan(sp,0)
+  if(e.key==='d'||e.key==='D'||e.key==='ArrowRight')G.cam.pan(-sp,0)
+  if(e.key==='Escape')clearSel()
+  if(e.key==='Enter')endTurn()
+})
+
+// ==================== 菜单函数 ====================
+function showPlayerSel(){
+  document.getElementById('menu').style.display='none'
+  document.getElementById('player-sel').style.display='flex'
+}
+function backToMenu(){
+  document.getElementById('player-sel').style.display='none'
+  document.getElementById('menu').style.display='flex'
+}
+function openEncyclopedia(){
+  window.open('encyclopedia/index.html','_blank')
+}
+function startGame(n){
+  document.getElementById('player-sel').style.display='none'
+  document.getElementById('gameOver').style.display='none'
+  initEngine(n)
+  new Game()
+  showTurnNotify()
+}
+
+// ==================== 主循环 ====================
+function gameLoop(){
+  if(G&&ENGINE.state==='PLAYING'){
+    G.update()
+    render()
+  }
+  if(notifyTimer>0){
+    notifyTimer--
+    if(notifyTimer===0)document.getElementById('turn-notify').style.display='none'
+  }
+  requestAnimationFrame(gameLoop)
+}
+
+// ==================== 初始化 ====================
+window.addEventListener('load',()=>{
+  cvs=document.getElementById('gc');ctx=cvs.getContext('2d')
+  resize()
+  gameLoop()
+})
+window.addEventListener('resize',resize)
+</script>
+</body>
+</html>

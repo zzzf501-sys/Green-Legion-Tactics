@@ -448,7 +448,7 @@ class SelectionManager:
                 tt=grid.get_tile(gx,gy)
                 if tt and tt.occupant and tt.occupant.player_id!=p.player_id:
                     target=tt.occupant; u.attack_target(target)
-                    if isinstance(target,Unit) and target.is_dead: grid.remove(target); p.remove_unit(target)
+                    if isinstance(target,Unit) and target.is_dead: grid.remove(target); self.dying_entities.append((target,255,'unit')); p.remove_unit(target)
                     elif isinstance(target,Building):
                         if target.is_dead and target.building_type=='据点' and not target.is_captured:
                             target.capture(p.player_id); p.add_building(target)
@@ -570,6 +570,17 @@ class Renderer:
                 self._draw_hq_panel(self.sel.selected_building)
                 for btn in self.hq_buttons: btn.draw(self.screen)
         except: pass
+        # 绘制正在消失的实体
+        try:
+            for ent, alpha, etype in list(self._game.dying_entities) if hasattr(self,'_game') and self._game else []:
+                try:
+                    sx,sy=self.cam.grid_to_screen(ent.grid_x,ent.grid_y); sz=TILE_SIZE*self.cam.zoom
+                    sp=self._get_sprite(ent.unit_type if etype=='unit' else ent.building_type)
+                    if sp:
+                        sc=pygame.transform.scale(sp,(int(sz),int(sz))); sc.set_alpha(alpha)
+                        self.screen.blit(sc,(sx,sy))
+                except: pass
+        except: pass
         try: self._draw_hud()
         except: pass
         try: self._draw_tooltip()
@@ -686,6 +697,7 @@ class Game:
         self.screen_w=SCREEN_WIDTH; self.screen_h=SCREEN_HEIGHT
         self.camera=None; self.grid=None; self.selection=None; self.engine=None; self.renderer=None
         self.buttons={}; self.hq_menu_buttons=[]; self.hq_menu_open=False
+        self.dying_entities=[]  # [(entity, alpha, type), ...]
         self._setup_menu()
     def _setup_menu(self):
         bw,bh=260,50; cx=(SCREEN_WIDTH-bw)//2; cy=SCREEN_HEIGHT//2-60
@@ -700,6 +712,7 @@ class Game:
         self.grid=Grid(MAP_WIDTH,MAP_HEIGHT); self.selection=SelectionManager()
         self.engine=GameEngine(count)
         self.renderer=Renderer(self.screen,self.camera,self.grid,self.selection,self.engine)
+        self.renderer._game=self
         self._setup_buttons(); self.renderer.buttons=self.buttons; self.renderer.hq_buttons=self.hq_menu_buttons
         self.selection._get_player_buildings=lambda pid:[b for p in self.engine.players if p.player_id==pid for b in p.buildings]
         self._place_initial_entities(); self._center_on_current_player(); self.game_state='PLAYING'
@@ -717,9 +730,11 @@ class Game:
         p=self.engine.get_current_player(); hq=p.get_hq()
         if hq: self.camera.center_on(hq.grid_x,hq.grid_y)
     def _setup_buttons(self):
-        self.buttons={'skip':Button(10,SCREEN_HEIGHT-50,120,32,'跳过',COLOR_DARK),
-            'station':Button(140,SCREEN_HEIGHT-50,120,32,'驻扎',(0,60,0)),
-            'end_turn':Button(SCREEN_WIDTH-140,SCREEN_HEIGHT-50,130,32,'结束回合',COLOR_BLUE)}
+        bh=32; bw=130
+        self.buttons={
+            'skip':Button(10,self.screen_h-50,120,bh,'跳过',COLOR_DARK),
+            'station':Button(135,self.screen_h-50,120,bh,'驻扎',(0,60,0)),
+            'end_turn':Button(self.screen_w-bw-10,self.screen_h-50,bw,bh,'结束回合',COLOR_BLUE)}
         self.hq_menu_buttons=[]; self.hq_menu_open=False
     def _update_hq_menu(self, building):
         self.hq_menu_buttons.clear()
@@ -780,6 +795,8 @@ class Game:
                     self.screen=pygame.display.set_mode((self.screen_w,self.screen_h),pygame.RESIZABLE)
                 if self.renderer: self.renderer.screen=self.screen
                 if self.camera: self.camera.scr_w,self.camera.scr_h=self.screen_w,self.screen_h
+                # 重新定位按钮
+                if self.engine: self._setup_buttons(); self.renderer.buttons=self.buttons
             if self.game_state=='MENU': return
             if event.key==pygame.K_ESCAPE: self.selection.clear(); self.hq_menu_open=False
             if event.key in (pygame.K_RETURN,pygame.K_SPACE):
@@ -869,6 +886,12 @@ class Game:
                     for b in (p.buildings or []):
                         if b and b.building_type=='大本营' and b.in_heal_range(u.grid_x,u.grid_y):
                             self.selection.highlight_color=COLOR_HIGHLIGHT_HEAL; break
+        # 死亡淡出动画
+        new_dying=[]
+        for ent,alpha,etype in self.dying_entities:
+            na=alpha-6
+            if na>0: new_dying.append((ent,na,etype))
+        self.dying_entities=new_dying
         # WASD
         try:
             sp=10/max(0.1,self.camera.zoom); keys=pygame.key.get_pressed()

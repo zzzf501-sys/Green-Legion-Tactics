@@ -567,8 +567,15 @@ function startGame(n){
 // ==================== 主循环 ====================
 function gameLoop(){
   if(G&&ENGINE.state==='PLAYING'){
-    G.update()
-    render()
+    try{G.update()}catch(e){}
+    try{render()}catch(e){
+      if(ctx){ctx.fillStyle='#ff0000';ctx.font='20px sans-serif';ctx.fillText('Render ERR: '+e.message,50,100)}
+    }
+  }else if(ctx){
+    // 等待游戏开始，画布显示提示
+    ctx.fillStyle='#1a1a2a';ctx.fillRect(0,0,W,H)
+    ctx.fillStyle='#6a6a7a';ctx.font='18px sans-serif';ctx.textAlign='center'
+    ctx.fillText('等待开始...',W/2,H/2)
   }
   if(notifyTimer>0){
     notifyTimer--

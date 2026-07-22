@@ -1113,6 +1113,8 @@ class Game:
         self.buttons = {}
         self.hq_menu_buttons = []
         self.hq_menu_open = False
+        self.screen_w = SCREEN_WIDTH
+        self.screen_h = SCREEN_HEIGHT
         self._setup_menu()
 
     def _setup_menu(self):

@@ -803,7 +803,21 @@ function drawBuilding(b){
   let name=b.type
   if(b.type==='大本营')name=b.tier>=2?'大本营T3':'大本营 T'+(b.tier+1)
   let img=SPR[name]
-  if(!img){img=new Image();img.onload=function(){SPR[name]=this};img.onerror=function(){SPR[name]=null};try{img.src='picture/'+name+'.png'}catch(e){SPR[name]=null};SPR[name]=null}
+  if(!img){
+    img=new Image()
+    let loaded=false
+    img.onload=function(){SPR[name]=this;loaded=true}
+    img.onerror=function(){
+      if(!loaded){
+        // 尝试.jpg
+        let img2=new Image()
+        img2.onload=function(){SPR[name]=img2}
+        img2.onerror=function(){SPR[name]=null}
+        try{img2.src='picture/'+name+'.jpg'}catch(e){SPR[name]=null}
+      }
+    }
+    try{img.src='picture/'+name+'.png'}catch(e){SPR[name]=null}
+  }
   if(img&&img.complete&&img.naturalWidth>0){
     try{ctx.drawImage(img,sx,sy,sz,sz)}catch(e){}
     // 血条

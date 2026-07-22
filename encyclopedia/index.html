@@ -210,8 +210,8 @@ var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,labe
 '野战炮':{hp:4,armor:1,speed:3,damage:5.5,range:8,price:5,attacks:1,label:'🎯 野战炮',img:'../picture/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
 '装甲车':{hp:7,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../picture/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。',canTargetAir:true},
 '战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,label:'🛩️ 战斗机',img:'../picture/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
-'轰炸机':{hp:12,armor:2,speed:4,damage:10,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2,blast:3},
-'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:7,airRange:14}};
+'轰炸机':{hp:20,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2,blast:3},
+'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:8,airRange:14}};
 var UK=Object.keys(UD);
 var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。',canTargetAir:true},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。',canTargetAir:true}],
 '坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。'},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:3,desc:'牺牲单发穿透力，换装大装药榴弹，硬化目标？不存在的。'}],
@@ -263,7 +263,8 @@ if(eq.speed)s+='<span class="down">速度 '+eq.speed+' (→'+(u.speed+eq.speed)+
 if(eq.hp)s+='<span class="down">生命 '+(eq.hp>0?'+':'')+eq.hp+' (→'+(u.hp+eq.hp)+')</span> ';
 if(eq.blast&&eq.blast>1)s+='<br><span class="special">🌀 爆炸范围 ×'+eq.blast+'</span>';
 var cl=eq.cost>=0?'🪙 '+eq.cost+' 元':'<span style="color:#7acc7a;">价格 '+eq.cost+'</span>';
-h+='<div class="equip-card"><h4>'+eq.name+'</h4><div class="desc">'+(eq.desc||'')+'</div><div class="stats" style="margin-bottom:4px;">'+cl+'</div><div class="stats">'+s+'</div></div>'});h+='</div>'}
+var eqImg='';var eqM={'士兵':'','坦克':'','军用吉普':'','火箭炮':'','野战炮':''};eqM['士兵-射手步枪']='../picture/士兵-射手步枪.png';eqM['士兵-反器械枪']='../picture/士兵-反器械.png';eqM['坦克-穿甲炮']='../picture/坦克-穿甲弹.png';eqM['坦克-高爆炮']='../picture/坦克-高爆弹.png';eqM['军用吉普-火箭助推']='../picture/军用吉普-火箭助推.png';eqM['火箭炮-对空雷达']='../picture/火箭炮-对空雷达.png';eqM['野战炮-巨炮']='../picture/野战炮-巨炮.png';eqM['野战炮-轻量化']='../picture/野战炮，轻量化.png';eqImg=eqM[k+'-'+eq.name]||'';
+h+='<div class="equip-card">'+(eqImg?'<img src="'+eqImg+'" alt="'+eq.name+'" style="width:100%;height:80px;object-fit:contain;border-radius:4px;margin-bottom:6px;background:#0a0a12;">':'')+'<h4>'+eq.name+'</h4><div class="desc">'+(eq.desc||'')+'</div><div class="stats" style="margin-bottom:4px;">'+cl+'</div><div class="stats">'+s+'</div></div>'});h+='</div>'}
 if(k==='坦克')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>高爆炮的范围爆炸效果在面对密集步兵阵型时极为致命，一发入魂。</div>';
 else if(k==='火箭炮')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>全游戏最远射程，可在敌方反击范围外安全输出。</div>';
 else if(k==='装甲车')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：运载 · 对空</span>🚌 可搭载 <strong>8 名</strong> 步兵单位；🔫 可对空射击。</div>';

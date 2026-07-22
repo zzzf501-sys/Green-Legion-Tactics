@@ -109,6 +109,24 @@ def neighbors(gx, gy):
 def manhattan(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
+def load_font(size):
+    """加载支持中文的字体"""
+    import os
+    # Windows 常见中文字体路径
+    font_paths = [
+        'C:/Windows/Fonts/msyh.ttc',     # Microsoft YaHei
+        'C:/Windows/Fonts/simhei.ttf',    # SimHei
+        'C:/Windows/Fonts/simsun.ttc',    # SimSun
+        'C:/Windows/Fonts/msyhbd.ttc',   # Microsoft YaHei Bold
+    ]
+    for fp in font_paths:
+        if os.path.exists(fp):
+            try:
+                return pygame.font.Font(fp, size)
+            except pygame.error:
+                continue
+    return pygame.font.Font(None, size)  # 回退默认字体
+
 def load_image(path, size=None):
     """加载并缩放图片"""
     try:
@@ -838,9 +856,9 @@ class Renderer:
         self.grid = grid
         self.sel = selection
         self.engine = engine
-        self.font = pygame.font.Font(None, 16)
-        self.font_big = pygame.font.Font(None, 24)
-        self.font_title = pygame.font.Font(None, 32)
+        self.font = load_font(16)
+        self.font_big = load_font(24)
+        self.font_title = load_font(32)
         self._sprite_cache = {}
         self._hover_gx = -1
         self._hover_gy = -1
@@ -1083,8 +1101,9 @@ class Renderer:
 class Game:
     def __init__(self, player_count=2):
         pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption('绿色军团 — 热座回合制策略游戏')
+        self._fullscreen = False
         self.clock = pygame.time.Clock()
         self.running = True
 
@@ -1232,6 +1251,13 @@ class Game:
             if event.key == pygame.K_ESCAPE:
                 self.selection.clear()
                 self.hq_menu_open = False
+            if event.key == pygame.K_F11:
+                self._fullscreen = not self._fullscreen
+                if self._fullscreen:
+                    self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                else:
+                    self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                self.renderer.screen = self.screen
             if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                 if self.selection.selected_unit and self.selection.selected_unit.can_skip():
                     self.selection.skip_unit()

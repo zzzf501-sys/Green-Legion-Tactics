@@ -209,21 +209,25 @@ var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,labe
 '火箭炮':{hp:8,armor:0.5,speed:2,damage:7,range:15,price:15,attacks:1,label:'🚀 火箭炮',img:'../picture/火箭炮.png',weapon:'多管火箭巢',quote:'超远程火力覆盖，敌后纵深的噩梦。'},
 '野战炮':{hp:4,armor:1,speed:3,damage:5.5,range:8,price:5,attacks:1,label:'🎯 野战炮',img:'../picture/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
 '装甲车':{hp:7,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../picture/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。',canTargetAir:true},
-'战斗机':{hp:5,armor:0,speed:10,damage:5,range:3,price:14,attacks:1,label:'🛩️ 战斗机',img:'../picture/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
-'轰炸机':{hp:10,armor:2,speed:4,damage:8,range:2,price:16,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2},
-'防空车':{hp:5,armor:1,speed:5,damage:3,range:3,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:7,airRange:8}};
+'战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,label:'🛩️ 战斗机',img:'../picture/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
+'轰炸机':{hp:12,armor:2,speed:4,damage:10,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2,blast:3},
+'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:7,airRange:14}};
 var UK=Object.keys(UD);
 var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。',canTargetAir:true},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。',canTargetAir:true}],
 '坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。'},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:3,desc:'牺牲单发穿透力，换装大装药榴弹，硬化目标？不存在的。'}],
-'军用吉普':[{name:'无',cost:0,dmg:0,range:0}],
-'火箭炮':[{name:'无',cost:0,dmg:0,range:0}],
-'野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-2,dmg:-1,range:0,hp:-1,desc:'减轻结构重量，降低生产成本但削弱火力。'}],
+'军用吉普':[{name:'无',cost:0,dmg:0,range:0},{name:'火箭助推',cost:1,speed:5,hp:1,desc:'加装火箭助推器，大幅提升移动速度。'}],
+'火箭炮':[{name:'无',cost:0,dmg:0,range:0},{name:'对空雷达',cost:3,range:1,canTargetAir:true,desc:'加装对空搜索雷达，获得对空射击能力。'}],
+'野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-2,dmg:-1,range:0,hp:-1,desc:'减轻结构重量，降低生产成本但削弱火力。'},
+{name:'舰炮',cost:5,dmg:7,hp:3,desc:'安装重型舰炮，大幅提升火力与生存能力。'}],
 '装甲车':[{name:'无',cost:0,dmg:0,range:0}],
 '战斗机':[{name:'无',cost:0,dmg:0,range:0}],
 '轰炸机':[{name:'无',cost:0,dmg:0,range:0}],
 '防空车':[{name:'无',cost:0,dmg:0,range:0}]};
-var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[{tier:'T1',hp:20,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png'},{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:8},tag:'tag-t2',img:'../picture/大本营 T2.png'},{tier:'T3',hp:120,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png'}]},
-'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。',tiers:[{tier:'T1',hp:15,armor:0,gold:5,upgrade:{cost:8,time:4},tag:'tag-t1',img:'../picture/资源采集器.png'},{tier:'T2',hp:30,armor:0.5,gold:10,upgrade:{cost:20,time:6},tag:'tag-t2',img:'../picture/资源采集器.png'},{tier:'T3',hp:60,armor:1,gold:20,upgrade:null,tag:'tag-t3',img:'../picture/资源采集器.png'}]}};
+var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[
+{tier:'T1',hp:20,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png',turret:null},
+{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:8},tag:'tag-t2',img:'../picture/大本营 T2.png',turret:{damage:2,attacks:2,range:5,canTargetAir:true,label:'双联装炮台'}},
+{tier:'T3',hp:120,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png',turret:{damage:3,attacks:3,range:8,canTargetAir:true,label:'终极炮台'}}]},
+'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。',tiers:[{tier:'T2',hp:15,armor:0,gold:3,upgrade:null,tag:'tag-t2',img:'../picture/资源采集器.png'}]}};
 function dc(v){return v<=3?'dura-orange':v<=4?'dura-yellow':v<=7?'dura-blue':''}
 function fm(v){return Number(v).toFixed(1)}
 function renderDura(){
@@ -246,7 +250,7 @@ h+='<div class="stat-card"><div class="label">❤️ 生命</div><div class="val
 h+='<div class="stat-card"><div class="label">🛡️ 护甲</div><div class="value">'+u.armor+'</div></div>';
 h+='<div class="stat-card"><div class="label">💨 移速</div><div class="value">'+u.speed+'</div></div>';
 h+='<div class="stat-card"><div class="label">🪙 价格</div><div class="value">'+u.price+'</div></div></div>';
-if(u.type||u.canTargetAir)h+='<div style="color:#8a8a9a;font-size:.85rem;margin-bottom:10px;">'+(u.type==='air'?'🛩️ 空中单位':'')+(u.canTargetAir?' · 可对空':' · 仅对地')+(u.reload?' · 装弹 '+u.reload+'回合':'')+'</div>';
+if(u.type||u.canTargetAir)h+='<div style="color:#8a8a9a;font-size:.85rem;margin-bottom:10px;">'+(u.type==='air'?'🛩️ 空中单位':'')+(u.canTargetAir?' · 可对空':' · 仅对地')+(u.reload?' · 装弹 '+u.reload+'回合':'')+(u.blast&&u.blast>1?' · 💥 范围×'+u.blast:'')+'</div>';
 var dd=u.attacks>1&&u.damage>0?u.damage+'×'+u.attacks:u.damage;
 h+='<div class="section-label">初始武器：'+u.weapon+'</div><table><thead><tr><th>属性</th><th>数值</th></tr></thead><tbody>';
 h+='<tr><td>伤害</td><td>'+dd+'</td></tr><tr><td>射程</td><td>'+u.range+'</td></tr></tbody></table>';
@@ -264,7 +268,7 @@ if(k==='坦克')h+='<div class="tip-box"><span class="tip-label">💡 战术提�
 else if(k==='火箭炮')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>全游戏最远射程，可在敌方反击范围外安全输出。</div>';
 else if(k==='装甲车')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：运载 · 对空</span>🚌 可搭载 <strong>8 名</strong> 步兵单位；🔫 可对空射击。</div>';
 else if(k==='战斗机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：制空</span>🛩️ 可对空对地，地面单位无法反击空中单位。</div>';
-else if(k==='轰炸机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：对地轰炸</span>💣 仅对地攻击，装弹 2 回合，地面单位无法反击。</div>';
+else if(k==='轰炸机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：范围轰炸</span>💣 爆炸范围×3，仅对地攻击，装弹 2 回合，地面单位无法反击。</div>';
 else if(k==='防空车')h+='<div class="tip-box"><span class="tip-label">💡 双模式：防空</span>🔫 对空伤害'+(u.airDamage||u.damage)+' 射程'+(u.airRange||u.range)+'，对地伤害'+u.damage+' 射程'+u.range+'。地面单位无法反击空中。</div>';
 var d1=u.hp+u.armor,d2=u.hp/2+u.armor,d3=u.hp/3+u.armor;
 h+='<div class="durability-box"><div class="db-label">💀 耐打计算</div><div class="durability-stats">';

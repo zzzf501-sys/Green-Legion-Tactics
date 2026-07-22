@@ -651,7 +651,7 @@ class Player:
     def __init__(self, player_id, name):
         self.player_id = player_id
         self.name = name
-        self.gold = 20
+        self.gold = 10
         self.units = []
         self.buildings = []
         self.is_alive = True

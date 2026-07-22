@@ -261,7 +261,7 @@ class Building{
       this.gold=this.captured?d.gold:0;this.turret=this.captured?d.captureTurret:null
     }else{
       let d=BUILDING_DATA[this.type]
-      if(d){this.maxHp=d.hp;this.hp=this.hp||d.hp;this.armor=d.armor;this.gold=d.gold;this.turret=null}
+      if(d){this.maxHp=d.hp;this.hp=this.hp||d.hp;this.armor=d.armor;this.gold=this.underConstruction?0:d.gold;this.turret=null}
     }
   }
   capture(pid){
@@ -386,7 +386,16 @@ function nextTurn(){
   let wrapped=(ENGINE.cur<=was&&was!==ENGINE.cur)||(was===ENGINE.players.length-1&&ENGINE.cur===0)
   if(wrapped){
     ENGINE.turn++
-    ENGINE.players.forEach(p=>{if(p.alive){p.buildings.forEach(b=>b.tickUpgrade());p.collectIncome()}})
+    ENGINE.players.forEach(p=>{if(p.alive){
+      p.buildings.forEach(b=>{
+        b.tickUpgrade()
+        if(b.underConstruction){
+          b.buildTimer--
+          if(b.buildTimer<=0){b.underConstruction=false;b.gold=BUILDING_DATA[b.type]?BUILDING_DATA[b.type].gold:0;console.log('Building complete:',b.type)}
+        }
+      })
+      p.collectIncome()
+    }})
   }
   curP().turnStart()
   showTurnNotify()
@@ -449,7 +458,9 @@ class Game{
       if(hq&&!t.occ&&manh([gx,gy],[hq.gx,hq.gy])<=5&&p.gold>=8){
         p.gold-=8
         let b=new Building('资源采集器',gx,gy,p.id)
+        b.underConstruction=true;b.buildTimer=4
         this.grid.place(b,gx,gy);p.addBuilding(b)
+        console.log('Building resource collector, ready in 4 turns')
       }
       this.buildMode=null;this.ghostPos=null;this._updateButtons();return
     }
@@ -487,7 +498,7 @@ class Game{
           let target=tt.occ
           if(target instanceof Unit){
             u.attack(target)
-            if(target.dead){this.grid.remove(target);p.removeUnit(target);this.dying.push({ent:target,alpha:255,type:'u'})}
+            if(target.dead){this.grid.remove(target);p.removeUnit(target);this.dying.push({ent:target,alpha:255});console.log('Unit died:',target.type)}
             clearSel()
           }else if(target instanceof Building){
             u.attack(target)
@@ -629,7 +640,8 @@ class Game{
   }
   update(){
     this.cam.update()
-    // 升级计时已移至nextTurn
+    // 建造计时(已在nextTurn中处理)
+
     let nd=[]
     this.dying.forEach(d=>{d.alpha-=5;if(d.alpha>0)nd.push(d)})
     this.dying=nd
@@ -863,6 +875,12 @@ function drawBuilding(b){
   let ratio=Math.max(0,b.hp/b.maxHp)
   ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
   ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
+  // 建造中进度条
+  if(b.underConstruction){
+    ctx.fillStyle='#8888ff80';ctx.fillRect(sx,sy-12,sz,6)
+    let pct=1-(b.buildTimer||4)/4
+    ctx.fillStyle='#4444ff';ctx.fillRect(sx,sy-12,sz*pct,6)
+  }
 }
 function drawDying(d){
   let u=d.ent;if(!u)return

@@ -142,6 +142,7 @@ class Camera{
   pan(dx,dy){this.tox+=dx;this.toy+=dy;this._clamp()}
   startDrag(sx,sy){this.drag=true;this.dsx=sx;this.dsy=sy;this.dox=this.ox;this.doy=this.oy}
   endDrag(){this.drag=false}
+  updateDrag(sx,sy){if(this.drag){let dx=sx-this.dsx,dy=sy-this.dsy;this.tox=this.dox+dx;this.toy=this.doy+dy;this._clamp()}}
   zoomAt(sx,sy,dz){
     let[wx,wy]=this.s2w(sx,sy)
     this.tz=clamp(this.tz+dz,MIN_Z,MAX_Z)
@@ -495,28 +496,43 @@ function drawHL(gx,gy,c){
   ctx.fillStyle=c;ctx.fillRect(sx,sy,sz,sz)
 }
 function drawUnit(u){
-  let[sx,sy]=G.cam.g2s(u.gx,u.gy);let sz=TS*G.cam.z;let hsz=sz/2
-  let cx=sx+hsz,cy=sy+hsz,r=hsz*.8
-  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2)
-  ctx.fillStyle=PLAYER_COLORS[u.pid];ctx.fill()
-  ctx.strokeStyle='#666';ctx.lineWidth=1;ctx.stroke()
-  if(!u.done){ctx.beginPath();ctx.arc(cx,cy,r+sz*.05,0,Math.PI*2);ctx.strokeStyle=COL_WHITE;ctx.lineWidth=2;ctx.stroke()}
+  let[sx,sy]=G.cam.g2s(u.gx,u.gy);let sz=TS*G.cam.z;let hsz=sz/2;let cx=sx+hsz,cy=sy+hsz
+  // 主体形状
+  ctx.fillStyle=PLAYER_COLORS[u.pid];ctx.strokeStyle='#222';ctx.lineWidth=Math.max(1,sz*.04)
+  if(u.type==='士兵'){
+    ctx.beginPath();ctx.arc(cx,cy,hsz*.5,0,Math.PI*2);ctx.fill();ctx.stroke()
+  }else if(u.type==='坦克'||u.type==='装甲车'){
+    ctx.fillRect(sx+sz*.1,sy+sz*.15,sz*.8,sz*.7);ctx.strokeRect(sx+sz*.1,sy+sz*.15,sz*.8,sz*.7)
+  }else if(u.isAir){
+    ctx.beginPath();ctx.moveTo(cx, sy+sz*.15);ctx.lineTo(cx+sz*.5,cy);ctx.lineTo(cx,sy+sz*.85);ctx.lineTo(cx-sz*.5,cy);ctx.closePath();ctx.fill();ctx.stroke()
+  }else{
+    ctx.beginPath();ctx.arc(cx,cy,hsz*.5,0,Math.PI*2);ctx.fill();ctx.stroke()
+  }
+  // 白色光圈（未行动）
+  if(!u.done){ctx.beginPath();ctx.arc(cx,cy,hsz*.55,0,Math.PI*2);ctx.strokeStyle=COL_WHITE;ctx.lineWidth=2;ctx.stroke()}
+  // 血条
   let bw=sz*.7,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
-  let ratio=u.hp/u.maxHp
+  let ratio=Math.max(0,u.hp/u.maxHp)
   ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
   ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
 }
 function drawBuilding(b){
   let[sx,sy]=G.cam.g2s(b.gx,b.gy);let sz=TS*G.cam.z;let hsz=sz/2
   if(b.type==='大本营'){
-    let colors=['#3a6a3a','#3a5a8a','#8a5a3a']
+    let colors=['#3a6a3a','#3a5a8a','#8a5a3a'];let icons=['▲','◆','⬟']
     ctx.fillStyle=colors[b.tier]||'#3a5a3a'
-  }else if(b.type==='据点'){ctx.fillStyle=b.pid>=0?PLAYER_COLORS[b.pid]:'#6a6a7a'}
-  else{ctx.fillStyle='#4a4a5a'}
-  ctx.fillRect(sx+2,sy+2,sz-4,sz-4)
-  ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)
-  ctx.fillStyle=COL_WHITE;ctx.font=Math.floor(sz*.35)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
-  ctx.fillText(b.type[0],sx+sz/2,sy+sz/2)
+    ctx.fillRect(sx+2,sy+2,sz-4,sz-4)
+    ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)
+    ctx.fillStyle=COL_WHITE;ctx.font='bold '+Math.floor(sz*.4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
+    ctx.fillText(icons[b.tier]||'▲',sx+sz/2,sy+sz/2)
+  }else if(b.type==='据点'){
+    ctx.fillStyle=b.pid>=0?PLAYER_COLORS[b.pid]:'#6a6a7a'
+    ctx.fillRect(sx+2,sy+2,sz-4,sz-4)
+    ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)
+    ctx.fillStyle=COL_WHITE;ctx.font='bold '+Math.floor(sz*.4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
+    ctx.fillText('⚑',sx+sz/2,sy+sz/2)
+  }
+  // 血条
   let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy-6
   let ratio=Math.max(0,b.hp/b.maxHp)
   ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)

@@ -378,36 +378,27 @@ class Game{
     this._updateButtons()
   }
   _placeInit(){
+    console.log('_placeInit start, players='+ENGINE.players.length)
     let n=ENGINE.players.length
     let cs=[[8,8],[MAP_W-9,8],[8,MAP_H-9],[MAP_W-9,MAP_H-9]]
     for(let i=0;i<n&&i<cs.length;i++){
       let[cx,cy]=cs[i];let b=new Building('大本营',cx,cy,i)
       this.grid.place(b,cx,cy);ENGINE.players[i].addBuilding(b)
+      console.log('HQ placed at',cx,cy,'for player',i)
     }
     ENGINE.players.forEach(p=>p.gold=10)
-    // 据点 — 每两个玩家中间 + 中心区域
-    let outposts=[]
-    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
-      let mx=(cs[i][0]+cs[j][0])>>1,my=(cs[i][1]+cs[j][1])>>1
-      outposts.push([mx,my])
+    // 简单据点：2人模式一个在中心，多人加少量
+    let cx=MAP_W/2|0,cy=MAP_H/2|0
+    let placed=0
+    // 中心据点
+    if(!this.grid.get(cx,cy).occ){
+      this.grid.place(new Building('据点',cx,cy,-1),cx,cy)
+      placed++;console.log('Center outpost at',cx,cy)
     }
-    // 中心区域多个据点
-    let cc=MAP_W/2|0;let ch=MAP_H/2|0
-    outposts.push([cc,ch],[cc-12,ch+10],[cc+12,ch-10],[cc-8,ch-8],[cc+8,ch+8])
-    // 每个大本营附近也放一个（容易被玩家发现）
-    for(let i=0;i<n;i++){
-      outposts.push([cs[i][0]+3,cs[i][1]+5],[cs[i][0]+5,cs[i][1]+3])
+    if(n>2){for(let d of[[-12,10],[12,-10]]){let ox=cx+d[0],oy=cy+d[1]
+      if(!this.grid.get(ox,oy).occ){this.grid.place(new Building('据点',ox,oy,-1),ox,oy);placed++}}
     }
-    // 去重+放置
-    let placed=new Set()
-    outposts.forEach(([ox,oy])=>{
-      let key=ox+','+oy
-      if(!placed.has(key)&&this.grid.ib(ox,oy)&&!this.grid.get(ox,oy).occ){
-        this.grid.place(new Building('据点',ox,oy,-1),ox,oy)
-        placed.add(key)
-      }
-    })
-    console.log('据点数:',placed.size)
+    console.log('Total outposts:',placed)
   }
   _centerOnCur(){let hq=curP().getHQ();if(hq)this.cam.centerOn(hq.gx,hq.gy)}
   _handleClick(gx,gy){

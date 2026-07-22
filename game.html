@@ -286,15 +286,22 @@ class Building{
 
 // ==================== 寻路 ====================
 function computeMoveRange(grid,sx,sy,mv,unit){
+  let isAir=unit&&unit.isAir
   let cost={};cost[sx+','+sy]=0;let q=[[sx,sy]];let r=new Set()
   while(q.length){
     let[cx,cy]=q.shift();let cc=cost[cx+','+cy]
     for(let[nx,ny] of neighbors(cx,cy)){
       if(!grid.ib(nx,ny))continue
-      let t=grid.get(nx,ny);let o=t.occ
-      if(o&&o!==unit&&o.pid!==unit.pid)continue
-      let nc=cc+t.mc
-      if(nc<=mv&&!(nx+','+ny in cost)){cost[nx+','+ny]=nc;q.push([nx,ny]);r.add(nx+','+ny)}
+      if(!isAir){
+        let t=grid.get(nx,ny);let o=t.occ
+        if(o&&o!==unit&&o.pid!==unit.pid)continue
+        let nc=cc+t.mc
+        if(nc<=mv&&!(nx+','+ny in cost)){cost[nx+','+ny]=nc;q.push([nx,ny]);r.add(nx+','+ny)}
+      }else{
+        // 空中单位：无视地形/障碍，每格消耗1
+        let nc=cc+1
+        if(nc<=mv&&!(nx+','+ny in cost)){cost[nx+','+ny]=nc;q.push([nx,ny]);r.add(nx+','+ny)}
+      }
     }
   }
   return r

@@ -469,9 +469,12 @@ function endTurn(){
 
 // ==================== 渲染 ====================
 function render(){
-  if(!G||!ctx)return
+  if(!G||!ctx||!G.cam)return
   ctx.fillStyle=COL_BG;ctx.fillRect(0,0,W,H)
   let vr=G.cam.getVR()
+  // 调试：显示渲染状态
+  ctx.fillStyle='#ff4040';ctx.font='14px monospace';ctx.textAlign='left';ctx.textBaseline='top'
+  ctx.fillText('R:'+ENGINE.state+' VR:'+vr.join(',')+' Z:'+G.cam.z.toFixed(1),10,50)
   for(let x=vr[0];x<vr[2];x++)for(let y=vr[1];y<vr[3];y++)drawTile(x,y)
   for(let k of SEL.hl){let[gx,gy]=k.split(',');drawHL(+gx,+gy,SEL.hc)}
   ENGINE.players.forEach(p=>p.buildings.forEach(b=>{if(b.gx>=vr[0]&&b.gx<vr[2]&&b.gy>=vr[1]&&b.gy<vr[3])drawBuilding(b)}))

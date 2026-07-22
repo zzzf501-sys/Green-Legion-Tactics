@@ -113,21 +113,21 @@ const UNIT_DATA={
 const U_NAMES=Object.keys(UNIT_DATA)
 const BUILDING_DATA={
   '大本营':{tiers:[
-    {hp:20,armor:0,gold:3,upgradeCost:10,upgradeTime:6},
-    {hp:50,armor:.5,gold:5,upgradeCost:30,upgradeTime:16,turret:{damage:2,attacks:2,range:5}},
+    {hp:20,armor:0,gold:3,upgradeCost:10,upgradeTime:3},
+    {hp:50,armor:.5,gold:5,upgradeCost:30,upgradeTime:8,turret:{damage:2,attacks:2,range:5}},
     {hp:120,armor:1,gold:8,turret:{damage:3,attacks:3,range:8}},
   ]},
   '据点':{hp:20,armor:0,gold:3,captureTurret:{damage:2,attacks:2,range:5}},
 }
 const EQUIP_DATA={
-  '士兵':[{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,canTargetAir:true,tier:'T2',researchCost:5,researchTime:4},
-          {name:'反器械枪',cost:1.5,dmg:4,range:2,canTargetAir:true,tier:'T2',researchCost:5,researchTime:4}],
-  '坦克':[{name:'穿甲炮',cost:2,dmg:3,range:1,tier:'T3',researchCost:10,researchTime:6},
-          {name:'高爆炮',cost:1,dmg:-2,blast:3,tier:'T3',researchCost:10,researchTime:6}],
-  '军用吉普':[{name:'火箭助推',cost:1,speed:5,hp:1,tier:'T2',researchCost:5,researchTime:4}],
-  '火箭炮':[{name:'对空雷达',cost:3,range:1,canTargetAir:true,tier:'T3',researchCost:10,researchTime:6}],
-  '野战炮':[{name:'轻量化',cost:-2,dmg:-1,hp:-1,tier:'T2',researchCost:5,researchTime:4},
-            {name:'巨炮',cost:6,dmg:7,range:4,speed:-1,hp:3,tier:'T3',researchCost:10,researchTime:6}],
+  '士兵':[{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,canTargetAir:true,tier:'T2',researchCost:5,researchTime:2},
+          {name:'反器械枪',cost:1.5,dmg:4,range:2,canTargetAir:true,tier:'T2',researchCost:5,researchTime:2}],
+  '坦克':[{name:'穿甲炮',cost:2,dmg:3,range:1,tier:'T3',researchCost:10,researchTime:3},
+          {name:'高爆炮',cost:1,dmg:-2,blast:3,tier:'T3',researchCost:10,researchTime:3}],
+  '军用吉普':[{name:'火箭助推',cost:1,speed:5,hp:1,tier:'T2',researchCost:5,researchTime:2}],
+  '火箭炮':[{name:'对空雷达',cost:3,range:1,canTargetAir:true,tier:'T3',researchCost:10,researchTime:3}],
+  '野战炮':[{name:'轻量化',cost:-2,dmg:-1,hp:-1,tier:'T2',researchCost:5,researchTime:2},
+            {name:'巨炮',cost:6,dmg:7,range:4,speed:-1,hp:3,tier:'T3',researchCost:10,researchTime:3}],
 }
 
 // ==================== 工具函数 ====================
@@ -373,11 +373,18 @@ function showGameOver(winner){
   },2000)
 }
 function nextTurn(){
-  ENGINE.turn++
-  for(let i=0;i<ENGINE.players.length;i++){ENGINE.cur=(ENGINE.cur+1)%ENGINE.players.length;if(curP().alive)break}
-  curP().turnStart()
   let alive=ENGINE.players.filter(p=>p.alive)
   if(alive.length<=1){showGameOver(alive[0]||null);return}
+  let was=ENGINE.cur
+  // 找下一个活着的玩家
+  for(let i=0;i<ENGINE.players.length;i++){ENGINE.cur=(ENGINE.cur+1)%ENGINE.players.length;if(curP().alive)break}
+  // 所有玩家都动过 → 回合+1，全局计时/收入
+  let wrapped=(ENGINE.cur<=was&&was!==ENGINE.cur)||(was===ENGINE.players.length-1&&ENGINE.cur===0)
+  if(wrapped){
+    ENGINE.turn++
+    ENGINE.players.forEach(p=>{if(p.alive){p.buildings.forEach(b=>b.tickUpgrade());p.collectIncome()}})
+  }
+  curP().turnStart()
   showTurnNotify()
   if(G&&G.cam){let hq=curP().getHQ();if(hq)G.cam.centerOn(hq.gx,hq.gy)}
 }
@@ -617,7 +624,7 @@ class Game{
   }
   update(){
     this.cam.update()
-    ENGINE.players.forEach(p=>p.buildings.forEach(b=>{if(b.tickUpgrade())clearSel()}))
+    // 升级计时已移至nextTurn
     let nd=[]
     this.dying.forEach(d=>{d.alpha-=5;if(d.alpha>0)nd.push(d)})
     this.dying=nd

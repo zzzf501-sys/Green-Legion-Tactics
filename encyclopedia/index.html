@@ -137,6 +137,8 @@ body{flex-direction:column}
 <div class="rule-card"><h3>⚔️ 伤害计算</h3><div class="rule-formula">真实伤害 = max(0, 攻击方伤害 − 防守方护甲)</div><p style="color:#b0b0c0;margin-top:10px;">护甲直接减免每次攻击的伤害值，最低为 0。距离使用<strong style="color:#caba6a;">欧几里得距离</strong>（实际根号距离）。</p>
 <div style="margin-top:12px;padding:10px 14px;background:#141420;border-radius:6px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">📝 示例：</strong><br>🪖 士兵（伤害 1）攻击 🚀 坦克（护甲 2）→ <strong style="color:#cc7a7a;">1 − 2 = 0 真实伤害</strong> → 无法击穿装甲<br>🚀 坦克（伤害 4）攻击 🛡️ 装甲车（护甲 1）→ <strong style="color:#7acc7a;">4 − 1 = 3 真实伤害</strong></div>
 <div style="margin-top:12px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">💥 多次攻击 & 爆炸：</strong><br>• 多次攻击单位（如装甲车×3）每点击算一次攻击，一回合可攻击多次<br>• 爆炸范围（高爆炮半径2、轰炸机半径1.5）：对目标周围所有敌方单位造成伤害<br>• 自杀无人机攻击后自毁</div></div>
+<div class="rule-card"><h3>⛰️ 高度地形</h3><p style="color:#b0b0c0;line-height:1.8;">每局会随机生成横向、纵向或斜向的细断续山势主线及其中心对称副本，3/4 人大地图会出现更多方向的蜿蜒山势；整体以平地和丘陵为主，少量高地与山峰。地形分为平地、丘陵、高地、山脉四级高度。地面单位上坡更耗行动力，下坡消耗更低；高处攻击低处会增加有效射程，低处攻击高处会降低有效射程：高度差 1 修正 ±1，差 2 或以上修正 ±2，最多 ±2。山脉可通过，但移动消耗最高。丘陵、高地、山脉会显示不同的写实地表纹理。</p><table><thead><tr><th>地形</th><th>高度</th><th>基础移动消耗</th><th>战术效果</th></tr></thead><tbody><tr><td>平地</td><td>0</td><td>1.0</td><td>基准射程</td></tr><tr><td>丘陵</td><td>1</td><td>1.4</td><td>比目标高 1 时射程 +1；低打丘陵最多 -1</td></tr><tr><td>高地</td><td>2</td><td>1.8</td><td>比目标高 2 时射程 +2；低打高地最多 -2</td></tr><tr><td>山脉</td><td>3</td><td>2.6</td><td>最高地形，射程修正仍封顶 ±2，通行昂贵</td></tr></tbody></table></div>
+<div class="rule-card"><h3>🌫️ 战争迷雾</h3><p style="color:#b0b0c0;line-height:1.8;">当前玩家视野外的地图会被暗雾覆盖，敌方单位只有进入视野后才会显示、被鼠标提示或被攻击锁定。已探索过的敌方建筑会保留已知位置，但会被暗雾压暗。地面单位站在丘陵/高地/山脉上时，视野额外增加地形高度；空军不吃地形视野加成。</p><table><thead><tr><th>来源</th><th>基础视野</th><th>说明</th></tr></thead><tbody><tr><td>士兵</td><td>4</td><td>基础侦察</td></tr><tr><td>军用吉普</td><td>7</td><td>高速侦察核心</td></tr><tr><td>侦察机</td><td>11</td><td>T2 空中侦察单位，无法攻击</td></tr><tr><td>装甲车 / 防空车</td><td>5</td><td>推进与防空警戒</td></tr><tr><td>坦克 / 野战炮</td><td>4</td><td>标准战斗视野</td></tr><tr><td>火箭炮</td><td>3</td><td>超远射程但视野短，需要侦察配合</td></tr><tr><td>战斗机</td><td>9</td><td>制空侦察单位</td></tr><tr><td>轰炸机</td><td>6</td><td>中等空中视野</td></tr><tr><td>大本营</td><td>7 / 8 / 9</td><td>随等级提升</td></tr><tr><td>据点 / 资源采集器</td><td>5 / 3</td><td>战斗型据点视野 +1</td></tr><tr><td>SpaceX 星链计划</td><td>全图</td><td>T3 战略科技，完成后当前玩家获得全图视野</td></tr></tbody></table></div>
 <div class="rule-card"><h3>🛡️ 耐打计算</h3><p style="color:#b0b0c0;margin-bottom:6px;">以下为每个兵种被 <strong>1 下 / 2 下 / 3 下</strong> 消灭时，敌方每次攻击所需达到的伤害值。</p><div class="rule-formula">所需伤害 = 生命 ÷ 攻击次数 + 护甲</div></div>
 <div id="duraTable" style="margin-top:28px;"></div>
 <div style="margin-top:40px;">
@@ -156,7 +158,7 @@ body{flex-direction:column}
 </div>
 </div>
 <div class="chapter active" id="ch1">
-<div class="chapter-header"><h2>⚔️ 兵种大全</h2><div class="ch-meta"><span>第一章</span><span>·</span><span>已收录 10 个兵种</span><span>·</span><span>最后更新 2026-07-23</span></div></div>
+<div class="chapter-header"><h2>⚔️ 兵种大全</h2><div class="ch-meta"><span>第一章</span><span>·</span><span>已收录 11 个兵种</span><span>·</span><span>最后更新 2026-07-23</span></div></div>
 <div id="ch1Content"></div>
 </div>
 <div class="chapter" id="ch2">
@@ -170,31 +172,33 @@ body{flex-direction:column}
 <table><thead><tr><th>科技名称</th><th>解锁</th><th>说明</th></tr></thead><tbody>
 <tr><td>基础军事训练</td><td>🪖 士兵</td><td style="font-size:.85rem;color:#8a8a9a;">征召基础步兵单位</td></tr>
 <tr><td>基础建设</td><td>🏰 T1 大本营 · 🏴 据点</td><td style="font-size:.85rem;color:#8a8a9a;">每回合 +3 金币</td></tr>
-<tr><td>装备研发 T1</td><td>🎯 射手步枪 · 🚙 重甲吉普</td><td style="font-size:.85rem;color:#8a8a9a;">🪙3 / ⏳1 回合</td></tr>
+<tr><td>装备研发 T1</td><td>🪖 士兵：射手步枪 · 🚙 军用吉普：重甲吉普</td><td style="font-size:.85rem;color:#8a8a9a;">🪙3 / ⏳1 回合</td></tr>
 </tbody></table></div>
 <div class="rule-card" style="border-color:#3a3a5a;"><h3 style="color:#6a8ada;">📘 T2 — 进阶科技</h3>
 <table><thead><tr><th>科技名称</th><th>解锁</th><th>说明</th></tr></thead><tbody>
 <tr><td>火炮技术</td><td>🎯 野战炮</td><td style="font-size:.85rem;color:#8a8a9a;">曲射火力支援平台</td></tr>
 <tr><td>装甲技术</td><td>🚀 坦克</td><td style="font-size:.85rem;color:#8a8a9a;">重装甲突击力量</td></tr>
-<tr><td>装备研发 T2</td><td>🔫 反器械枪 · 🚙 火箭助推 · 🎯 轻量化 · 💥 高爆炮</td><td style="font-size:.85rem;color:#8a8a9a;">🪙5 / ⏳2 回合</td></tr>
+<tr><td>装备研发 T2</td><td>🪖 士兵：反器械枪 · 🚙 军用吉普：火箭助推 · 🎯 野战炮：轻量化 · 🚀 坦克：高爆炮</td><td style="font-size:.85rem;color:#8a8a9a;">🪙5 / ⏳2 回合</td></tr>
 <tr><td>扩建工程</td><td>🏰 T2 大本营</td><td style="font-size:.85rem;color:#8a8a9a;">每回合 +5 金币</td></tr>
-	<tr><td>自杀无人机</td><td>💥 自杀无人机</td><td style="font-size:.85rem;color:#8a8a9a;">💣 攻击后自毁，3金/2HP/8速/5伤</td></tr>
+	<tr><td>空中侦察</td><td>🛰️ 侦察机</td><td style="font-size:.85rem;color:#8a8a9a;">🪙5 / 2.5HP / 12速 / 11视野，无法攻击</td></tr>
+	<tr><td>自杀无人机</td><td>💥 自杀无人机</td><td style="font-size:.85rem;color:#8a8a9a;">💣 攻击后自毁，2金/2HP/8速/4伤</td></tr>
 	<tr><td>据点升级</td><td>🏴 T2 据点</td><td style="font-size:.85rem;color:#8a8a9a;">战斗型🪙4/回合 或 经济型🪙6/回合</td></tr>
 </tbody></table></div>
 <div class="rule-card" style="border-color:#5a3a2a;"><h3 style="color:#da8a6a;">📕 T3 — 精英科技</h3>
 <table><thead><tr><th>科技名称</th><th>解锁</th><th>说明</th></tr></thead><tbody>
 <tr><td>火箭技术</td><td>🚀 火箭炮</td><td style="font-size:.85rem;color:#8a8a9a;">超远程火力覆盖</td></tr>
-<tr><td>先进火炮系统</td><td>⚡ 穿甲炮 · 💥 高爆炮</td><td style="font-size:.85rem;color:#8a8a9a;">坦克专用进阶武装</td></tr>
-<tr><td>装备研发 T3</td><td>⚡ 穿甲炮 · 🔫 对空雷达 · 🎯 巨炮</td><td style="font-size:.85rem;color:#8a8a9a;">🪙10 / ⏳3 回合</td></tr>
+<tr><td>先进火炮系统</td><td>🚀 坦克：穿甲炮 · 🚀 坦克：高爆炮</td><td style="font-size:.85rem;color:#8a8a9a;">坦克专用进阶武装</td></tr>
+<tr><td>装备研发 T3</td><td>🚀 坦克：穿甲炮 · 🚀 火箭炮：对空雷达 · 🎯 野战炮：巨炮</td><td style="font-size:.85rem;color:#8a8a9a;">🪙10 / ⏳3 回合</td></tr>
 <tr><td>航空技术</td><td>🛩️ 战斗机 · 💣 轰炸机</td><td style="font-size:.85rem;color:#8a8a9a;">空中打击力量</td></tr>
 <tr><td>防空技术</td><td>🔫 防空车</td><td style="font-size:.85rem;color:#8a8a9a;">对空防御载具</td></tr>
+<tr><td>SpaceX 星链计划</td><td>🛰️ 全图视野 · 💥 无人机强化</td><td style="font-size:.85rem;color:#8a8a9a;">🪙30 / ⏳3 回合；解锁全图视野，自杀无人机伤害 +1（4→5）</td></tr>
 <tr><td>巨型工事</td><td>🏰 T3 大本营</td><td style="font-size:.85rem;color:#8a8a9a;">每回合 +8 金币</td></tr>
 </tbody></table></div>
 <div style="margin-top:36px;"><div class="section-label" style="font-size:1rem;color:#e8dcc8;">📊 T 级解锁总览</div>
 <table><thead><tr><th>T 级</th><th>解锁兵种</th><th>解锁装备</th><th>建筑升级</th></tr></thead><tbody>
-<tr><td><span class="unit-tag tag-t1" style="margin:0;padding:1px 10px;">T1</span></td><td>士兵 · 军用吉普 · 装甲车</td><td>射手步枪 · 重甲吉普</td><td>T1 大本营 · 据点</td></tr>
-<tr><td><span class="unit-tag tag-t2" style="margin:0;padding:1px 10px;">T2</span></td><td>坦克 · 野战炮 · 自杀无人机</td><td>反器械枪 · 火箭助推 · 轻量化 · 高爆炮</td><td>T2 大本营 · T2据点</td></tr>
-<tr><td><span class="unit-tag tag-t3" style="margin:0;padding:1px 10px;">T3</span></td><td>火箭炮 · 战斗机 · 轰炸机 · 防空车</td><td>穿甲炮 · 对空雷达 · 巨炮</td><td>T3 大本营</td></tr>
+<tr><td><span class="unit-tag tag-t1" style="margin:0;padding:1px 10px;">T1</span></td><td>士兵 · 军用吉普 · 装甲车</td><td>士兵：射手步枪 · 军用吉普：重甲吉普</td><td>T1 大本营 · 据点</td></tr>
+<tr><td><span class="unit-tag tag-t2" style="margin:0;padding:1px 10px;">T2</span></td><td>坦克 · 野战炮 · 自杀无人机 · 侦察机</td><td>士兵：反器械枪 · 军用吉普：火箭助推 · 野战炮：轻量化 · 坦克：高爆炮</td><td>T2 大本营 · T2据点</td></tr>
+<tr><td><span class="unit-tag tag-t3" style="margin:0;padding:1px 10px;">T3</span></td><td>火箭炮 · 战斗机 · 轰炸机 · 防空车</td><td>坦克：穿甲炮 · 火箭炮：对空雷达 · 野战炮：巨炮 · SpaceX 星链计划</td><td>T3 大本营</td></tr>
 </tbody></table></div>
 </div>
 <div class="chapter" id="ch4"><div class="chapter-header"><h2>⛏️ 资源指南</h2><div class="ch-meta"><span>第四章</span><span>·</span><span>即将推出</span></div></div><div class="placeholder-chapter"><div class="big-icon">💰</div><p>资源章节正在规划中，敬请期待。</p></div></div>
@@ -208,16 +212,17 @@ document.querySelectorAll('.nav-link').forEach(function(e){e.classList.remove('a
 var l=document.querySelector('.nav-link[data-chapter="'+id+'"]');if(l)l.classList.add('active');
 }
 // DATA_UD
-var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,label:'🪖 士兵',img:'../picture/士兵.png',weapon:'制式步枪',quote:'基础步兵单位，生产线上的消耗品，也是战线上的基石。'},
-'坦克':{hp:10,armor:2,speed:5,damage:4,range:3,price:7,attacks:1,label:'🚀 坦克',img:'../picture/坦克.png',weapon:'标准火炮',quote:'钢铁洪流的中坚力量，正面突破的绝对核心。'},
-'军用吉普':{hp:3,armor:0,speed:8,damage:2,range:3,price:3,attacks:1,label:'🚙 军用吉普',img:'../picture/军用吉普.png',weapon:'车载机枪',quote:'轻便快速的侦察载具，来去如风，一击即走。',tier:'T1'},
-'火箭炮':{hp:10,armor:0,speed:2,damage:7,range:15,price:16,attacks:1,label:'🚀 火箭炮',img:'../picture/火箭炮.png',weapon:'多管火箭巢',quote:'超远程火力覆盖，敌后纵深的噩梦。'},
-'野战炮':{hp:3,armor:1,speed:3,damage:5,range:6,price:5,attacks:1,label:'🎯 野战炮',img:'../picture/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
-'装甲车':{hp:6,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../picture/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。',canTargetAir:true,tier:'T1'},
-'战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,label:'🛩️ 战斗机',img:'../picture/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
-'轰炸机':{hp:20,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:1,blast:1.5},
-'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:8,airRange:14},
-'自杀无人机':{hp:2,armor:0,speed:8,damage:4,range:1,price:2,attacks:1,label:'💥 自杀无人机',img:'../picture/自杀无人机.png',weapon:'自爆弹头',quote:'廉价的单程攻击武器，以命换命。攻击后自毁。',tier:'T2',selfDestruct:true}};
+var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,label:'🪖 士兵',img:'../assets/images/士兵.png',weapon:'制式步枪',quote:'基础步兵单位，生产线上的消耗品，也是战线上的基石。'},
+'坦克':{hp:10,armor:2,speed:5,damage:4,range:3,price:7,attacks:1,label:'🚀 坦克',img:'../assets/images/坦克.png',weapon:'标准火炮',quote:'钢铁洪流的中坚力量，正面突破的绝对核心。'},
+'军用吉普':{hp:3,armor:0,speed:8,damage:2,range:3,price:3,attacks:1,label:'🚙 军用吉普',img:'../assets/images/军用吉普.png',weapon:'车载机枪',quote:'轻便快速的侦察载具，来去如风，一击即走。',tier:'T1'},
+'火箭炮':{hp:10,armor:0,speed:2,damage:7,range:15,price:18,attacks:1,label:'🚀 火箭炮',img:'../assets/images/火箭炮.png',weapon:'多管火箭巢',quote:'超远程火力覆盖，敌后纵深的噩梦。'},
+'野战炮':{hp:3,armor:1,speed:3,damage:5,range:6,price:5,attacks:1,label:'🎯 野战炮',img:'../assets/images/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
+'装甲车':{hp:6,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../assets/images/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。',canTargetAir:true,tier:'T1'},
+'战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,label:'🛩️ 战斗机',img:'../assets/images/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
+'轰炸机':{hp:16,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../assets/images/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:1,blast:1.5},
+'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../assets/images/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:8,airRange:14},
+'自杀无人机':{hp:2,armor:0,speed:8,damage:4,range:1,price:2,attacks:1,label:'💥 自杀无人机',img:'../assets/images/自杀无人机.png',weapon:'自爆弹头',quote:'廉价的单程攻击武器，以命换命。攻击后自毁。',tier:'T2',selfDestruct:true},
+'侦察机':{hp:2.5,armor:0,speed:12,damage:0,range:0,price:5,attacks:0,label:'🛰️ 侦察机',weapon:'无武装侦察吊舱',quote:'高速空中侦察平台，不能攻击，但能为远程火力打开视野。',tier:'T2',type:'air',canTargetAir:false}};
 var UK=Object.keys(UD);
 var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。',canTargetAir:true,tier:'T1',research_cost:3,research_time:1},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。',canTargetAir:true,tier:'T2',research_cost:5,research_time:2}],
 '坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。',tier:'T3',research_cost:10,research_time:3},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:2,desc:'牺牲单发穿透力，换装大装药榴弹，范围爆炸半径2。',tier:'T2',research_cost:5,research_time:2}],
@@ -230,16 +235,17 @@ var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.
 '战斗机':[{name:'无',cost:0,dmg:0,range:0}],
 '轰炸机':[{name:'无',cost:0,dmg:0,range:0}],
 '防空车':[{name:'无',cost:0,dmg:0,range:0}],
-'自杀无人机':[{name:'无',cost:0,dmg:0,range:0}]};
+'自杀无人机':[{name:'无',cost:0,dmg:0,range:0}],
+'侦察机':[{name:'无',cost:0,dmg:0,range:0}]};
 var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[
-{tier:'T1',hp:25,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png'},
-{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:5},tag:'tag-t2',img:'../picture/大本营 T2.png'},
-{tier:'T3',hp:85,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png'}]},
-'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。编号从0起，产出递减（3×0.8^n）。',tiers:[{tier:'T2',hp:15,armor:0,gold:2,upgrade:null,tag:'tag-t2',img:'../picture/资源采集器.png'}]},
+{tier:'T1',hp:25,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../assets/images/大本营 T1.png'},
+{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:5},tag:'tag-t2',img:'../assets/images/大本营 T2.png'},
+{tier:'T3',hp:85,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../assets/images/大本营T3.png'}]},
+'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。编号从0起，产出递减（3×0.8^n）。',tiers:[{tier:'T2',hp:15,armor:0,gold:2,upgrade:null,tag:'tag-t2',img:'../assets/images/资源采集器.png'}]},
 '据点':{label:'🏴 据点',quote:'中立据点，初始50%HP。可反复易手，占领后可选升级T2分支：战斗型或经济型。',tiers:[
-{tier:'T1',hp:20,armor:0,gold:3,upgrade:null,tag:'tag-t1',img:'../picture/据点.jpg'},
-{tier:'T2战斗',hp:50,armor:0.5,gold:4,upgrade:{cost:10,time:1},tag:'tag-t2',img:'../picture/据点.jpg',note:'升级回满血量'},
-{tier:'T2经济',hp:30,armor:0,gold:6,upgrade:{cost:10,time:3},tag:'tag-t2',img:'../picture/据点.jpg',note:'升级恢复50%失去血量'}]}};
+{tier:'T1',hp:20,armor:0,gold:3,upgrade:null,tag:'tag-t1',img:'../assets/images/据点.jpg'},
+{tier:'T2战斗',hp:50,armor:0.5,gold:4,upgrade:{cost:10,time:1},tag:'tag-t2',img:'../assets/images/据点.jpg',note:'升级回满血量'},
+{tier:'T2经济',hp:30,armor:0,gold:6,upgrade:{cost:10,time:3},tag:'tag-t2',img:'../assets/images/据点.jpg',note:'升级恢复50%失去血量'}]}};
 function dc(v){return v<=3?'dura-orange':v<=4?'dura-yellow':v<=7?'dura-blue':''}
 function fm(v){return Number(v).toFixed(1)}
 function renderDura(){
@@ -249,8 +255,8 @@ h+='<tr><td>'+k+'</td><td>'+u.hp+'</td><td>'+u.armor+'</td><td class="'+dc(d1)+'
 h+='</tbody></table>';var e=document.getElementById('duraTable');if(e)e.innerHTML=h;}
 function renderCh1(){
 var c=document.getElementById('ch1Content');if(!c)return;
-var h='',tm={'士兵':'tag-t1','坦克':'tag-t2','军用吉普':'tag-t1','火箭炮':'tag-t3','野战炮':'tag-t2','装甲车':'tag-t1','战斗机':'tag-t3','轰炸机':'tag-t3','防空车':'tag-t3','自杀无人机':'tag-t2'};
-var tr={'士兵':'T1','坦克':'T2','军用吉普':'T1','火箭炮':'T3','野战炮':'T2','装甲车':'T1','战斗机':'T3','轰炸机':'T3','防空车':'T3','自杀无人机':'T2'};
+var h='',tm={'士兵':'tag-t1','坦克':'tag-t2','军用吉普':'tag-t1','火箭炮':'tag-t3','野战炮':'tag-t2','装甲车':'tag-t1','战斗机':'tag-t3','轰炸机':'tag-t3','防空车':'tag-t3','自杀无人机':'tag-t2','侦察机':'tag-t2'};
+var tr={'士兵':'T1','坦克':'T2','军用吉普':'T1','火箭炮':'T3','野战炮':'T2','装甲车':'T1','战斗机':'T3','轰炸机':'T3','防空车':'T3','自杀无人机':'T2','侦察机':'T2'};
 UK.forEach(function(k){
 var u=UD[k];var el=EQ[k]||[];var he=el.length>1;
 h+='<div class="unit-card"><div class="unit-header">';
@@ -276,7 +282,7 @@ if(eq.hp)s+='<span class="down">生命 '+(eq.hp>0?'+':'')+eq.hp+' (→'+(u.hp+eq
 if(eq.armor)s+='<span class="'+(eq.armor>0?'up':'down')+'">护甲 '+(eq.armor>0?'+':'')+eq.armor+' (→'+(u.armor+eq.armor)+')</span> ';
 if(eq.blast&&eq.blast>1)s+='<br><span class="special">🌀 爆炸范围 ×'+eq.blast+'</span>';
 var cl=eq.cost>=0?'🪙 '+eq.cost+' 元':'<span style="color:#7acc7a;">价格 '+eq.cost+'</span>';
-var eqImg='';var eqM={'士兵':'','坦克':'','军用吉普':'','火箭炮':'','野战炮':''};eqM['士兵-射手步枪']='../picture/士兵-射手步枪.png';eqM['士兵-反器械枪']='../picture/士兵-反器械.png';eqM['坦克-穿甲炮']='../picture/坦克-穿甲弹.png';eqM['坦克-高爆炮']='../picture/坦克-高爆弹.png';eqM['军用吉普-火箭助推']='../picture/军用吉普-火箭助推.png';eqM['军用吉普-重甲吉普']='../picture/军用吉普-重甲吉普.png';eqM['火箭炮-对空雷达']='../picture/火箭炮-对空雷达.png';eqM['野战炮-巨炮']='../picture/野战炮-巨炮.png';eqM['野战炮-轻量化']='../picture/野战炮，轻量化.png';eqImg=eqM[k+'-'+eq.name]||'';
+var eqImg='';var eqM={'士兵':'','坦克':'','军用吉普':'','火箭炮':'','野战炮':''};eqM['士兵-射手步枪']='../assets/images/士兵-射手步枪.png';eqM['士兵-反器械枪']='../assets/images/士兵-反器械枪.png';eqM['坦克-穿甲炮']='../assets/images/坦克-穿甲炮.png';eqM['坦克-高爆炮']='../assets/images/坦克-高爆炮.png';eqM['军用吉普-火箭助推']='../assets/images/军用吉普-火箭助推.png';eqM['军用吉普-重甲吉普']='../assets/images/军用吉普-重甲吉普.png';eqM['火箭炮-对空雷达']='../assets/images/火箭炮-对空雷达.png';eqM['野战炮-巨炮']='../assets/images/野战炮-巨炮.png';eqM['野战炮-轻量化']='../assets/images/野战炮-轻量化.png';eqImg=eqM[k+'-'+eq.name]||'';
 var et=eq.tier||'T2';var rc=eq.research_cost?' 🔬'+eq.research_cost+'金/'+eq.research_time+'回合':'';
 h+='<div class="equip-card">'+(eqImg?'<img src="'+eqImg+'" alt="'+eq.name+'" style="width:100%;height:80px;object-fit:contain;border-radius:4px;margin-bottom:6px;background:#0a0a12;">':'')+'<h4>'+eq.name+'</h4><div class="desc">'+(eq.desc||'')+'</div><div class="stats" style="margin-bottom:4px;"><span class="unit-tag tag-'+(et==='T2'?'t2':'t3')+'" style="margin:0;padding:1px 8px;font-size:.7rem;">'+et+'</span> '+cl+rc+'</div><div class="stats">'+s+'</div></div>'});h+='</div>'}
 if(k==='坦克')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>高爆炮的范围爆炸效果在面对密集步兵阵型时极为致命，范围半径2。</div>';
@@ -285,6 +291,7 @@ else if(k==='装甲车')h+='<div class="tip-box"><span class="tip-label">💡 �
 else if(k==='战斗机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：制空</span>🛩️ 可对空对地，地面单位无法反击空中单位。</div>';
 else if(k==='轰炸机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：范围轰炸</span>💣 爆炸半径1.5，仅对地攻击，装弹 1 回合，地面单位无法反击。</div>';
 else if(k==='防空车')h+='<div class="tip-box"><span class="tip-label">💡 双模式：防空</span>🔫 对空伤害'+(u.airDamage||u.damage)+' 射程'+(u.airRange||u.range)+'，对地伤害'+u.damage+' 射程'+u.range+'。地面单位无法反击空中。</div>';
+else if(k==='侦察机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：空中侦察</span>🛰️ 视野 11，无法攻击或占点，适合为火箭炮、野战炮和轰炸机提供目标情报。</div>';
 var d1=u.hp+u.armor,d2=u.hp/2+u.armor,d3=u.hp/3+u.armor;
 h+='<div class="durability-box"><div class="db-label">💀 耐打计算</div><div class="durability-stats">';
 h+='<span class="dura-item"><span class="n">1 下</span> <span class="val">'+fm(d1)+'</span></span>';

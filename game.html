@@ -338,10 +338,10 @@ class Building{
       this.upgrading=false
       var _oh=this.hp,_om=this.maxHp
       if(this.type==='大本营'){
-        this.tier++;this._updateStats()
+        this.tier++;this._updateStats();playSE('upgrade')
         this.hp=r2(Math.min(this.maxHp,this.maxHp*(1+_oh/_om)/2))
       }else if(this.type==='据点'){
-        this.outpostTier=1;this._updateStats()
+        this.outpostTier=1;this._updateStats();playSE('upgrade')
         if(this.outpostBranch==='combat'){
           this.hp=this.maxHp  // 战斗型升级回满
         }else{
@@ -595,7 +595,7 @@ function nextTurn(){
       })
       let done=[]
       p.researching.forEach(r=>{r.timer--;if(r.timer<=0){p.researched[r.name]=true;done.push(r)}})
-      done.forEach(r=>{let i=p.researching.indexOf(r);if(i>=0)p.researching.splice(i,1)})
+      done.forEach(r=>{let i=p.researching.indexOf(r);if(i>=0)p.researching.splice(i,1);playSE('upgrade')})
       p.collectIncome()
       p.stats.turnData.push({turn:ENGINE.turn,armyValue:r2(p.units.reduce((s,u)=>s+(u.price||0),0)),gold:p.gold,killValue:p.stats.totalKillValue,income:p.getIncome()})
     }})
@@ -1380,6 +1380,14 @@ function startGame(n){
   }
   startBGM()
   showTurnNotify()
+}
+
+// ==================== 音效 ====================
+function playSE(name){
+  try{
+    var a=new Audio('picture/'+name+'.mp3');a.volume=0.5;a.play()
+    if(name==='upgrade')setTimeout(function(){a.pause();a=null},3000)
+  }catch(e){}
 }
 
 // ==================== 背景音乐 ====================

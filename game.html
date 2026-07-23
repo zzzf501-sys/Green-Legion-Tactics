@@ -150,6 +150,7 @@ function applyEquip(d,eq){
   if(eq.dmg!==undefined)r.damage=r2((r.damage||0)+eq.dmg)
   if(eq.range!==undefined)r.range=r2((r.range||0)+eq.range)
   if(eq.speed!==undefined)r.speed=r2((r.speed||0)+eq.speed)
+  if(eq.armor!==undefined)r.armor=r2(Math.max(0,(r.armor||0)+eq.armor))
   if(eq.hp!==undefined)r.hp=Math.max(.5,r2((r.hp||1)+eq.hp))
   if(eq.cost!==undefined)r.price=r2((r.price||0)+eq.cost)
   if(eq.canTargetAir)r.canTargetAir=true

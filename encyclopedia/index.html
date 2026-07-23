@@ -273,9 +273,10 @@ var s='';if(eq.dmg)s+='<span class="'+(eq.dmg>0?'up':'down')+'">伤害 '+(eq.dmg
 if(eq.range)s+='<span class="'+(eq.range>0?'up':'down')+'">射程 '+(eq.range>0?'+':'')+eq.range+' (→'+(u.range+eq.range)+')</span> ';
 if(eq.speed)s+='<span class="down">速度 '+eq.speed+' (→'+(u.speed+eq.speed)+')</span> ';
 if(eq.hp)s+='<span class="down">生命 '+(eq.hp>0?'+':'')+eq.hp+' (→'+(u.hp+eq.hp)+')</span> ';
+if(eq.armor)s+='<span class="'+(eq.armor>0?'up':'down')+'">护甲 '+(eq.armor>0?'+':'')+eq.armor+' (→'+(u.armor+eq.armor)+')</span> ';
 if(eq.blast&&eq.blast>1)s+='<br><span class="special">🌀 爆炸范围 ×'+eq.blast+'</span>';
 var cl=eq.cost>=0?'🪙 '+eq.cost+' 元':'<span style="color:#7acc7a;">价格 '+eq.cost+'</span>';
-var eqImg='';var eqM={'士兵':'','坦克':'','军用吉普':'','火箭炮':'','野战炮':''};eqM['士兵-射手步枪']='../picture/士兵-射手步枪.png';eqM['士兵-反器械枪']='../picture/士兵-反器械.png';eqM['坦克-穿甲炮']='../picture/坦克-穿甲弹.png';eqM['坦克-高爆炮']='../picture/坦克-高爆弹.png';eqM['军用吉普-火箭助推']='../picture/军用吉普-火箭助推.png';eqM['火箭炮-对空雷达']='../picture/火箭炮-对空雷达.png';eqM['野战炮-巨炮']='../picture/野战炮-巨炮.png';eqM['野战炮-轻量化']='../picture/野战炮，轻量化.png';eqImg=eqM[k+'-'+eq.name]||'';
+var eqImg='';var eqM={'士兵':'','坦克':'','军用吉普':'','火箭炮':'','野战炮':''};eqM['士兵-射手步枪']='../picture/士兵-射手步枪.png';eqM['士兵-反器械枪']='../picture/士兵-反器械.png';eqM['坦克-穿甲炮']='../picture/坦克-穿甲弹.png';eqM['坦克-高爆炮']='../picture/坦克-高爆弹.png';eqM['军用吉普-火箭助推']='../picture/军用吉普-火箭助推.png';eqM['军用吉普-重甲吉普']='../picture/军用吉普-重甲吉普.png';eqM['火箭炮-对空雷达']='../picture/火箭炮-对空雷达.png';eqM['野战炮-巨炮']='../picture/野战炮-巨炮.png';eqM['野战炮-轻量化']='../picture/野战炮，轻量化.png';eqImg=eqM[k+'-'+eq.name]||'';
 var et=eq.tier||'T2';var rc=eq.research_cost?' 🔬'+eq.research_cost+'金/'+eq.research_time+'回合':'';
 h+='<div class="equip-card">'+(eqImg?'<img src="'+eqImg+'" alt="'+eq.name+'" style="width:100%;height:80px;object-fit:contain;border-radius:4px;margin-bottom:6px;background:#0a0a12;">':'')+'<h4>'+eq.name+'</h4><div class="desc">'+(eq.desc||'')+'</div><div class="stats" style="margin-bottom:4px;"><span class="unit-tag tag-'+(et==='T2'?'t2':'t3')+'" style="margin:0;padding:1px 8px;font-size:.7rem;">'+et+'</span> '+cl+rc+'</div><div class="stats">'+s+'</div></div>'});h+='</div>'}
 if(k==='坦克')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>高爆炮的范围爆炸效果在面对密集步兵阵型时极为致命，范围半径2。</div>';
@@ -294,11 +295,12 @@ UK.forEach(function(k){var u=UD[k];
 var dd=u.attacks>1&&u.damage>0?u.damage+'×'+u.attacks:u.damage;
 var es='—',el=EQ[k]||[];
 if(el.length>1){var ps=[];el.forEach(function(eq){if(eq.name==='无')return;
-var p=eq.name+'('+(k==='士兵'?'T2':'T3')+'): ';var bs=[];
-if(eq.dmg)bs.push((eq.dmg>0?'+':'')+eq.dmg);
-if(eq.range)bs.push('/'+(eq.range>0?'+':'')+eq.range);
-if(eq.speed)bs.push(' 速'+eq.speed);
-if(eq.hp)bs.push(' 命'+(eq.hp>0?'+':'')+eq.hp);
+var p=eq.name+'('+(eq.tier||'T?')+'): ';var bs=[];
+if(eq.dmg)bs.push((eq.dmg>0?'+':'')+eq.dmg+'伤');
+if(eq.armor)bs.push((eq.armor>0?'+':'')+eq.armor+'甲');
+if(eq.range)bs.push((eq.range>0?'+':'')+eq.range+'射');
+if(eq.speed)bs.push((eq.speed>0?'+':'')+eq.speed+'速');
+if(eq.hp)bs.push((eq.hp>0?'+':'')+eq.hp+'命');
 if(eq.blast&&eq.blast>1)bs.push(' +范围×'+eq.blast);
 p+=bs.join('');ps.push(p)});if(ps.length)es=ps.join('<br>')}
 h+='<tr><td>'+k+'</td><td>'+u.hp+'</td><td>'+u.armor+'</td><td>'+u.speed+'</td><td>'+u.price+'</td><td>'+dd+'</td><td>'+u.range+'</td>';
@@ -335,7 +337,7 @@ function oc(){fillEquip('simEquipA',sa.value);fillEquip('simEquipB',sb.value);up
 sa.onchange=oc;sb.onchange=oc;document.getElementById('simEquipA').onchange=updQty;
 document.getElementById('simEquipB').onchange=updQty;document.getElementById('simMul').onchange=updQty;oc()}
 function apSt(base,eq){var hp=Math.max(.5,base.hp+(eq.hp||0));
-return{...base,hp:hp,damage:base.damage+(eq.dmg||0),range:base.range+(eq.range||0),speed:base.speed+(eq.speed||0),price:base.price+(eq.cost||0),blast:eq.blast||1,canTargetAir:base.canTargetAir||eq.canTargetAir||false}}
+return{...base,hp:hp,damage:base.damage+(eq.dmg||0),armor:Math.max(0,base.armor+(eq.armor||0)),range:base.range+(eq.range||0),speed:base.speed+(eq.speed||0),price:base.price+(eq.cost||0),blast:eq.blast||1,canTargetAir:base.canTargetAir||eq.canTargetAir||false}}
 function canAtk(att,def){if(!def.type||def.type==='ground')return true;if(def.type==='air'&&att.canTargetAir)return true;return false}
 function eR(att,def){return def&&def.type==='air'&&att.airRange?att.airRange:att.range}
 function eD(att,def){return def&&def.type==='air'&&att.airDamage?att.airDamage:att.damage}

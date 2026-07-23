@@ -339,9 +339,11 @@ class Building{
       var _oh=this.hp,_om=this.maxHp
       if(this.type==='大本营'){
         this.tier++;this._updateStats();playSE('upgrade')
+        if(G)G.addEffect(this.gx,this.gy,'equip')
         this.hp=r2(Math.min(this.maxHp,this.maxHp*(1+_oh/_om)/2))
       }else if(this.type==='据点'){
         this.outpostTier=1;this._updateStats();playSE('upgrade')
+        if(G)G.addEffect(this.gx,this.gy,'equip')
         if(this.outpostBranch==='combat'){
           this.hp=this.maxHp  // 战斗型升级回满
         }else{
@@ -595,7 +597,7 @@ function nextTurn(){
       })
       let done=[]
       p.researching.forEach(r=>{r.timer--;if(r.timer<=0){p.researched[r.name]=true;done.push(r)}})
-      done.forEach(r=>{let i=p.researching.indexOf(r);if(i>=0)p.researching.splice(i,1);playSE('upgrade')})
+      done.forEach(r=>{let i=p.researching.indexOf(r);if(i>=0)p.researching.splice(i,1);playSE('upgrade');if(G){var hq=p.getHQ();if(hq)G.addEffect(hq.gx,hq.gy,'research')}})
       p.collectIncome()
       p.stats.turnData.push({turn:ENGINE.turn,armyValue:r2(p.units.reduce((s,u)=>s+(u.price||0),0)),gold:p.gold,killValue:p.stats.totalKillValue,income:p.getIncome()})
     }})
@@ -621,6 +623,7 @@ class Game{
     this.hoverRangeUnit=null
     this.hoverRangeType=''
     this.movePreviewPos=null;this.movePreviewTargets=null
+    this.effects=[]
     this._placeInit()
     this._centerOnCur()
     this._updateButtons()
@@ -836,7 +839,7 @@ class Game{
     this.grid.remove(u);let idx=pp.units.indexOf(u)
     if(idx>=0)pp.units[idx]=nu
     this.grid.place(nu,nu.gx,nu.gy)
-    SEL.u=nu
+    SEL.u=nu;playSE('upgrade');if(G)G.addEffect(nu.gx,nu.gy,'equip')
     this._updateButtons()
   }
   _showHQ(b){
@@ -940,6 +943,9 @@ class Game{
     let p=curP()
     if(b.canUpgrade()&&p.gold>=b.upgradeCost){p.gold-=b.upgradeCost;b.startUpgrade();this._showHQ(b);this._updateButtons()}
   }
+  addEffect(gx,gy,type){
+    this.effects.push({gx:gx,gy:gy,type:type,life:60})
+  }
   _recruitFrom(ut,bx,by){
     let p=curP();let cost=UNIT_DATA[ut]?UNIT_DATA[ut].price:0
     if(!cost||p.gold<cost)return
@@ -974,6 +980,7 @@ class Game{
     let nd=[]
     this.dying.forEach(d=>{d.alpha-=5;if(d.alpha>0)nd.push(d)})
     this.dying=nd
+    this.effects=this.effects.filter(function(e){e.life--;return e.life>0})
     this._updateHUD()
   }
   _updateHUD(){
@@ -1085,6 +1092,7 @@ function render(){
   if(G.neutralBuildings)G.neutralBuildings.forEach(b=>{if(b.gx>=vr[0]&&b.gx<vr[2]&&b.gy>=vr[1]&&b.gy<vr[3])drawBuilding(b)})
   ENGINE.players.forEach(p=>p.units.forEach(u=>{if(u.gx>=vr[0]&&u.gx<vr[2]&&u.gy>=vr[1]&&u.gy<vr[3])drawUnit(u)}))
   G.dying.forEach(d=>drawDying(d))
+  drawEffects()
   if(G.buildMode&&G.ghostPos){
     let[gx,gy]=G.ghostPos;let hq=curP().getHQ()
     if(hq&&eDist([gx,gy],[hq.gx,hq.gy])<=5){
@@ -1339,6 +1347,26 @@ function drawDying(d){
   let[sx,sy]=G.cam.g2s(u.gx,u.gy);let sz=TS*G.cam.z
   ctx.fillStyle='#ff000080';ctx.fillRect(sx,sy,sz,sz)
   ctx.globalAlpha=1
+}
+function drawEffects(){
+  if(!G||!G.effects)return
+  G.effects.forEach(function(e){
+    var alpha=1
+    if(e.life>45)alpha=(60-e.life)/15      // 前15帧渐入
+    else if(e.life>15)alpha=1               // 中间30帧保持
+    else alpha=e.life/15                    // 后15帧渐出
+    var sx=G.cam.g2s(e.gx,e.gy)[0],sy=G.cam.g2s(e.gx,e.gy)[1],sz=TS*G.cam.z
+    ctx.globalAlpha=alpha
+    ctx.font='bold '+(sz*0.5)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
+    if(e.type==='research'){
+      ctx.fillText('🔬',sx+sz/2,sy+sz/2-8)
+    }else{
+      ctx.fillStyle='#4488ff'
+      var ax=sx+sz-8,ay=sy+4
+      ctx.beginPath();ctx.moveTo(ax,ay-8);ctx.lineTo(ax-6,ay+2);ctx.lineTo(ax+6,ay+2);ctx.closePath();ctx.fill()
+    }
+    ctx.globalAlpha=1
+  })
 }
 
 // ==================== 回合提示 ====================

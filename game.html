@@ -454,6 +454,7 @@ function initEngine(n){
 }
 function curP(){return ENGINE.players[ENGINE.cur]}
 function showGameOver(winner){
+  stopBGM()
   ENGINE.state='GAME_OVER'
   let el=document.getElementById('gameOver')
   el.style.display='flex'
@@ -1377,7 +1378,69 @@ function startGame(n){
     alert('游戏初始化失败: '+e.message)
     return
   }
+  startBGM()
   showTurnNotify()
+}
+
+// ==================== 背景音乐（Web Audio 合成，免版权） ====================
+var BGM_CTX=null,BGM_NODES=[]
+function startBGM(){
+  try{
+    if(BGM_CTX)return
+    var AC=window.AudioContext||window.webkitAudioContext
+    BGM_CTX=new AC()
+    var ctx=BGM_CTX
+    // 和弦进行: Am - F - C - G (低沉史诗感)
+    var chords=[
+      {root:220,third:261.63,fifth:329.63},   // Am
+      {root:174.61,third:220,fifth:261.63},    // F
+      {root:130.81,third:163.5,fifth:196},     // C
+      {root:196,third:246.94,fifth:293.66},    // G
+    ]
+    var chordIdx=0,bar=0
+    // 低音 drone
+    var bass=ctx.createOscillator();bass.type='sawtooth';bass.frequency.value=65.41
+    var bassG=ctx.createGain();bassG.gain.value=0.04
+    bass.connect(bassG);bassG.connect(ctx.destination);bass.start();BGM_NODES.push(bass)
+    // 节奏脉冲
+    var pulse=ctx.createOscillator();pulse.type='triangle';pulse.frequency.value=130.81
+    var pulseG=ctx.createGain();pulseG.gain.value=0
+    pulse.connect(pulseG);pulseG.connect(ctx.destination);pulse.start();BGM_NODES.push(pulse)
+    // 每1.5秒换和弦
+    setInterval(function(){
+      if(!BGM_CTX)return
+      bar++;if(bar%4===0){chordIdx=(chordIdx+1)%chords.length}
+      var c=chords[chordIdx]
+      // 低音
+      bass.frequency.setTargetAtTime(c.root*0.3,ctx.currentTime,0.3)
+      // 脉冲节奏（第1、3拍重）
+      var beat=(bar%4<2)?0.06:0.03
+      pulseG.gain.setTargetAtTime(beat,ctx.currentTime,0.05)
+      pulse.frequency.setTargetAtTime(c.root*2,ctx.currentTime,0.2)
+    },1500)
+    // 弦乐垫（用多个振荡器模拟）
+    function addPad(freq,delay){
+      var osc=ctx.createOscillator();osc.type='sine';osc.frequency.value=freq
+      var g=ctx.createGain();g.gain.value=0
+      osc.connect(g);g.connect(ctx.destination);osc.start();BGM_NODES.push(osc)
+      setInterval(function(){
+        if(!BGM_CTX)return
+        var c=chords[chordIdx]
+        var f=[c.root*0.5,c.third*0.5,c.fifth*0.5][delay%3]
+        osc.frequency.setTargetAtTime(f,ctx.currentTime,0.5)
+        g.gain.setTargetAtTime(0.015,ctx.currentTime,0.3)
+        setTimeout(function(){g.gain.setTargetAtTime(0,ctx.currentTime,0.5)},800)
+      },1500)
+    }
+    addPad(110,0);addPad(130,1);addPad(165,2)
+  }catch(e){console.log('BGM unavailable:',e.message)}
+}
+function stopBGM(){
+  try{
+    BGM_NODES.forEach(function(n){try{n.stop()}catch(e){}})
+    BGM_NODES=[]
+    if(BGM_CTX){BGM_CTX.close();BGM_CTX=null}
+  }catch(e){}
 }
 
 // ==================== 主循环 ====================

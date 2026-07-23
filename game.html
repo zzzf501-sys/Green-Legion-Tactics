@@ -363,17 +363,14 @@ class Building{
 
 // ==================== 寻路 ====================
 function computeMoveRange(grid,sx,sy,mv,unit){
-  let isAir=unit&&unit.isAir
-  let cost={};cost[sx+','+sy]=0;let q=[[sx,sy]];let r=new Set()
-  while(q.length){
-    let[cx,cy]=q.shift();let cc=cost[cx+','+cy]
-    for(let[nx,ny] of neighbors(cx,cy)){
-      if(!grid.ib(nx,ny))continue
-      let t=grid.get(nx,ny);let o=t.occ
-      if(o&&o!==unit&&o.pid!==unit.pid)continue
-      let nc=cc+(isAir?1:1)
-      if(nc<=mv&&!(nx+','+ny in cost)){cost[nx+','+ny]=nc;q.push([nx,ny]);r.add(nx+','+ny)}
-    }
+  let r=new Set()
+  let bound=Math.ceil(mv)
+  for(let dx=-bound;dx<=bound;dx++)for(let dy=-bound;dy<=bound;dy++){
+    let nx=sx+dx,ny=sy+dy
+    if(!grid.ib(nx,ny))continue
+    let t=grid.get(nx,ny)
+    if(t.occ&&t.occ!==unit&&t.occ.pid!==unit.pid)continue
+    if(eDist([0,0],[dx,dy])<=mv)r.add(nx+','+ny)
   }
   return r
 }

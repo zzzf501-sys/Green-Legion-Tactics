@@ -134,8 +134,9 @@ body{flex-direction:column}
 <div class="chapter" id="ch0">
 <div class="chapter-header"><h2>📜 游戏规则</h2><div class="ch-meta"><span>第零章</span><span>·</span><span>基础机制</span><span>·</span><span>最后更新 2026-07-23</span></div></div>
 <div class="rule-card"><h3>🏆 胜利条件</h3><p style="color:#b0b0c0;line-height:2;">✅ 占领敌方所有<strong style="color:#f0e6c0;">大本营</strong><br>或<br>✅ 敌方所有单位<strong style="color:#f0e6c0;">投降</strong>（全部被消灭）</p></div>
-<div class="rule-card"><h3>⚔️ 伤害计算</h3><div class="rule-formula">真实伤害 = 攻击方伤害 − 防守方护甲</div><p style="color:#b0b0c0;margin-top:10px;">护甲直接减免每次攻击的伤害值，最低为 0。</p>
-<div style="margin-top:12px;padding:10px 14px;background:#141420;border-radius:6px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">📝 示例：</strong><br>🪖 士兵（伤害 1）攻击 🚀 坦克（护甲 2）→ <strong style="color:#cc7a7a;">1 − 2 = 0 真实伤害</strong> → 无法击穿装甲<br>🚀 坦克（伤害 4）攻击 🛡️ 装甲车（护甲 1）→ <strong style="color:#7acc7a;">4 − 1 = 3 真实伤害</strong></div></div>
+<div class="rule-card"><h3>⚔️ 伤害计算</h3><div class="rule-formula">真实伤害 = max(0, 攻击方伤害 − 防守方护甲)</div><p style="color:#b0b0c0;margin-top:10px;">护甲直接减免每次攻击的伤害值，最低为 0。距离使用<strong style="color:#caba6a;">欧几里得距离</strong>（实际根号距离）。</p>
+<div style="margin-top:12px;padding:10px 14px;background:#141420;border-radius:6px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">📝 示例：</strong><br>🪖 士兵（伤害 1）攻击 🚀 坦克（护甲 2）→ <strong style="color:#cc7a7a;">1 − 2 = 0 真实伤害</strong> → 无法击穿装甲<br>🚀 坦克（伤害 4）攻击 🛡️ 装甲车（护甲 1）→ <strong style="color:#7acc7a;">4 − 1 = 3 真实伤害</strong></div>
+<div style="margin-top:12px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">💥 多次攻击 & 爆炸：</strong><br>• 多次攻击单位（如装甲车×3）每点击算一次攻击，一回合可攻击多次<br>• 爆炸范围（高爆炮半径2、轰炸机半径1.5）：对目标周围所有敌方单位造成伤害<br>• 自杀无人机攻击后自毁</div></div>
 <div class="rule-card"><h3>🛡️ 耐打计算</h3><p style="color:#b0b0c0;margin-bottom:6px;">以下为每个兵种被 <strong>1 下 / 2 下 / 3 下</strong> 消灭时，敌方每次攻击所需达到的伤害值。</p><div class="rule-formula">所需伤害 = 生命 ÷ 攻击次数 + 护甲</div></div>
 <div id="duraTable" style="margin-top:28px;"></div>
 <div style="margin-top:40px;">

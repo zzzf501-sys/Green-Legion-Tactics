@@ -102,6 +102,7 @@ const COL_BG='#1a1a2a'; const COL_GL='#2a2f22'; const COL_GD='#22271c'
 const COL_WHITE='#ffffff'; const COL_GOLD='#caba6a'; const COL_GRAY='#6a6a7a'
 const COL_DARK='#14141e'
 const r2=v=>Math.round(v*100)/100
+const r1=v=>Math.round(v*10)/10
 
 // ==================== 数据 ====================
 const UNIT_DATA={
@@ -349,7 +350,12 @@ class Building{
     }
     return false
   }
-  inHeal(gx,gy){return eDist([this.gx,this.gy],[gx,gy])<=2}
+  inHeal(gx,gy){
+    var r=2
+    if(this.type==='大本营')r=this.tier>=2?5:3
+    else if(this.type==='据点'&&this.outpostBranch==='combat')r=3
+    return eDist([this.gx,this.gy],[gx,gy])<=r
+  }
   get dead(){return this.hp<=0}
 }
 
@@ -429,7 +435,7 @@ class Player{
     this.units.forEach(u=>{
       u.reset()
       if(u.stationed){
-        this.buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy))&&(u.hp=r2(Math.min(u.maxHp,u.hp+1)))
+        this.buildings.some(b=>(b.type==='大本营'||b.type==='据点')&&b.inHeal(u.gx,u.gy))&&(u.hp=r1(Math.min(u.maxHp,u.hp+1)))
       }
       u.stationed=false
     })
@@ -821,8 +827,10 @@ class Game{
     let eq=eqList.find(e=>e.name===eqName)
     if(!eq||pp.gold<eq.cost)return
     pp.gold=r2(pp.gold-eq.cost)
+    let _oldHp=u.hp,_oldMax=u.maxHp
     let nu=new Unit(u.type,u.gx,u.gy,u.pid,eq)
     nu.moved=u.moved;nu.attacked=u.attacked;nu.done=u.done;nu.stationed=u.stationed;nu.hp=u.hp;nu.remainingAttacks=u.remainingAttacks
+    nu.hp=r1(Math.min(nu.maxHp,nu.maxHp*(1+_oldHp/_oldMax)/2))
     this.grid.remove(u);let idx=pp.units.indexOf(u)
     if(idx>=0)pp.units[idx]=nu
     this.grid.place(nu,nu.gx,nu.gy)
@@ -1022,7 +1030,7 @@ class Game{
         let acts=''
         if(!u.done){
           acts+='<button class="btn" onclick="skipUnit()" style="font-size:12px;padding:4px 12px">跳过</button>'
-          if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy)))
+          if(curP().buildings.some(b=>(b.type==='大本营'||b.type==='据点')&&b.inHeal(u.gx,u.gy)))
             acts+='<button class="btn btn-primary" onclick="stationUnit()" style="font-size:12px;padding:4px 12px">驻扎</button>'
           if(!u.equip){
             let eqs=EQUIP_DATA[u.type]
@@ -1043,7 +1051,7 @@ class Game{
 function skipUnit(){if(SEL.u&&!SEL.u.done){SEL.u.done=true;clearSel();G._updateButtons()}}
 function stationUnit(){
   let u=SEL.u;if(!u||u.done)return
-  if(curP().buildings.some(b=>b.type==='大本营'&&b.inHeal(u.gx,u.gy))){u.stationed=true;u.done=true;clearSel();G._updateButtons()}
+  if(curP().buildings.some(b=>(b.type==='大本营'||b.type==='据点')&&b.inHeal(u.gx,u.gy))){u.stationed=true;u.done=true;clearSel();G._updateButtons()}
 }
 function endTurn(){
   try{

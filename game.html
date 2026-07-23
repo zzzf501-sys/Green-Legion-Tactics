@@ -1380,63 +1380,100 @@ function startGame(n){
 }
 
 // ==================== 背景音乐（Web Audio 合成，免版权） ====================
-var BGM_CTX=null,BGM_NODES=[]
+var BGM_CTX=null,BGM_NODES=[],BGM_TIMERS=[]
 function startBGM(){
   try{
     if(BGM_CTX)return
     var AC=window.AudioContext||window.webkitAudioContext
     BGM_CTX=new AC()
     var ctx=BGM_CTX
-    // 和弦进行: Am - F - C - G (低沉史诗感)
-    var chords=[
-      {root:220,third:261.63,fifth:329.63},   // Am
-      {root:174.61,third:220,fifth:261.63},    // F
-      {root:130.81,third:163.5,fifth:196},     // C
-      {root:196,third:246.94,fifth:293.66},    // G
+    // 和弦进行: Dm - Am - Bb - F (阴暗史诗感)
+    var roots=[146.83,110,116.54,87.31]  // D3, A2, Bb2, F2
+    var thirds=[174.61,130.81,138.59,110] // F3, C3, C#3/Db3, A2 -> use Dm: F, Am: C, Bb: D, F: A
+    var fifths=[220,165,174.61,130.81]    // A3, E3, F3, C3
+    // 修正和弦音
+    var chd=[
+      {r:146.83, t:174.61, f:220},    // Dm: D-F-A
+      {r:110, t:130.81, f:164.81},    // Am: A-C-E
+      {r:116.54, t:138.59, f:174.61}, // Bb: Bb-D-F
+      {r:87.31, t:110, f:130.81},     // F: F-A-C (倒置)
     ]
-    var chordIdx=0,bar=0
-    // 低音 drone
-    var bass=ctx.createOscillator();bass.type='sawtooth';bass.frequency.value=65.41
-    var bassG=ctx.createGain();bassG.gain.value=0.04
-    bass.connect(bassG);bassG.connect(ctx.destination);bass.start();BGM_NODES.push(bass)
-    // 节奏脉冲
-    var pulse=ctx.createOscillator();pulse.type='triangle';pulse.frequency.value=130.81
-    var pulseG=ctx.createGain();pulseG.gain.value=0
-    pulse.connect(pulseG);pulseG.connect(ctx.destination);pulse.start();BGM_NODES.push(pulse)
-    // 每1.5秒换和弦
-    setInterval(function(){
-      if(!BGM_CTX)return
-      bar++;if(bar%4===0){chordIdx=(chordIdx+1)%chords.length}
-      var c=chords[chordIdx]
-      // 低音
-      bass.frequency.setTargetAtTime(c.root*0.3,ctx.currentTime,0.3)
-      // 脉冲节奏（第1、3拍重）
-      var beat=(bar%4<2)?0.06:0.03
-      pulseG.gain.setTargetAtTime(beat,ctx.currentTime,0.05)
-      pulse.frequency.setTargetAtTime(c.root*2,ctx.currentTime,0.2)
-    },1500)
-    // 弦乐垫（用多个振荡器模拟）
-    function addPad(freq,delay){
-      var osc=ctx.createOscillator();osc.type='sine';osc.frequency.value=freq
-      var g=ctx.createGain();g.gain.value=0
-      osc.connect(g);g.connect(ctx.destination);osc.start();BGM_NODES.push(osc)
-      setInterval(function(){
-        if(!BGM_CTX)return
-        var c=chords[chordIdx]
-        var f=[c.root*0.5,c.third*0.5,c.fifth*0.5][delay%3]
-        osc.frequency.setTargetAtTime(f,ctx.currentTime,0.5)
-        g.gain.setTargetAtTime(0.015,ctx.currentTime,0.3)
-        setTimeout(function(){g.gain.setTargetAtTime(0,ctx.currentTime,0.5)},800)
-      },1500)
+    var ci=0,beat=0
+    // 创建带滤波器的振荡器
+    function mkOsc(type,freq,gainVal,filterFreq){
+      var o=ctx.createOscillator();o.type=type;o.frequency.value=freq
+      var f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=filterFreq||800
+      var g=ctx.createGain();g.gain.value=gainVal
+      o.connect(f);f.connect(g);g.connect(ctx.destination)
+      o.start();BGM_NODES.push(o)
+      return {osc:o,gain:g,filter:f}
     }
-    addPad(110,0);addPad(130,1);addPad(165,2)
-  }catch(e){console.log('BGM unavailable:',e.message)}
+    // 低音提琴（锯齿波+低通）
+    var bass=mkOsc('sawtooth',65.41,0.06,200)
+    // 圆号（三角波+中频）
+    var horn=mkOsc('triangle',220,0.03,600)
+    var horn2=mkOsc('triangle',330,0.02,600)
+    // 弦乐垫（正弦波）
+    var pad1=mkOsc('sine',440,0.015,1000)
+    var pad2=mkOsc('sine',550,0.01,1000)
+    // 定音鼓（噪声脉冲）
+    function timp(){
+      var buf=ctx.createBuffer(1,ctx.sampleRate*0.15,ctx.sampleRate)
+      var data=buf.getChannelData(0)
+      for(var i=0;i<data.length;i++){data[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.03))}
+      var s=ctx.createBufferSource();s.buffer=buf
+      var f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=150
+      var g=ctx.createGain();g.gain.value=0.12
+      s.connect(f);f.connect(g);g.connect(ctx.destination)
+      s.start();BGM_NODES.push(s)
+    }
+    // 军鼓（噪声+高通）
+    function snare(){
+      var buf=ctx.createBuffer(1,ctx.sampleRate*0.1,ctx.sampleRate)
+      var data=buf.getChannelData(0)
+      for(var i=0;i<data.length;i++){data[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.02))}
+      var s=ctx.createBufferSource();s.buffer=buf
+      var f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=1000
+      var g=ctx.createGain();g.gain.value=0.06
+      s.connect(f);f.connect(g);g.connect(ctx.destination)
+      s.start();BGM_NODES.push(s)
+    }
+    // 主循环：每0.5秒（120BPM）
+    var timer=setInterval(function(){
+      if(!BGM_CTX){clearInterval(timer);return}
+      beat++;ci=Math.floor(beat/8)%4
+      var c=chd[ci];var pos=beat%8
+      // 换和弦时更新
+      if(pos===0){
+        bass.osc.frequency.setTargetAtTime(c.r*0.5,ctx.currentTime,0.2)
+        horn.osc.frequency.setTargetAtTime(c.r*1.5,ctx.currentTime,0.3)
+        horn2.osc.frequency.setTargetAtTime(c.t*1.5,ctx.currentTime,0.3)
+        pad1.osc.frequency.setTargetAtTime(c.t*2,ctx.currentTime,0.5)
+        pad2.osc.frequency.setTargetAtTime(c.f*2,ctx.currentTime,0.5)
+        // 弦乐渐入
+        pad1.gain.gain.setTargetAtTime(0.02,ctx.currentTime,0.3)
+        pad2.gain.gain.setTargetAtTime(0.015,ctx.currentTime,0.3)
+      }
+      // 第4拍渐出弦乐
+      if(pos===6){pad1.gain.gain.setTargetAtTime(0.005,ctx.currentTime,0.3);pad2.gain.gain.setTargetAtTime(0.003,ctx.currentTime,0.3)}
+      // 定音鼓：每小节第1、3拍
+      if(pos===0||pos===4){setTimeout(timp,50)}
+      // 军鼓：第2、4、6、7拍
+      if(pos===2||pos===4||pos===6||pos===7){setTimeout(snare,80)}
+      // 圆号渐强（第5-7拍渐强）
+      var hornVol=0.02+(pos>=4?0.03:0)
+      horn.gain.gain.setTargetAtTime(hornVol,ctx.currentTime,0.1)
+      horn2.gain.gain.setTargetAtTime(hornVol*0.7,ctx.currentTime,0.1)
+    },500)
+    BGM_TIMERS.push(timer)
+  }catch(e){console.log('BGM:',e.message)}
 }
 function stopBGM(){
   try{
-    BGM_NODES.forEach(function(n){try{n.stop()}catch(e){}})
+    BGM_TIMERS.forEach(function(t){clearInterval(t)});BGM_TIMERS=[]
+    BGM_NODES.forEach(function(n){try{if(n.stop)n.stop();if(n.disconnect)n.disconnect()}catch(e){}})
     BGM_NODES=[]
-    if(BGM_CTX){BGM_CTX.close();BGM_CTX=null}
+    if(BGM_CTX){try{BGM_CTX.close()}catch(e){};BGM_CTX=null}
   }catch(e){}
 }
 

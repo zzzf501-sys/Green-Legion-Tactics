@@ -222,7 +222,7 @@ var UK=Object.keys(UD);
 var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。',canTargetAir:true,tier:'T1',research_cost:3,research_time:1},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。',canTargetAir:true,tier:'T2',research_cost:5,research_time:2}],
 '坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。',tier:'T3',research_cost:10,research_time:3},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:2,desc:'牺牲单发穿透力，换装大装药榴弹，范围爆炸半径2。',tier:'T2',research_cost:5,research_time:2}],
 '军用吉普':[{name:'无',cost:0,dmg:0,range:0},{name:'火箭助推',cost:1,speed:5,hp:1,desc:'加装火箭助推器，大幅提升移动速度。',tier:'T2',research_cost:5,research_time:2},
-{name:'重甲吉普',cost:1,damage:0.5,speed:-2,armor:1,desc:'加装复合装甲，牺牲机动换取生存与火力。',tier:'T1',research_cost:3,research_time:1}],
+{name:'重甲吉普',cost:1,dmg:0.5,speed:-2,armor:1,hp:0.5,desc:'加装复合装甲，牺牲机动换取生存与火力。',tier:'T1',research_cost:3,research_time:1}],
 '火箭炮':[{name:'无',cost:0,dmg:0,range:0},{name:'对空雷达',cost:3,range:1,canTargetAir:true,desc:'加装对空搜索雷达，获得对空射击能力。',tier:'T3',research_cost:10,research_time:3}],
 '野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-1,dmg:-1,range:-2,hp:-1,desc:'减轻结构重量，降低生产成本但削弱火力。',tier:'T2',research_cost:5,research_time:2},
 {name:'巨炮',cost:6,dmg:7,range:4,speed:-1,hp:3,desc:'安装重型巨炮，大幅提升火力与生存能力。',tier:'T3',research_cost:10,research_time:3}],
@@ -403,8 +403,8 @@ if(qA>0&&qB<=0)return'A';if(qB>0&&qA<=0)return'B';return'D'}
 function buildAutoTable(){var cfg=[
 {n:'士兵',e:null,l:'🪖 士兵'},{n:'士兵',e:'射手步枪',l:'🪖 +射手'},{n:'士兵',e:'反器械枪',l:'🪖 +反器械'},
 {n:'坦克',e:null,l:'🚀 坦克'},{n:'坦克',e:'穿甲炮',l:'🚀 +穿甲'},{n:'坦克',e:'高爆炮',l:'🚀 +高爆'},
-{n:'军用吉普',e:null,l:'🚙 军用吉普'},{n:'军用吉普',e:'重甲吉普',l:'🚙 +重甲'},{n:'火箭炮',e:null,l:'🚀 火箭炮'},
-{n:'野战炮',e:null,l:'🎯 野战炮'},{n:'野战炮',e:'轻量化',l:'🎯 +轻量'},
+{n:'军用吉普',e:null,l:'🚙 军用吉普'},{n:'军用吉普',e:'重甲吉普',l:'🚙 +重甲'},{n:'火箭炮',e:null,l:'🚀 火箭炮'},{n:'火箭炮',e:'对空雷达',l:'🚀 +雷达'},
+{n:'野战炮',e:null,l:'🎯 野战炮'},{n:'野战炮',e:'轻量化',l:'🎯 +轻量'},{n:'野战炮',e:'巨炮',l:'🎯 +巨炮'},
 {n:'装甲车',e:null,l:'🛡️ 装甲车'},{n:'战斗机',e:null,l:'🛩️ 战斗机'},{n:'轰炸机',e:null,l:'💣 轰炸机'},{n:'防空车',e:null,l:'🔫 防空车'},{n:'自杀无人机',e:null,l:'💥 自杀无人机'}];
 var ge=function(n,en){return en?(EQ[n]||[]).find(function(e){return e.name===en})||(EQ[n]||[])[0]:{name:'无',cost:0,dmg:0,range:0}};
 var N=cfg.length,res=[];for(var i=0;i<N;i++){res[i]=[];for(var j=0;j<N;j++){if(i===j){res[i][j]='-';continue}

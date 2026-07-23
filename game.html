@@ -1385,8 +1385,9 @@ function startGame(n){
 // ==================== 音效 ====================
 function playSE(name){
   try{
-    var a=new Audio('picture/'+name+'.mp3');a.volume=0.5;a.play()
-    if(name==='upgrade')setTimeout(function(){a.pause();a=null},3000)
+    var a=new Audio('picture/'+name+'.mp3');a.volume=0.5
+    if(name==='upgrade'){a.playbackRate=2.0;setTimeout(function(){a.pause();a=null},2600)}
+    a.play()
   }catch(e){}
 }
 

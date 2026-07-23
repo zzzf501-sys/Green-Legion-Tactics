@@ -132,7 +132,7 @@ body{flex-direction:column}
 </aside>
 <main class="main">
 <div class="chapter" id="ch0">
-<div class="chapter-header"><h2>📜 游戏规则</h2><div class="ch-meta"><span>第零章</span><span>·</span><span>基础机制</span><span>·</span><span>最后更新 2026-07-22</span></div></div>
+<div class="chapter-header"><h2>📜 游戏规则</h2><div class="ch-meta"><span>第零章</span><span>·</span><span>基础机制</span><span>·</span><span>最后更新 2026-07-23</span></div></div>
 <div class="rule-card"><h3>🏆 胜利条件</h3><p style="color:#b0b0c0;line-height:2;">✅ 占领敌方所有<strong style="color:#f0e6c0;">大本营</strong><br>或<br>✅ 敌方所有单位<strong style="color:#f0e6c0;">投降</strong>（全部被消灭）</p></div>
 <div class="rule-card"><h3>⚔️ 伤害计算</h3><div class="rule-formula">真实伤害 = 攻击方伤害 − 防守方护甲</div><p style="color:#b0b0c0;margin-top:10px;">护甲直接减免每次攻击的伤害值，最低为 0。</p>
 <div style="margin-top:12px;padding:10px 14px;background:#141420;border-radius:6px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">📝 示例：</strong><br>🪖 士兵（伤害 1）攻击 🚀 坦克（护甲 2）→ <strong style="color:#cc7a7a;">1 − 2 = 0 真实伤害</strong> → 无法击穿装甲<br>🚀 坦克（伤害 4）攻击 🛡️ 装甲车（护甲 1）→ <strong style="color:#7acc7a;">4 − 1 = 3 真实伤害</strong></div></div>
@@ -155,15 +155,15 @@ body{flex-direction:column}
 </div>
 </div>
 <div class="chapter active" id="ch1">
-<div class="chapter-header"><h2>⚔️ 兵种大全</h2><div class="ch-meta"><span>第一章</span><span>·</span><span>已收录 9 个兵种</span><span>·</span><span>最后更新 2026-07-22</span></div></div>
+<div class="chapter-header"><h2>⚔️ 兵种大全</h2><div class="ch-meta"><span>第一章</span><span>·</span><span>已收录 10 个兵种</span><span>·</span><span>最后更新 2026-07-23</span></div></div>
 <div id="ch1Content"></div>
 </div>
 <div class="chapter" id="ch2">
-<div class="chapter-header"><h2>🏛️ 建筑大全</h2><div class="ch-meta"><span>第二章</span><span>·</span><span>最后更新 2026-07-22</span></div></div>
+<div class="chapter-header"><h2>🏛️ 建筑大全</h2><div class="ch-meta"><span>第二章</span><span>·</span><span>最后更新 2026-07-23</span></div></div>
 <div id="ch2Content"></div>
 </div>
 <div class="chapter" id="ch3">
-<div class="chapter-header"><h2>🔬 科技树</h2><div class="ch-meta"><span>第三章</span><span>·</span><span>T1 ~ T3</span><span>·</span><span>最后更新 2026-07-22</span></div></div>
+<div class="chapter-header"><h2>🔬 科技树</h2><div class="ch-meta"><span>第三章</span><span>·</span><span>T1 ~ T3</span><span>·</span><span>最后更新 2026-07-23</span></div></div>
 <div class="quote" style="margin-bottom:28px;">科技是第一战斗力，每一级突破都意味着战场格局的改写。</div>
 <div class="rule-card" style="border-color:#3a5a3a;"><h3 style="color:#6aaa6a;">🔰 T1 — 基础科技</h3>
 <table><thead><tr><th>科技名称</th><th>解锁</th><th>说明</th></tr></thead><tbody>
@@ -176,6 +176,8 @@ body{flex-direction:column}
 <tr><td>装甲技术</td><td>🚀 坦克</td><td style="font-size:.85rem;color:#8a8a9a;">重装甲突击力量</td></tr>
 <tr><td>装备研发 T2</td><td>🎯 射手步枪 · 🔫 反器械枪 · 🚙 火箭助推 · 🎯 轻量化</td><td style="font-size:.85rem;color:#8a8a9a;">🪙5 / ⏳2 回合</td></tr>
 <tr><td>扩建工程</td><td>🏰 T2 大本营</td><td style="font-size:.85rem;color:#8a8a9a;">每回合 +5 金币</td></tr>
+	<tr><td>自杀无人机</td><td>💥 自杀无人机</td><td style="font-size:.85rem;color:#8a8a9a;">💣 攻击后自毁，3金/2HP/8速/5伤</td></tr>
+	<tr><td>据点升级</td><td>🏴 T2 据点</td><td style="font-size:.85rem;color:#8a8a9a;">战斗型🪙4/回合 或 经济型🪙6/回合</td></tr>
 </tbody></table></div>
 <div class="rule-card" style="border-color:#5a3a2a;"><h3 style="color:#da8a6a;">📕 T3 — 精英科技</h3>
 <table><thead><tr><th>科技名称</th><th>解锁</th><th>说明</th></tr></thead><tbody>
@@ -189,7 +191,7 @@ body{flex-direction:column}
 <div style="margin-top:36px;"><div class="section-label" style="font-size:1rem;color:#e8dcc8;">📊 T 级解锁总览</div>
 <table><thead><tr><th>T 级</th><th>解锁兵种</th><th>解锁装备</th><th>建筑升级</th></tr></thead><tbody>
 <tr><td><span class="unit-tag tag-t1" style="margin:0;padding:1px 10px;">T1</span></td><td>士兵 · 军用吉普 · 装甲车</td><td>—</td><td>T1 大本营 · 据点</td></tr>
-<tr><td><span class="unit-tag tag-t2" style="margin:0;padding:1px 10px;">T2</span></td><td>坦克 · 野战炮</td><td>射手步枪 · 反器械枪 · 火箭助推 · 轻量化</td><td>T2 大本营</td></tr>
+<tr><td><span class="unit-tag tag-t2" style="margin:0;padding:1px 10px;">T2</span></td><td>坦克 · 野战炮 · 自杀无人机</td><td>射手步枪 · 反器械枪 · 火箭助推 · 轻量化</td><td>T2 大本营 · T2据点</td></tr>
 <tr><td><span class="unit-tag tag-t3" style="margin:0;padding:1px 10px;">T3</span></td><td>火箭炮 · 战斗机 · 轰炸机 · 防空车</td><td>穿甲炮 · 高爆炮 · 对空雷达 · 巨炮</td><td>T3 大本营</td></tr>
 </tbody></table></div>
 </div>
@@ -203,32 +205,38 @@ var t=document.getElementById(id);if(t)t.classList.add('active');
 document.querySelectorAll('.nav-link').forEach(function(e){e.classList.remove('active')});
 var l=document.querySelector('.nav-link[data-chapter="'+id+'"]');if(l)l.classList.add('active');
 }
+// DATA_UD
 var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,label:'🪖 士兵',img:'../picture/士兵.png',weapon:'制式步枪',quote:'基础步兵单位，生产线上的消耗品，也是战线上的基石。'},
 '坦克':{hp:10,armor:2,speed:5,damage:4,range:3,price:7,attacks:1,label:'🚀 坦克',img:'../picture/坦克.png',weapon:'标准火炮',quote:'钢铁洪流的中坚力量，正面突破的绝对核心。'},
 '军用吉普':{hp:3,armor:0,speed:8,damage:2,range:3,price:3,attacks:1,label:'🚙 军用吉普',img:'../picture/军用吉普.png',weapon:'车载机枪',quote:'轻便快速的侦察载具，来去如风，一击即走。',tier:'T1'},
-'火箭炮':{hp:8,armor:0.5,speed:2,damage:7,range:15,price:15,attacks:1,label:'🚀 火箭炮',img:'../picture/火箭炮.png',weapon:'多管火箭巢',quote:'超远程火力覆盖，敌后纵深的噩梦。'},
-'野战炮':{hp:4,armor:1,speed:3,damage:5.5,range:8,price:5,attacks:1,label:'🎯 野战炮',img:'../picture/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
+'火箭炮':{hp:10,armor:0,speed:2,damage:7,range:15,price:16,attacks:1,label:'🚀 火箭炮',img:'../picture/火箭炮.png',weapon:'多管火箭巢',quote:'超远程火力覆盖，敌后纵深的噩梦。'},
+'野战炮':{hp:3,armor:1,speed:3,damage:5,range:7,price:5,attacks:1,label:'🎯 野战炮',img:'../picture/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
 '装甲车':{hp:7,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../picture/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。',canTargetAir:true,tier:'T1'},
 '战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,label:'🛩️ 战斗机',img:'../picture/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
-'轰炸机':{hp:20,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:2,blast:3},
-'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:8,airRange:14}};
+'轰炸机':{hp:20,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../picture/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:1,blast:1.5},
+'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../picture/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:8,airRange:14},
+'自杀无人机':{hp:2,armor:0,speed:7,damage:4,range:1,price:2,attacks:1,label:'💥 自杀无人机',img:'../picture/自杀无人机.png',weapon:'自爆弹头',quote:'廉价的单程攻击武器，以命换命。攻击后自毁。',tier:'T2',selfDestruct:true}};
 var UK=Object.keys(UD);
 var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。',canTargetAir:true,tier:'T2',research_cost:5,research_time:2},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。',canTargetAir:true,tier:'T2',research_cost:5,research_time:2}],
-'坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。',tier:'T3',research_cost:10,research_time:3},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:3,desc:'牺牲单发穿透力，换装大装药榴弹，硬化目标？不存在的。',tier:'T3',research_cost:10,research_time:3}],
+'坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。',tier:'T3',research_cost:10,research_time:3},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:2,desc:'牺牲单发穿透力，换装大装药榴弹，范围爆炸半径2。',tier:'T3',research_cost:10,research_time:3}],
 '军用吉普':[{name:'无',cost:0,dmg:0,range:0},{name:'火箭助推',cost:1,speed:5,hp:1,desc:'加装火箭助推器，大幅提升移动速度。',tier:'T2',research_cost:5,research_time:2}],
 '火箭炮':[{name:'无',cost:0,dmg:0,range:0},{name:'对空雷达',cost:3,range:1,canTargetAir:true,desc:'加装对空搜索雷达，获得对空射击能力。',tier:'T3',research_cost:10,research_time:3}],
-'野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-2,dmg:-1,range:0,hp:-1,desc:'减轻结构重量，降低生产成本但削弱火力。',tier:'T2',research_cost:5,research_time:2},
+'野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-1,dmg:-1,range:-2,hp:-1,desc:'减轻结构重量，降低生产成本但削弱火力。',tier:'T2',research_cost:5,research_time:2},
 {name:'巨炮',cost:6,dmg:7,range:4,speed:-1,hp:3,desc:'安装重型巨炮，大幅提升火力与生存能力。',tier:'T3',research_cost:10,research_time:3}],
 '装甲车':[{name:'无',cost:0,dmg:0,range:0}],
 '战斗机':[{name:'无',cost:0,dmg:0,range:0}],
 '轰炸机':[{name:'无',cost:0,dmg:0,range:0}],
-'防空车':[{name:'无',cost:0,dmg:0,range:0}]};
+'防空车':[{name:'无',cost:0,dmg:0,range:0}],
+'自杀无人机':[{name:'无',cost:0,dmg:0,range:0}]};
 var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[
-{tier:'T1',hp:20,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png',turret:null},
-{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:8},tag:'tag-t2',img:'../picture/大本营 T2.png',turret:{damage:2,attacks:2,range:5,canTargetAir:true,label:'双联装炮台'}},
-{tier:'T3',hp:120,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png',turret:{damage:3,attacks:3,range:8,canTargetAir:true,label:'终极炮台'}}]},
-'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。',tiers:[{tier:'T2',hp:15,armor:0,gold:3,upgrade:null,tag:'tag-t2',img:'../picture/资源采集器.png'}]},
-'据点':{label:'🏴 据点',quote:'中立据点，谁先攻占归谁。占领后自动生产金币并装备防御炮台。',tiers:[{tier:'T1',hp:20,armor:0,gold:3,turret:{damage:2,attacks:2,range:5,canTargetAir:true,label:'防御炮台'},upgrade:null,tag:'tag-t1',img:'../picture/据点.jpg'}]}};
+{tier:'T1',hp:25,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../picture/大本营 T1.png'},
+{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:6},tag:'tag-t2',img:'../picture/大本营 T2.png'},
+{tier:'T3',hp:85,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../picture/大本营T3.png'}]},
+'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。编号从0起，产出递减（3×0.8^n）。',tiers:[{tier:'T2',hp:15,armor:0,gold:2,upgrade:null,tag:'tag-t2',img:'../picture/资源采集器.png'}]},
+'据点':{label:'🏴 据点',quote:'中立据点，初始50%HP。可反复易手，占领后可选升级T2分支：战斗型或经济型。',tiers:[
+{tier:'T1',hp:20,armor:0,gold:3,upgrade:null,tag:'tag-t1',img:'../picture/据点.jpg'},
+{tier:'T2战斗',hp:50,armor:0.5,gold:4,upgrade:{cost:10,time:1},tag:'tag-t2',img:'../picture/据点.jpg',note:'升级回满血量'},
+{tier:'T2经济',hp:30,armor:0,gold:6,upgrade:{cost:10,time:3},tag:'tag-t2',img:'../picture/据点.jpg',note:'升级恢复50%失去血量'}]}};
 function dc(v){return v<=3?'dura-orange':v<=4?'dura-yellow':v<=7?'dura-blue':''}
 function fm(v){return Number(v).toFixed(1)}
 function renderDura(){
@@ -238,8 +246,8 @@ h+='<tr><td>'+k+'</td><td>'+u.hp+'</td><td>'+u.armor+'</td><td class="'+dc(d1)+'
 h+='</tbody></table>';var e=document.getElementById('duraTable');if(e)e.innerHTML=h;}
 function renderCh1(){
 var c=document.getElementById('ch1Content');if(!c)return;
-var h='',tm={'士兵':'tag-t1','坦克':'tag-t2','军用吉普':'tag-t1','火箭炮':'tag-t3','野战炮':'tag-t2','装甲车':'tag-t1','战斗机':'tag-t3','轰炸机':'tag-t3','防空车':'tag-t3'};
-var tr={'士兵':'T1','坦克':'T2','军用吉普':'T1','火箭炮':'T3','野战炮':'T2','装甲车':'T1','战斗机':'T3','轰炸机':'T3','防空车':'T3'};
+var h='',tm={'士兵':'tag-t1','坦克':'tag-t2','军用吉普':'tag-t1','火箭炮':'tag-t3','野战炮':'tag-t2','装甲车':'tag-t1','战斗机':'tag-t3','轰炸机':'tag-t3','防空车':'tag-t3','自杀无人机':'tag-t2'};
+var tr={'士兵':'T1','坦克':'T2','军用吉普':'T1','火箭炮':'T3','野战炮':'T2','装甲车':'T1','战斗机':'T3','轰炸机':'T3','防空车':'T3','自杀无人机':'T2'};
 UK.forEach(function(k){
 var u=UD[k];var el=EQ[k]||[];var he=el.length>1;
 h+='<div class="unit-card"><div class="unit-header">';
@@ -259,7 +267,7 @@ if(he){
 h+='<div class="section-label">🛠️ 装备</div><div class="equip-grid">';
 el.forEach(function(eq){if(eq.name==='无')return;
 var s='';if(eq.dmg)s+='<span class="'+(eq.dmg>0?'up':'down')+'">伤害 '+(eq.dmg>0?'+':'')+eq.dmg+' (→'+(u.damage+eq.dmg)+')</span> ';
-if(eq.range)s+='<span class="up">射程 +'+eq.range+' (→'+(u.range+eq.range)+')</span> ';
+if(eq.range)s+='<span class="'+(eq.range>0?'up':'down')+'">射程 '+(eq.range>0?'+':'')+eq.range+' (→'+(u.range+eq.range)+')</span> ';
 if(eq.speed)s+='<span class="down">速度 '+eq.speed+' (→'+(u.speed+eq.speed)+')</span> ';
 if(eq.hp)s+='<span class="down">生命 '+(eq.hp>0?'+':'')+eq.hp+' (→'+(u.hp+eq.hp)+')</span> ';
 if(eq.blast&&eq.blast>1)s+='<br><span class="special">🌀 爆炸范围 ×'+eq.blast+'</span>';
@@ -267,11 +275,11 @@ var cl=eq.cost>=0?'🪙 '+eq.cost+' 元':'<span style="color:#7acc7a;">价格 '+
 var eqImg='';var eqM={'士兵':'','坦克':'','军用吉普':'','火箭炮':'','野战炮':''};eqM['士兵-射手步枪']='../picture/士兵-射手步枪.png';eqM['士兵-反器械枪']='../picture/士兵-反器械.png';eqM['坦克-穿甲炮']='../picture/坦克-穿甲弹.png';eqM['坦克-高爆炮']='../picture/坦克-高爆弹.png';eqM['军用吉普-火箭助推']='../picture/军用吉普-火箭助推.png';eqM['火箭炮-对空雷达']='../picture/火箭炮-对空雷达.png';eqM['野战炮-巨炮']='../picture/野战炮-巨炮.png';eqM['野战炮-轻量化']='../picture/野战炮，轻量化.png';eqImg=eqM[k+'-'+eq.name]||'';
 var et=eq.tier||'T2';var rc=eq.research_cost?' 🔬'+eq.research_cost+'金/'+eq.research_time+'回合':'';
 h+='<div class="equip-card">'+(eqImg?'<img src="'+eqImg+'" alt="'+eq.name+'" style="width:100%;height:80px;object-fit:contain;border-radius:4px;margin-bottom:6px;background:#0a0a12;">':'')+'<h4>'+eq.name+'</h4><div class="desc">'+(eq.desc||'')+'</div><div class="stats" style="margin-bottom:4px;"><span class="unit-tag tag-'+(et==='T2'?'t2':'t3')+'" style="margin:0;padding:1px 8px;font-size:.7rem;">'+et+'</span> '+cl+rc+'</div><div class="stats">'+s+'</div></div>'});h+='</div>'}
-if(k==='坦克')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>高爆炮的范围爆炸效果在面对密集步兵阵型时极为致命，一发入魂。</div>';
+if(k==='坦克')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>高爆炮的范围爆炸效果在面对密集步兵阵型时极为致命，范围半径2。</div>';
 else if(k==='火箭炮')h+='<div class="tip-box"><span class="tip-label">💡 战术提示：</span>全游戏最远射程，可在敌方反击范围外安全输出。</div>';
 else if(k==='装甲车')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：运载 · 对空</span>🚌 可搭载 <strong>8 名</strong> 步兵单位；🔫 可对空射击。</div>';
 else if(k==='战斗机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：制空</span>🛩️ 可对空对地，地面单位无法反击空中单位。</div>';
-else if(k==='轰炸机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：范围轰炸</span>💣 爆炸范围×3，仅对地攻击，装弹 2 回合，地面单位无法反击。</div>';
+else if(k==='轰炸机')h+='<div class="tip-box"><span class="tip-label">💡 特殊能力：范围轰炸</span>💣 爆炸半径1.5，仅对地攻击，装弹 1 回合，地面单位无法反击。</div>';
 else if(k==='防空车')h+='<div class="tip-box"><span class="tip-label">💡 双模式：防空</span>🔫 对空伤害'+(u.airDamage||u.damage)+' 射程'+(u.airRange||u.range)+'，对地伤害'+u.damage+' 射程'+u.range+'。地面单位无法反击空中。</div>';
 var d1=u.hp+u.armor,d2=u.hp/2+u.armor,d3=u.hp/3+u.armor;
 h+='<div class="durability-box"><div class="db-label">💀 耐打计算</div><div class="durability-stats">';
@@ -340,13 +348,15 @@ while(qA>0&&qB>0&&turn<200){var aT=fi==='A'?(turn%2===0):(turn%2===1);turn++;var
 var _eR=function(a,b){return eR(a,b)};_eR=null;
 if(aT){var erA2=eR(uA,uB);if(advA){dist=Math.max(0,dist-uA.speed)}else if(ret<3&&dist+uA.speed<=erA2&&qB>0){dist+=uA.speed;ret++;rtr=true}
 if(rlA>0){rlA--}else if(dist<=erA2&&qA>0&&qB>0&&canAtk(uA,uB)){atk=true;var dmg=eD(uA,uB);var dm=Math.max(0,dmg-uB.armor);
-if(dm>0){var eff=qA*uA.attacks*(uA.blast||1);if(dm>=uB.hp){kill=Math.min(eff,qB)}
+if(uA.selfDestruct&&dm>0){var sdKill=0;while(qA>0&&qB>0){pB+=dm;if(pB>=uB.hp){qB--;sdKill++;pB-=uB.hp}qA--}kill=sdKill}
+else if(dm>0){var eff=qA*uA.attacks*(uA.blast||1);if(dm>=uB.hp){kill=Math.min(eff,qB)}
 else{var hk=Math.ceil(uB.hp/dm);pB+=eff*dm;kill=Math.min(Math.floor(pB/uB.hp),Math.floor(eff/hk),qB);pB-=kill*uB.hp}
 qB=Math.max(qB-kill,0)}if(uA.reload)rlA=uA.reload}
 log.push({turn:turn,actor:'A',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,eD(uA,uB)-uB.armor),remainA:qA,remainB:qB})
 }else{var erB2=eR(uB,uA);if(advB){dist=Math.max(0,dist-uB.speed)}else if(ret<3&&dist+uB.speed<=erB2&&qA>0){dist+=uB.speed;ret++;rtr=true}
 if(rlB>0){rlB--}else if(dist<=erB2&&qB>0&&qA>0&&canAtk(uB,uA)){atk=true;var dmg=eD(uB,uA);var dm=Math.max(0,dmg-uA.armor);
-if(dm>0){var eff=qB*uB.attacks*(uB.blast||1);if(dm>=uA.hp){kill=Math.min(eff,qA)}
+if(uB.selfDestruct&&dm>0){var sdKill=0;while(qB>0&&qA>0){pA+=dm;if(pA>=uA.hp){qA--;sdKill++;pA-=uA.hp}qB--}kill=sdKill}
+else if(dm>0){var eff=qB*uB.attacks*(uB.blast||1);if(dm>=uA.hp){kill=Math.min(eff,qA)}
 else{var hk=Math.ceil(uA.hp/dm);pA+=eff*dm;kill=Math.min(Math.floor(pA/uA.hp),Math.floor(eff/hk),qA);pA-=kill*uA.hp}
 qA=Math.max(qA-kill,0)}if(uB.reload)rlB=uB.reload}
 log.push({turn:turn,actor:'B',preDist:pre,postDist:dist,attacked:atk,kill:kill,retreated:rtr,dmg:Math.max(0,eD(uB,uA)-uA.armor),remainA:qA,remainB:qB})}}
@@ -375,20 +385,22 @@ var pA=0,pB=0,ret=0,turn=0,rlA=0,rlB=0;
 while(qA>0&&qB>0&&turn<200){var aT=fi==='A'?(turn%2===0):(turn%2===1);turn++;
 if(aT){var erA2=eR(uA,uB);if(advA)dist=Math.max(0,dist-uA.speed);else if(ret<3&&dist+uA.speed<=erA2&&qB>0){dist+=uA.speed;ret++}
 if(rlA>0){rlA--}else if(dist<=erA2&&qA>0&&qB>0&&canAtk(uA,uB)){var dmg=eD(uA,uB);var dm=Math.max(0,dmg-uB.armor);
-if(dm>0){var eff=qA*uA.attacks*(uA.blast||1);if(dm>=uB.hp)qB=Math.max(qB-Math.min(eff,qB),0)
-else{var hk=Math.ceil(uB.hp/dm);pB+=eff*dm;var k=Math.min(Math.floor(pB/uB.hp),Math.floor(eff/hk),qB);qB-=k;pB-=k*uB.hp}
-if(uA.reload)rlA=uA.reload}}}else{var erB2=eR(uB,uA);if(advB)dist=Math.max(0,dist-uB.speed);else if(ret<3&&dist+uB.speed<=erB2&&qA>0){dist+=uB.speed;ret++}
+if(uA.selfDestruct&&dm>0){while(qA>0&&qB>0){pB+=dm;if(pB>=uB.hp){qB--;pB-=uB.hp}qA--}}
+else if(dm>0){var eff=qA*uA.attacks*(uA.blast||1);if(dm>=uB.hp)qB=Math.max(qB-Math.min(eff,qB),0)
+else{var hk=Math.ceil(uB.hp/dm);pB+=eff*dm;var k=Math.min(Math.floor(pB/uB.hp),Math.floor(eff/hk),qB);qB-=k;pB-=k*uB.hp}}
+if(uA.reload)rlA=uA.reload}}else{var erB2=eR(uB,uA);if(advB)dist=Math.max(0,dist-uB.speed);else if(ret<3&&dist+uB.speed<=erB2&&qA>0){dist+=uB.speed;ret++}
 if(rlB>0){rlB--}else if(dist<=erB2&&qB>0&&qA>0&&canAtk(uB,uA)){var dmg=eD(uB,uA);var dm=Math.max(0,dmg-uA.armor);
-if(dm>0){var eff=qB*uB.attacks*(uB.blast||1);if(dm>=uA.hp)qA=Math.max(qA-Math.min(eff,qA),0)
-else{var hk=Math.ceil(uA.hp/dm);pA+=eff*dm;var k=Math.min(Math.floor(pA/uA.hp),Math.floor(eff/hk),qA);qA-=k;pA-=k*uA.hp}
-if(uB.reload)rlB=uB.reload}}}}
+if(uB.selfDestruct&&dm>0){while(qB>0&&qA>0){pA+=dm;if(pA>=uA.hp){qA--;pA-=uA.hp}qB--}}
+else if(dm>0){var eff=qB*uB.attacks*(uB.blast||1);if(dm>=uA.hp)qA=Math.max(qA-Math.min(eff,qA),0)
+else{var hk=Math.ceil(uA.hp/dm);pA+=eff*dm;var k=Math.min(Math.floor(pA/uA.hp),Math.floor(eff/hk),qA);qA-=k;pA-=k*uA.hp}}
+if(uB.reload)rlB=uB.reload}}}
 if(qA>0&&qB<=0)return'A';if(qB>0&&qA<=0)return'B';return'D'}
 function buildAutoTable(){var cfg=[
 {n:'士兵',e:null,l:'🪖 士兵'},{n:'士兵',e:'射手步枪',l:'🪖 +射手'},{n:'士兵',e:'反器械枪',l:'🪖 +反器械'},
 {n:'坦克',e:null,l:'🚀 坦克'},{n:'坦克',e:'穿甲炮',l:'🚀 +穿甲'},{n:'坦克',e:'高爆炮',l:'🚀 +高爆'},
 {n:'军用吉普',e:null,l:'🚙 军用吉普'},{n:'火箭炮',e:null,l:'🚀 火箭炮'},
 {n:'野战炮',e:null,l:'🎯 野战炮'},{n:'野战炮',e:'轻量化',l:'🎯 +轻量'},
-{n:'装甲车',e:null,l:'🛡️ 装甲车'},{n:'战斗机',e:null,l:'🛩️ 战斗机'},{n:'轰炸机',e:null,l:'💣 轰炸机'},{n:'防空车',e:null,l:'🔫 防空车'}];
+{n:'装甲车',e:null,l:'🛡️ 装甲车'},{n:'战斗机',e:null,l:'🛩️ 战斗机'},{n:'轰炸机',e:null,l:'💣 轰炸机'},{n:'防空车',e:null,l:'🔫 防空车'},{n:'自杀无人机',e:null,l:'💥 自杀无人机'}];
 var ge=function(n,en){return en?(EQ[n]||[]).find(function(e){return e.name===en})||(EQ[n]||[])[0]:{name:'无',cost:0,dmg:0,range:0}};
 var N=cfg.length,res=[];for(var i=0;i<N;i++){res[i]=[];for(var j=0;j<N;j++){if(i===j){res[i][j]='-';continue}
 var ea=ge(cfg[i].n,cfg[i].e),eb=ge(cfg[j].n,cfg[j].e);var r1=simB(cfg[i].n,ea,cfg[j].n,eb,'A',3),r2=simB(cfg[i].n,ea,cfg[j].n,eb,'B',3);

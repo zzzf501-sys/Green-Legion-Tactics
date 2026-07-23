@@ -599,6 +599,8 @@ function nextTurn(){
       p.collectIncome()
       p.stats.turnData.push({turn:ENGINE.turn,armyValue:r2(p.units.reduce((s,u)=>s+(u.price||0),0)),gold:p.gold,killValue:p.stats.totalKillValue,income:p.getIncome()})
     }})
+    // 中立据点回血
+    if(G&&G.neutralBuildings)G.neutralBuildings.forEach(function(b){b.turnStart()})
   }
   curP().turnStart()
   showTurnNotify()
@@ -1350,6 +1352,7 @@ function showTurnNotify(){
 
 // ==================== 菜单函数 ====================
 function showPlayerSel(){
+  startBGM()
   document.getElementById('menu').style.display='none'
   document.getElementById('player-sel').style.display='flex'
 }
@@ -1423,7 +1426,7 @@ function startBGM(){
       for(var i=0;i<data.length;i++){data[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.03))}
       var s=ctx.createBufferSource();s.buffer=buf
       var f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=150
-      var g=ctx.createGain();g.gain.value=0.12
+      var g=ctx.createGain();g.gain.value=0.2
       s.connect(f);f.connect(g);g.connect(ctx.destination)
       s.start();BGM_NODES.push(s)
     }

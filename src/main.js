@@ -464,14 +464,15 @@ function equipInfoText(unitType,eq){
   let d=UNIT_DATA[unitType]
   let lines=[unitType+'：'+eq.name+'（'+(eq.tier||'T?')+'）','研究 '+(eq.researchCost||0)+' 金 / '+(eq.researchTime||1)+' 回合']
   let buffs=[]
-  if(eq.dmg!==undefined)buffs.push('伤害 '+(eq.dmg>0?'+':'')+eq.dmg+' → '+r2((d.damage||0)+eq.dmg))
-  if(eq.range!==undefined)buffs.push('射程 '+(eq.range>0?'+':'')+eq.range+' → '+r2((d.range||0)+eq.range))
-  if(eq.speed!==undefined)buffs.push('移速 '+(eq.speed>0?'+':'')+eq.speed+' → '+r2((d.speed||0)+eq.speed))
-  if(eq.hp!==undefined)buffs.push('HP '+(eq.hp>0?'+':'')+eq.hp+' → '+r2((d.hp||0)+eq.hp))
-  if(eq.armor!==undefined)buffs.push('护甲 '+(eq.armor>0?'+':'')+eq.armor+' → '+r2((d.armor||0)+eq.armor))
+  let deltaText=(label,base,delta)=>label+'：'+r2(base)+' → '+r2(base+delta)+'（'+(delta>0?'+':'')+r2(delta)+'）'
+  if(eq.dmg)buffs.push(deltaText('伤害',d.damage||0,eq.dmg))
+  if(eq.range)buffs.push(deltaText('射程',d.range||0,eq.range))
+  if(eq.speed)buffs.push(deltaText('移速',d.speed||0,eq.speed))
+  if(eq.hp)buffs.push(deltaText('HP',d.hp||0,eq.hp))
+  if(eq.armor)buffs.push(deltaText('护甲',d.armor||0,eq.armor))
   if(eq.canTargetAir)buffs.push('获得对空能力')
   if(eq.blast)buffs.push('爆炸半径 '+eq.blast)
-  if(eq.cost!==undefined)buffs.push('装备价格 '+eq.cost)
+  if(eq.cost!==undefined)buffs.push('装备价格：'+(eq.cost>=0?'+':'')+eq.cost+' 金')
   if(buffs.length)lines.push(buffs.join('\n'))
   return lines.join('\n')
 }

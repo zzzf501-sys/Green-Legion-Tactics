@@ -255,6 +255,7 @@ h+='<tr><td>'+k+'</td><td>'+u.hp+'</td><td>'+u.armor+'</td><td class="'+dc(d1)+'
 h+='</tbody></table>';var e=document.getElementById('duraTable');if(e)e.innerHTML=h;}
 function renderCh1(){
 var c=document.getElementById('ch1Content');if(!c)return;
+function statDelta(label,base,delta){return label+'：'+base+' → '+(base+delta)+'（'+(delta>0?'+':'')+delta+'）'}
 var h='',tm={'士兵':'tag-t1','坦克':'tag-t2','军用吉普':'tag-t1','火箭炮':'tag-t3','野战炮':'tag-t2','装甲车':'tag-t1','战斗机':'tag-t3','轰炸机':'tag-t3','防空车':'tag-t3','自杀无人机':'tag-t2','侦察机':'tag-t2'};
 var tr={'士兵':'T1','坦克':'T2','军用吉普':'T1','火箭炮':'T3','野战炮':'T2','装甲车':'T1','战斗机':'T3','轰炸机':'T3','防空车':'T3','自杀无人机':'T2','侦察机':'T2'};
 UK.forEach(function(k){
@@ -275,11 +276,11 @@ h+='<tr><td>伤害</td><td>'+dd+'</td></tr><tr><td>射程</td><td>'+u.range+'</t
 if(he){
 h+='<div class="section-label">🛠️ 装备</div><div class="equip-grid">';
 el.forEach(function(eq){if(eq.name==='无')return;
-var s='';if(eq.dmg)s+='<span class="'+(eq.dmg>0?'up':'down')+'">伤害 '+(eq.dmg>0?'+':'')+eq.dmg+' (→'+(u.damage+eq.dmg)+')</span> ';
-if(eq.range)s+='<span class="'+(eq.range>0?'up':'down')+'">射程 '+(eq.range>0?'+':'')+eq.range+' (→'+(u.range+eq.range)+')</span> ';
-if(eq.speed)s+='<span class="'+(eq.speed>0?'up':'down')+'">速度 '+eq.speed+' (→'+(u.speed+eq.speed)+')</span> ';
-if(eq.hp)s+='<span class="'+(eq.hp>0?'up':'down')+'">生命 '+(eq.hp>0?'+':'')+eq.hp+' (→'+(u.hp+eq.hp)+')</span> ';
-if(eq.armor)s+='<span class="'+(eq.armor>0?'up':'down')+'">护甲 '+(eq.armor>0?'+':'')+eq.armor+' (→'+(u.armor+eq.armor)+')</span> ';
+var s='';if(eq.dmg)s+='<span class="'+(eq.dmg>0?'up':'down')+'">'+statDelta('伤害',u.damage,eq.dmg)+'</span> ';
+if(eq.range)s+='<span class="'+(eq.range>0?'up':'down')+'">'+statDelta('射程',u.range,eq.range)+'</span> ';
+if(eq.speed)s+='<span class="'+(eq.speed>0?'up':'down')+'">'+statDelta('移速',u.speed,eq.speed)+'</span> ';
+if(eq.hp)s+='<span class="'+(eq.hp>0?'up':'down')+'">'+statDelta('生命',u.hp,eq.hp)+'</span> ';
+if(eq.armor)s+='<span class="'+(eq.armor>0?'up':'down')+'">'+statDelta('护甲',u.armor,eq.armor)+'</span> ';
 if(eq.blast&&eq.blast>1)s+='<br><span class="special">🌀 爆炸范围 ×'+eq.blast+'</span>';
 var cl=eq.cost>=0?'🪙 '+eq.cost+' 元':'<span style="color:#7acc7a;">价格 '+eq.cost+'</span>';
 var eqImg='';var eqM={'士兵':'','坦克':'','军用吉普':'','火箭炮':'','野战炮':''};eqM['士兵-射手步枪']='../assets/images/士兵-射手步枪.png';eqM['士兵-反器械枪']='../assets/images/士兵-反器械枪.png';eqM['坦克-穿甲炮']='../assets/images/坦克-穿甲炮.png';eqM['坦克-高爆炮']='../assets/images/坦克-高爆炮.png';eqM['军用吉普-火箭助推']='../assets/images/军用吉普-火箭助推.png';eqM['军用吉普-重甲吉普']='../assets/images/军用吉普-重甲吉普.png';eqM['火箭炮-对空雷达']='../assets/images/火箭炮-对空雷达.png';eqM['野战炮-巨炮']='../assets/images/野战炮-巨炮.png';eqM['野战炮-轻量化']='../assets/images/野战炮-轻量化.png';eqImg=eqM[k+'-'+eq.name]||'';

@@ -139,6 +139,7 @@ function onlineHandleMessage(msg){
       window.ONLINE.applyingRemote=true
       deserializeGameState(msg.state,{center:true})
       window.ONLINE.applyingRemote=false
+      showTurnNotify()
     }
     onlineSetStatus('已加入房间 '+msg.roomId+'\n你是玩家 '+(msg.playerId+1)+'\n'+onlineTurnText())
     return
@@ -150,9 +151,11 @@ function onlineHandleMessage(msg){
   }
   if(msg.type==='state'){
     if(msg.playerId===window.ONLINE.myPlayerId)return
+    var _oldCur=ENGINE.cur
     window.ONLINE.applyingRemote=true
-    deserializeGameState(msg.state,{center:false})
+    deserializeGameState(msg.state,{center:true})
     window.ONLINE.applyingRemote=false
+    if(ENGINE.state!=='GAME_OVER'&&ENGINE.cur!==_oldCur)showTurnNotify()
     onlineSetStatus('房间 '+window.ONLINE.roomId+'\n你是玩家 '+(window.ONLINE.myPlayerId+1)+'\n'+onlineTurnText())
     return
   }

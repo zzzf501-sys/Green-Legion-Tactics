@@ -103,15 +103,15 @@ function getBuildingVision(b){
   }
   return (BUILDING_DATA[b.type]&&BUILDING_DATA[b.type].vision)||3
 }
-function isTileVisible(gx,gy,pid=curP().id){
+function isTileVisible(gx,gy,pid=viewPlayerId()){
   let p=ENGINE.players[pid]
   return !p||!p.visible?p&&p.id===pid:p.visible.has(gx+','+gy)
 }
-function isTileExplored(gx,gy,pid=curP().id){
+function isTileExplored(gx,gy,pid=viewPlayerId()){
   let p=ENGINE.players[pid]
   return !p||!p.explored?p&&p.id===pid:p.explored.has(gx+','+gy)
 }
-function canSeeEntity(ent,pid=curP().id){
+function canSeeEntity(ent,pid=viewPlayerId()){
   if(!ent)return false
   if(ent.pid===pid||ent.pid===-1)return true
   if(ent instanceof Building)return isTileExplored(ent.gx,ent.gy,pid)
@@ -506,7 +506,7 @@ function serializeGameState(){
       id:p.id,name:p.name,gold:p.gold,alive:p.alive,
       researched:p.researched,researching:p.researching,
       collectorCount:p.collectorCount,freedCollectorIds:p.freedCollectorIds,
-      stats:p.stats,
+      stats:p.stats,lastSeen:p.lastSeen||{},
       units:p.units.map(serializeUnit),
       buildings:p.buildings.map(serializeBuilding)
     }))
@@ -534,6 +534,7 @@ function deserializeGameState(state,opts={}){
     p.researched=pd.researched||{};p.researching=pd.researching||[]
     p.collectorCount=pd.collectorCount||0;p.freedCollectorIds=pd.freedCollectorIds||[]
     p.stats=pd.stats||{turnData:[],totalKillValue:0}
+    p.lastSeen=pd.lastSeen||{}
     p.units=[];p.buildings=[]
     ;(pd.buildings||[]).forEach(bd=>{
       let b=restoreBuilding(bd)
@@ -558,7 +559,12 @@ function deserializeGameState(state,opts={}){
   }
   document.getElementById('menu').style.display='none'
   document.getElementById('player-sel').style.display='none'
-  document.getElementById('gameOver').style.display=ENGINE.state==='GAME_OVER'?'flex':'none'
+  if(ENGINE.state==='GAME_OVER'){
+    let winner=ENGINE.players.find(p=>p.alive)||null
+    showGameOver(winner)
+  }else{
+    document.getElementById('gameOver').style.display='none'
+  }
 }
 
 // ==================== 玩家 ====================
@@ -571,6 +577,7 @@ class Player{
     this.freedCollectorIds=[]
     this.visible=new Set()
     this.explored=new Set()
+    this.lastSeen={}
     this.stats={turnData:[],totalKillValue:0}
   }
   nextCollectorId(){
@@ -629,6 +636,10 @@ function initEngine(n){
   for(let i=0;i<n;i++)ENGINE.players.push(new Player(i,'玩家'+(i+1)))
 }
 function curP(){return ENGINE.players[ENGINE.cur]}
+function viewPlayerId(){
+  // 在线模式：每方只看自己的视角；本地热座：看当前回合玩家
+  return (window.ONLINE&&window.ONLINE.myPlayerId>=0)?window.ONLINE.myPlayerId:ENGINE.cur
+}
 function isOnlineGame(){return !!(window.ONLINE&&window.ONLINE.connected)}
 function onlineCanControl(){return !isOnlineGame()||window.ONLINE.myPlayerId===ENGINE.cur}
 function notifyOnlineState(reason){
@@ -636,6 +647,7 @@ function notifyOnlineState(reason){
     setTimeout(function(){window.onlineSendState(reason||'state')},0)
   }
 }
+var _gameOverShown=false
 function showGameOver(winner){
   stopBGM()
   setTimeout(function(){playSE('victory')},500)
@@ -651,12 +663,17 @@ function showGameOver(winner){
     let hq=winner?winner.getHQ():null
     if(hq)G.cam.centerOn(hq.gx,hq.gy)
   }
-  setTimeout(function(){
-    let btn=document.createElement('button')
-    btn.className='btn btn-primary';btn.style.cssText='position:absolute;bottom:40px;left:50%;transform:translateX(-50%);padding:12px 40px;font-size:18px;z-index:60'
-    btn.textContent='再来一局';btn.onclick=function(){location.reload()}
-    document.body.appendChild(btn)
-  },2000)
+  if(!_gameOverShown){
+    _gameOverShown=true
+    // 在线模式：确保对方也能收到游戏结束状态
+    if(isOnlineGame())setTimeout(function(){onlineSendState('game-over')},0)
+    setTimeout(function(){
+      let btn=document.createElement('button')
+      btn.className='btn btn-primary';btn.style.cssText='position:absolute;bottom:40px;left:50%;transform:translateX(-50%);padding:12px 40px;font-size:18px;z-index:60'
+      btn.textContent='再来一局';btn.onclick=function(){location.reload()}
+      document.body.appendChild(btn)
+    },2000)
+  }
 }
 
 // ==================== 统计图表 ====================
@@ -747,20 +764,17 @@ function killUnit(target){
   G.dying.push({ent:target,alpha:255})
 }
 
-function applyBlastDamage(cx,cy,radius,damage,attackerPid,excludeTarget){
-  let hit=new Set()
-  ENGINE.players.forEach(p=>{
-    p.units.forEach(u=>{
-      if(excludeTarget&&u===excludeTarget)return
-      let dist=eDist([cx,cy],[u.gx,u.gy])
-      if(dist<=radius&&u.pid!==attackerPid){
-        let dmg=r2(Math.max(0,damage-u.armor))
-        u.takeDamage(dmg)
-        if(u.dead)hit.add(u)
-      }
-    })
+function calcBlastHits(cx,cy,radius,damage,attackerPid,excludeTarget){
+  let hits=[]
+  let collect=[]
+  ENGINE.players.forEach(p=>{p.units.forEach(u=>collect.push(u));p.buildings.forEach(b=>collect.push(b))})
+  if(G&&G.neutralBuildings)G.neutralBuildings.forEach(b=>collect.push(b))
+  collect.forEach(e=>{
+    if(excludeTarget&&e===excludeTarget)return
+    if(eDist([cx,cy],[e.gx,e.gy])<=radius&&e.pid!==attackerPid)
+      hits.push({ent:e,dmg:r2(Math.max(0,damage-(e.armor||0)))})
   })
-  return hit
+  return hits
 }
 
 function nextTurn(){
@@ -791,7 +805,8 @@ function nextTurn(){
   }
   curP().turnStart()
   showTurnNotify()
-  if(G&&G.cam){let hq=curP().getHQ();if(hq)G.cam.centerOn(hq.gx,hq.gy)}
+  // 在线模式：不要让对方看到自己的基地位置
+  if(G&&G.cam&&!isOnlineGame()){let hq=curP().getHQ();if(hq)G.cam.centerOn(hq.gx,hq.gy)}
 }
 function allDone(){return curP().units.every(u=>u.done)}
 
@@ -938,7 +953,7 @@ class Game{
       }
     })
   }
-  _centerOnCur(){let hq=curP().getHQ();if(hq)this.cam.centerOn(hq.gx,hq.gy)}
+  _centerOnCur(){if(isOnlineGame())return;let hq=curP().getHQ();if(hq)this.cam.centerOn(hq.gx,hq.gy)}
   _handleClick(gx,gy){
     if(this.attackLock)return
     if(isOnlineGame()&&!onlineCanControl()){
@@ -977,6 +992,8 @@ class Game{
         if(t.occ&&t.occ!==u){clearSel();return}
         this.grid.remove(u);u.moveTo(gx,gy);t.occ=u
         notifyOnlineState('move')
+        // 移动后立即刷新视野，确保新位置发现的敌人可以被攻击
+        this.updateVision()
         if(u.canAttack()){
           let en=getAttackTargets(u,gx,gy,p.id)
           if(en.size){SEL.hl=en;SEL.hc='#ff000060';SEL.phase='ATK';SEL.rangeLabel='攻击目标';return}
@@ -992,67 +1009,66 @@ class Game{
         if(tt&&tt.occ&&tt.occ.pid!==p.id){
           let target=tt.occ
           if(!canTarget(u,target,u.gx,u.gy)){clearSel();return}
-          if(target instanceof Unit){
-            if(target.isAir&&!u.canTargetAir){clearSel();return}
-            playAttackSE(u)
-            u.attack(target)
-            var soundLen=u.attacks>1?400:600
-            var _this=this,_p=curP(),_u=u,_target=target,_bb=u.blast>0?applyBlastDamage(target.gx,target.gy,u.blast,u.eD(target),u.pid,target):null
-            _this.attackLock=true
-            // 音效播完→扣血
+          if(target.isAir&&!u.canTargetAir){clearSel();return}
+          playAttackSE(u)
+          u.attack(target)
+          var soundLen=u.attacks>1?400:600
+          var _this=this,_p=curP(),_u=u,_target=target,_blastHits=u.blast>0?calcBlastHits(target.gx,target.gy,u.blast,u.eD(target),u.pid,target):[]
+          _this.attackLock=true
+          // 音效播完→统一扣血（主目标+爆炸范围）
+          setTimeout(function(){
+            _u.applyPendingDmg(_target)
+            _blastHits.forEach(function(h){h.ent.takeDamage(h.dmg)})
+            // 再等0.2s→死亡结算+音效
             setTimeout(function(){
-              _u.applyPendingDmg(_target)
-              // 爆炸范围受害者死亡
-              if(_bb&&_bb.size){_bb.forEach(function(u2){
-                if(u2.dead){killUnit(u2);_p.stats.totalKillValue=r2(_p.stats.totalKillValue+(u2.price||0))}
-              })}
-              // 再等0.2s→死亡结算+音效
-              setTimeout(function(){
-                var _killed=false,_sd=false
-                if(_target.dead){killUnit(_target);_sd=true;_p.stats.totalKillValue=r2(_p.stats.totalKillValue+(_target.price||0));_killed=true}
-                if(_u.dead){killUnit(_u);_sd=true;_killed=true}
-                if(_sd)playSE('destroyed')
-                _this.attackLock=false
-                if(!_killed&&SEL.u===_u)_this._recalcAttackRange(_u)
-                if(!_u.canAttack()&&!_u.canMove()){clearSel()}
-                else if(!_killed){_this._selUnit(_u)}
-                notifyOnlineState('attack')
-              },200)
-            },soundLen)
-          }else if(target instanceof Building){
-            let _bb=u.blast>0?applyBlastDamage(target.gx,target.gy,u.blast,u.eD(target),u.pid,target):null
-            u.attack(target);u.applyPendingDmg(target)
-            if(_bb&&_bb.size){_bb.forEach(function(u2){
-              if(u2.dead){killUnit(u2);p.stats.totalKillValue=r2(p.stats.totalKillValue+(u2.price||0))}
-            })}
-            if(u.dead){killUnit(u);playSE('destroyed')}
-            if(target.dead&&target.type==='据点'){
-              ENGINE.players.forEach(pp=>pp.removeBuilding(target))
-              let i=this.neutralBuildings.indexOf(target)
-              if(i>=0)this.neutralBuildings.splice(i,1)
-              if(target.outpostTier>0){
-                // T2据点打爆→退回T1
-                target.outpostTier=0;target.outpostBranch=null
-                target._updateStats()
-                target.hp=r2(target.maxHp*0.5)
-                target.pid=u.pid;target.captured=true
-                ENGINE.players[u.pid].addBuilding(target)
-                console.log('T2 outpost reverted to T1, captured by',p.name)
-              }else{
-                target.capture(u.pid)
-                ENGINE.players[u.pid].addBuilding(target)
-                console.log('Outpost captured by',p.name)
+              var _killed=false,_sd=false
+              // 主目标死亡
+              if(_target.dead){
+                if(_target instanceof Unit){
+                  killUnit(_target);_sd=true
+                  _p.stats.totalKillValue=r2(_p.stats.totalKillValue+(_target.price||0));_killed=true
+                }else if(_target.type==='据点'){
+                  ENGINE.players.forEach(pp=>pp.removeBuilding(_target))
+                  var ni=_this.neutralBuildings.indexOf(_target)
+                  if(ni>=0)_this.neutralBuildings.splice(ni,1)
+                  if(_target.outpostTier>0){
+                    _target.outpostTier=0;_target.outpostBranch=null
+                    _target._updateStats();_target.hp=r2(_target.maxHp*0.5)
+                    _target.pid=_u.pid;_target.captured=true
+                    ENGINE.players[_u.pid].addBuilding(_target)
+                  }else{_target.capture(_u.pid);ENGINE.players[_u.pid].addBuilding(_target)}
+                  _killed=true
+                }else{
+                  _this.grid.remove(_target);ENGINE.players.forEach(pp=>pp.removeBuilding(_target))
+                  _killed=true
+                }
+                if(!_sd)_sd=true
               }
-            }
-            else if(target.dead){
-              this.grid.remove(target);ENGINE.players.forEach(pp=>pp.removeBuilding(target))
-              let al=ENGINE.players.filter(pp=>pp.alive)
-              if(al.length<=1){clearSel();showGameOver(al[0]||null);return}
-            }
-            if(!u.canAttack()&&!u.canMove()){clearSel()}
-            else{this._selUnit(u)}
-            notifyOnlineState('attack-building')
-          }
+              // 攻击者自毁
+              if(_u.dead){killUnit(_u);_sd=true;_killed=true}
+              // 爆炸范围受害者结算
+              _blastHits.forEach(function(h){
+                if(!h.ent.dead)return
+                if(h.ent instanceof Unit){
+                  killUnit(h.ent);_p.stats.totalKillValue=r2(_p.stats.totalKillValue+(h.ent.price||0))
+                }else{
+                  _this.grid.remove(h.ent);ENGINE.players.forEach(pp=>pp.removeBuilding(h.ent))
+                  var ni=_this.neutralBuildings.indexOf(h.ent)
+                  if(ni>=0)_this.neutralBuildings.splice(ni,1)
+                }
+                _sd=true
+              })
+              // 游戏结束检查
+              var al_alive=ENGINE.players.filter(function(pp){return pp.alive})
+              if(al_alive.length<=1){clearSel();showGameOver(al_alive[0]||null);_this.attackLock=false;return}
+              if(_sd)playSE('destroyed')
+              _this.attackLock=false
+              if(!_killed&&SEL.u===_u)_this._recalcAttackRange(_u)
+              if(!_u.canAttack()&&!_u.canMove()){clearSel()}
+              else if(!_killed){_this._selUnit(_u)}
+              notifyOnlineState('attack')
+            },200)
+          },soundLen)
         }
       }else clearSel()
     }
@@ -1275,7 +1291,19 @@ class Game{
         p.units.forEach(u=>markVision(p.visible,u.gx,u.gy,getUnitVision(u)))
         p.buildings.forEach(b=>markVision(p.visible,b.gx,b.gy,getBuildingVision(b)))
       }
-      p.visible.forEach(k=>p.explored.add(k))
+      // 对当前可见的建筑，记录最后看到的快照（用于探索态迷雾记忆）
+      if(!p.lastSeen)p.lastSeen={}
+      p.visible.forEach(k=>{
+        p.explored.add(k)
+        let t=G&&G.grid?G.grid.get(...k.split(',').map(Number)):null
+        if(t&&t.occ&&t.occ instanceof Building&&t.occ.pid!==p.id){
+          let b=t.occ
+          p.lastSeen[k]={type:b.type,hp:b.hp,maxHp:b.maxHp,pid:b.pid,tier:b.tier,
+            outpostTier:b.outpostTier||0,outpostBranch:b.outpostBranch||null,turn:ENGINE.turn}
+        }else if(!t||!t.occ||!(t.occ instanceof Building)){
+          delete p.lastSeen[k]  // 建筑不在了，清除记忆
+        }
+      })
     })
   }
   update(){
@@ -1289,12 +1317,12 @@ class Game{
   }
   _updateHUD(){
     try{
-      let p=curP();if(!p)return
-      document.getElementById('hudName').textContent=p.name
-      document.getElementById('hudName').style.color=PLAYER_COLORS[p.id]
+      let hudP=ENGINE.players[viewPlayerId()];if(!hudP)return
+      document.getElementById('hudName').textContent=hudP.name
+      document.getElementById('hudName').style.color=PLAYER_COLORS[hudP.id]
       document.getElementById('hudTurn').textContent='回合 '+ENGINE.turn
-      let income=p.getIncome()
-      document.getElementById('hudGold').textContent='🪙'+Number(p.gold).toFixed(2)+'  (+'+Number(income).toFixed(2)+'/回合)'
+      let income=hudP.getIncome()
+      document.getElementById('hudGold').textContent='🪙'+Number(hudP.gold).toFixed(2)+'  (+'+Number(income).toFixed(2)+'/回合)'
       let infoTxt=''
       if(SEL.u){
         let u=SEL.u
@@ -1315,7 +1343,7 @@ class Game{
       let ua=document.getElementById('udActions')
       let ic=document.getElementById('udIcon')
       if(!bb)return
-      bb.innerHTML='<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
+      bb.innerHTML=isOnlineGame()&&!onlineCanControl()?'':'<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
       let u=SEL.u
       if(u){
         ud.style.display='flex'
@@ -1383,7 +1411,8 @@ function endTurn(){
     if(G){G.hoverRangeUnit=null;G.hoverRangeType=''}
     nextTurn()
     if(G)G._centerOnCur()
-    notifyOnlineState('end-turn')
+    // 必须绕过 notifyOnlineState（它检查 onlineCanControl，此时 ENGINE.cur 已变）
+    if(isOnlineGame()&&ENGINE.state!=='GAME_OVER'){setTimeout(function(){onlineSendState('end-turn')},0)}
   }catch(e){
     console.error('endTurn error:',e.message,e.stack)
     alert('结束回合出错: '+e.message)
@@ -1452,12 +1481,12 @@ function drawTile(x,y,fast=false){
 
 function drawFogOverlay(vr,fast=false){
   if(!G||!ENGINE.players.length)return
-  let p=curP()
+  let viewerId=viewPlayerId()
   let t=Date.now()*0.001
   for(let x=vr[0];x<vr[2];x++)for(let y=vr[1];y<vr[3];y++){
-    let vis=isTileVisible(x,y,p.id)
+    let vis=isTileVisible(x,y,viewerId)
     if(vis)continue
-    let exp=isTileExplored(x,y,p.id)
+    let exp=isTileExplored(x,y,viewerId)
     let[sx,sy]=G.cam.g2s(x,y);let sz=TS*G.cam.z
     let wave=fast?0:(Math.sin(x*.65+y*.42+t*1.6)+Math.sin(x*.27-y*.58+t*1.1))*0.035
     ctx.fillStyle=exp?'rgba(4,6,12,'+(0.42+wave)+')':'rgba(2,3,8,'+(0.68+wave)+')'
@@ -1639,9 +1668,15 @@ function drawUnit(u){
 
 function drawBuilding(b){
   let[sx,sy]=G.cam.g2s(b.gx,b.gy);let sz=TS*G.cam.z
+  let viewerId=viewPlayerId()
+  let fullyVisible=isTileVisible(b.gx,b.gy,viewerId)||b.pid===viewerId||b.pid===-1
+  // 探索态迷雾：使用 lastSeen 快照数据
+  let ls=!fullyVisible&&ENGINE.players[viewerId]&&ENGINE.players[viewerId].lastSeen?ENGINE.players[viewerId].lastSeen[b.gx+','+b.gy]:null
+  let dispHp=ls?ls.hp:b.hp,dispMaxHp=ls?ls.maxHp:b.maxHp,dispPid=ls?ls.pid:b.pid
+  let dispTier=ls?ls.tier:b.tier,dispOpTier=ls?ls.outpostTier:(b.outpostTier||0),dispOpBr=ls?ls.outpostBranch:(b.outpostBranch||null)
   let name=''
-  if(b.type==='大本营')name=b.tier>=2?'大本营T3':'大本营 T'+(b.tier+1)
-  else if(b.type==='据点'&&b.outpostTier>0)name=b.outpostBranch==='combat'?'战斗型T2据点':'资源型T2据点'
+  if(b.type==='大本营')name=dispTier>=2?'大本营T3':'大本营 T'+(dispTier+1)
+  else if(b.type==='据点'&&dispOpTier>0)name=dispOpBr==='combat'?'战斗型T2据点':'资源型T2据点'
   else name=b.type
   let img=SPR[name]
   if(!img){
@@ -1660,32 +1695,36 @@ function drawBuilding(b){
   }
   if(img&&img.complete&&img.naturalWidth>0){
     try{ctx.drawImage(img,sx,sy,sz,sz)}catch(e){}
-    // 归属玩家方框
-    if(b.pid>=0){ctx.strokeStyle=PLAYER_COLORS[b.pid];ctx.lineWidth=Math.max(3,sz*0.06);ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)}
-    let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
-    let ratio=Math.max(0,b.hp/b.maxHp)
-    ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
-    ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
+    if(fullyVisible||ls){
+      // 归属玩家方框
+      if(dispPid>=0){ctx.strokeStyle=PLAYER_COLORS[dispPid];ctx.lineWidth=Math.max(3,sz*0.06);ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)}
+      let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
+      let ratio=Math.max(0,dispHp/dispMaxHp)
+      ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
+      ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
+    }
     return
   }
   // 回退图标
   if(b.type==='大本营'){
     let colors=['#3a6a3a','#3a5a8a','#8a5a3a'];let icons=['▲','◆','⬟']
-    ctx.fillStyle=colors[b.tier]||'#3a5a3a'
+    ctx.fillStyle=colors[dispTier]||'#3a5a3a'
     ctx.fillRect(sx+2,sy+2,sz-4,sz-4);ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)
     ctx.fillStyle=COL_WHITE;ctx.font='bold '+Math.floor(sz*.4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
-    ctx.fillText(icons[b.tier]||'▲',sx+sz/2,sy+sz/2)
+    ctx.fillText(icons[dispTier]||'▲',sx+sz/2,sy+sz/2)
   }else if(b.type==='据点'){
-    ctx.fillStyle=b.pid>=0?PLAYER_COLORS[b.pid]:'#6a6a7a'
+    ctx.fillStyle=dispPid>=0?PLAYER_COLORS[dispPid]:'#6a6a7a'
     ctx.fillRect(sx+2,sy+2,sz-4,sz-4);ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.strokeRect(sx+2,sy+2,sz-4,sz-4)
     ctx.fillStyle=COL_WHITE;ctx.font='bold '+Math.floor(sz*.4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
-    let icon=b.outpostTier>0?(b.outpostBranch==='combat'?'⚔️':'💰'):'⚑'
+    let icon=dispOpTier>0?(dispOpBr==='combat'?'⚔️':'💰'):'⚑'
     ctx.fillText(icon,sx+sz/2,sy+sz/2)
   }
-  let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
-  let ratio=Math.max(0,b.hp/b.maxHp)
-  ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
-  ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
+  if(fullyVisible||ls){
+    let bw=sz*.6,bh=Math.max(3,sz*.06),bx=sx+(sz-bw)/2,by=sy+sz-bh-3
+    let ratio=Math.max(0,dispHp/dispMaxHp)
+    ctx.fillStyle='#14141e';ctx.fillRect(bx,by,bw,bh)
+    ctx.fillStyle=ratio>.5?'#32dc32':ratio>.25?'#d4c040':'#dc3232';ctx.fillRect(bx,by,bw*ratio,bh)
+  }
   if(b.underConstruction){
     ctx.fillStyle='#8888ff80';ctx.fillRect(sx+2,sy+2,sz-4,4)
     let pct=1-(b.buildTimer||4)/4
@@ -1695,7 +1734,7 @@ function drawBuilding(b){
 
 function drawDying(d){
   let u=d.ent;if(!u)return
-  if(u.pid!==curP().id&&!isTileVisible(u.gx,u.gy,curP().id))return
+  if(u.pid!==viewPlayerId()&&!isTileVisible(u.gx,u.gy,viewPlayerId()))return
   ctx.globalAlpha=Math.max(0,d.alpha/200)
   drawUnit(u)
   let[sx,sy]=G.cam.g2s(u.gx,u.gy);let sz=TS*G.cam.z
@@ -1846,26 +1885,40 @@ function boot(){
     let t=G.grid.get(gx,gy);let tip=document.getElementById('tooltip')
     // 更新悬停范围
     G.hoverRangeUnit=null;G.hoverRangeType=''
-    if(t&&t.occ&&canSeeEntity(t.occ,curP().id)){
+    if(t&&t.occ&&canSeeEntity(t.occ,viewPlayerId())){
       let o=t.occ;let lines=''
       let td=terrainAt(gx,gy)
-      let terrainTxt=' | 地形:'+td.name+' H'+td.height
-      if(o instanceof Unit){
-        let pidLabel=o.pid>=0?'玩家'+(o.pid+1):'中立'
-        let shownDmg=o.eD?o.eD({isAir:false,armor:0,gx:o.gx,gy:o.gy}):o.damage
-        lines=pidLabel+' | '+o.type+' HP:'+o.hp.toFixed(1)+'/'+o.maxHp+' 护甲:'+o.armor+' 伤害:'+shownDmg+' 射程:'+getMaxPossibleRange(o,gx,gy)+terrainTxt+(o.done?' [Done]':' [Ready]')
-        if(o.attacks>1)lines+=' 攻击:'+o.remainingAttacks+'/'+o.attacks
-        // 悬停敌方→显示最大威胁范围
-        if(o.pid!==curP().id&&o.pid>=0){
-          G.hoverRangeUnit=o;G.hoverRangeType='threat'
-        }else if(o.pid===curP().id){
-          // 悬停自己单位→显示自己的射程
-          G.hoverRangeUnit=o;G.hoverRangeType='selfRange'
+      let exploredOnly=o instanceof Building&&!isTileVisible(gx,gy,viewPlayerId())
+      if(exploredOnly){
+        let ls=ENGINE.players[viewPlayerId()]&&ENGINE.players[viewPlayerId()].lastSeen?ENGINE.players[viewPlayerId()].lastSeen[gx+','+gy]:null
+        if(ls){
+          let ago=ENGINE.turn-ls.turn
+          let pidLabel=ls.pid>=0?'玩家'+(ls.pid+1):'中立'
+          lines='🔍 '+ago+'回合前为：'+pidLabel+' | '+ls.type+' HP:'+Math.floor(ls.hp)+'/'+Math.floor(ls.maxHp)
+          if(ls.type==='大本营')lines+=' T'+(ls.tier+1)
+          if(ls.type==='据点'&&ls.outpostTier>0)lines+=ls.outpostBranch==='combat'?' 战斗型':' 经济型'
+        }else{
+          lines='❓ 迷雾中的建筑  | 从未亲眼见过'
         }
       }else{
-        let pidLabel=o.pid>=0?'玩家'+(o.pid+1):'中立'
-        lines=pidLabel+' | '+o.type+' HP:'+Math.floor(o.hp)+'/'+Math.floor(o.maxHp)+' 护甲:'+o.armor+terrainTxt+(o.type==='大本营'?' T'+(o.tier+1):'')
-        if(o.type==='据点'&&o.outpostTier>0)lines+=' '+(o.outpostBranch==='combat'?'战斗型':'经济型')
+        let terrainTxt=' | 地形:'+td.name+' H'+td.height
+        if(o instanceof Unit){
+          let pidLabel=o.pid>=0?'玩家'+(o.pid+1):'中立'
+          let shownDmg=o.eD?o.eD({isAir:false,armor:0,gx:o.gx,gy:o.gy}):o.damage
+          lines=pidLabel+' | '+o.type+' HP:'+o.hp.toFixed(1)+'/'+o.maxHp+' 护甲:'+o.armor+' 伤害:'+shownDmg+' 射程:'+getMaxPossibleRange(o,gx,gy)+terrainTxt+(o.done?' [Done]':' [Ready]')
+          if(o.attacks>1)lines+=' 攻击:'+o.remainingAttacks+'/'+o.attacks
+          // 悬停敌方→显示最大威胁范围
+          if(o.pid!==viewPlayerId()&&o.pid>=0){
+            G.hoverRangeUnit=o;G.hoverRangeType='threat'
+          }else if(o.pid===viewPlayerId()){
+            // 悬停自己单位→显示自己的射程
+            G.hoverRangeUnit=o;G.hoverRangeType='selfRange'
+          }
+        }else{
+          let pidLabel=o.pid>=0?'玩家'+(o.pid+1):'中立'
+          lines=pidLabel+' | '+o.type+' HP:'+Math.floor(o.hp)+'/'+Math.floor(o.maxHp)+' 护甲:'+o.armor+terrainTxt+(o.type==='大本营'?' T'+(o.tier+1):'')
+          if(o.type==='据点'&&o.outpostTier>0)lines+=' '+(o.outpostBranch==='combat'?'战斗型':'经济型')
+        }
       }
       tip.textContent=lines;tip.style.display='block';tip.style.left=Math.max(10,Math.min(e.clientX+15,W-280))+'px';tip.style.top=Math.min(e.clientY-10,H-60)+'px'
     }else if(t){

@@ -5,6 +5,23 @@ const PLAYER_COLORS=['#ff3c3c','#3c78ff','#3cdc3c','#ffdc3c']
 const COL_BG='#1a1a2a'; const COL_GL='#2a2f22'; const COL_GD='#22271c'
 const COL_WHITE='#ffffff'; const COL_GOLD='#caba6a'; const COL_GRAY='#6a6a7a'
 const COL_DARK='#14141e'
+const MAX_UNDO=20;let UNDO_HISTORY=[]
+function pushUndoState(label){
+  if(G&&G.attackLock||isOnlineGame()&&!onlineCanControl())return
+  if(UNDO_HISTORY.length>=MAX_UNDO)UNDO_HISTORY.shift()
+  UNDO_HISTORY.push({label:label,state:serializeGameState()})
+}
+function clearUndoHistory(){UNDO_HISTORY=[]}
+function undoLastAction(){
+  if(G&&G.attackLock||UNDO_HISTORY.length===0)return
+  if(isOnlineGame()&&!onlineCanControl())return
+  let entry=UNDO_HISTORY.pop()
+  var _cm=G&&G.cam?{ox:G.cam.ox,oy:G.cam.oy,tox:G.cam.tox,toy:G.cam.toy,z:G.cam.z,tz:G.cam.tz}:null
+  deserializeGameState(entry.state,{center:false})
+  if(_cm&&G&&G.cam){Object.assign(G.cam,_cm)}
+  if(G)G._updateButtons()
+  if(isOnlineGame())onlineSendState('undo')
+}
 const r2=v=>Math.round(v*100)/100
 const r1=v=>Math.round(v*10)/10
 
@@ -274,14 +291,14 @@ class Unit{
     let d=applyEquip(UNIT_DATA[type],equip)
     this.type=type;this.gx=gx;this.gy=gy;this.pid=pid;this.equip=equip||null
     this.hp=d.hp;this.maxHp=d.hp;this.armor=d.armor;this.speed=d.speed
-    this.damage=d.damage;this.range=d.range;this.attacks=d.attacks||1;this.price=d.price
+    this.damage=d.damage;this.range=d.range;this.attacks=d.attacks!==undefined?d.attacks:1;this.price=d.price
     this.vision=d.vision||4
     this.isAir=d.isAir||false;this.canTargetAir=d.canTargetAir||false
     this.airDamage=d.airDamage||0;this.airRange=d.airRange||0
     this.blast=d.blast||0;this.reload=d.reload||0
     this.selfDestruct=d.selfDestruct||false
     this.moved=false;this.attacked=false;this.done=false;this.stationed=false;this.rl=0
-    this.remainingAttacks=d.attacks||1
+    this.remainingAttacks=d.attacks!==undefined?d.attacks:1
   }
   reset(){this.moved=false;this.attacked=false;this.done=false;this.remainingAttacks=this.attacks;if(this.rl>0)this.rl--}
   canMove(){return!this.moved&&!this.done}
@@ -304,7 +321,7 @@ class Unit{
     return this._pendingDmg
   }
   applyPendingDmg(t){
-    if(!this._pendingDmg)return
+    if(this._pendingDmg===null||this._pendingDmg===undefined)return
     t.takeDamage(this._pendingDmg)
     this._pendingDmg=null
   }
@@ -331,9 +348,9 @@ class Building{
         let d=BUILDING_DATA['据点']
         this.maxHp=d.hp;this.armor=d.armor;this.gold=this.captured?d.gold:0;this.vision=d.vision||5
       }else if(this.outpostBranch==='combat'){
-        this.maxHp=50;this.armor=0.5;this.gold=4;this.vision=6
+        this.maxHp=50;this.armor=0.5;this.gold=6;this.vision=6
       }else if(this.outpostBranch==='economic'){
-        this.maxHp=30;this.armor=0;this.gold=6;this.vision=5
+        this.maxHp=30;this.armor=0;this.gold=9;this.vision=5
       }
     }else{
       let d=BUILDING_DATA[this.type]
@@ -447,11 +464,11 @@ function equipInfoText(unitType,eq){
   let d=UNIT_DATA[unitType]
   let lines=[unitType+'：'+eq.name+'（'+(eq.tier||'T?')+'）','研究 '+(eq.researchCost||0)+' 金 / '+(eq.researchTime||1)+' 回合']
   let buffs=[]
-  if(eq.dmg)buffs.push('伤害 '+(eq.dmg>0?'+':'')+eq.dmg+' → '+r2((d.damage||0)+eq.dmg))
-  if(eq.range)buffs.push('射程 '+(eq.range>0?'+':'')+eq.range+' → '+r2((d.range||0)+eq.range))
-  if(eq.speed)buffs.push('移速 '+(eq.speed>0?'+':'')+eq.speed+' → '+r2((d.speed||0)+eq.speed))
-  if(eq.hp)buffs.push('HP '+(eq.hp>0?'+':'')+eq.hp+' → '+r2((d.hp||0)+eq.hp))
-  if(eq.armor)buffs.push('护甲 '+(eq.armor>0?'+':'')+eq.armor+' → '+r2((d.armor||0)+eq.armor))
+  if(eq.dmg!==undefined)buffs.push('伤害 '+(eq.dmg>0?'+':'')+eq.dmg+' → '+r2((d.damage||0)+eq.dmg))
+  if(eq.range!==undefined)buffs.push('射程 '+(eq.range>0?'+':'')+eq.range+' → '+r2((d.range||0)+eq.range))
+  if(eq.speed!==undefined)buffs.push('移速 '+(eq.speed>0?'+':'')+eq.speed+' → '+r2((d.speed||0)+eq.speed))
+  if(eq.hp!==undefined)buffs.push('HP '+(eq.hp>0?'+':'')+eq.hp+' → '+r2((d.hp||0)+eq.hp))
+  if(eq.armor!==undefined)buffs.push('护甲 '+(eq.armor>0?'+':'')+eq.armor+' → '+r2((d.armor||0)+eq.armor))
   if(eq.canTargetAir)buffs.push('获得对空能力')
   if(eq.blast)buffs.push('爆炸半径 '+eq.blast)
   if(eq.cost!==undefined)buffs.push('装备价格 '+eq.cost)
@@ -507,6 +524,7 @@ function serializeGameState(){
       researched:p.researched,researching:p.researching,
       collectorCount:p.collectorCount,freedCollectorIds:p.freedCollectorIds,
       stats:p.stats,lastSeen:p.lastSeen||{},
+      visible:[...p.visible||[]],explored:[...p.explored||[]],
       units:p.units.map(serializeUnit),
       buildings:p.buildings.map(serializeBuilding)
     }))
@@ -535,6 +553,8 @@ function deserializeGameState(state,opts={}){
     p.collectorCount=pd.collectorCount||0;p.freedCollectorIds=pd.freedCollectorIds||[]
     p.stats=pd.stats||{turnData:[],totalKillValue:0}
     p.lastSeen=pd.lastSeen||{}
+    p.visible=new Set(pd.visible||[])
+    p.explored=new Set(pd.explored||[])
     p.units=[];p.buildings=[]
     ;(pd.buildings||[]).forEach(bd=>{
       let b=restoreBuilding(bd)
@@ -570,7 +590,7 @@ function deserializeGameState(state,opts={}){
 // ==================== 玩家 ====================
 class Player{
   constructor(id,name){
-    this.id=id;this.name=name;this.gold=10;this.units=[];this.buildings=[];this.alive=true
+    this.id=id;this.name=name;this.gold=12;this.units=[];this.buildings=[];this.alive=true
     this.researched={}
     this.researching=[]
     this.collectorCount=0
@@ -610,7 +630,7 @@ class Player{
     let t=0
     this.buildings.forEach(b=>{
       if(b.type==='资源采集器'&&!b.underConstruction){
-        t+=r2(3*Math.pow(0.8,b.collectorId))
+        t+=r2(4.5*Math.pow(0.8,b.collectorId))
       }else t+=b.gold||0
     })
     return t
@@ -620,7 +640,7 @@ class Player{
     this.units.forEach(u=>{
       u.reset()
       if(u.stationed){
-        this.buildings.some(b=>(b.type==='大本营'||b.type==='据点')&&b.inHeal(u.gx,u.gy))&&(u.hp=r1(Math.min(u.maxHp,u.hp+1)))
+        this.buildings.some(b=>(b.type==='大本营'||b.type==='据点')&&b.inHeal(u.gx,u.gy))&&(u.hp=r1(Math.min(u.maxHp,u.hp+2)))
       }
       u.stationed=false
     })
@@ -803,6 +823,7 @@ function nextTurn(){
     // 中立据点回血
     if(G&&G.neutralBuildings)G.neutralBuildings.forEach(function(b){b.turnStart()})
   }
+  clearUndoHistory()
   curP().turnStart()
   showTurnNotify()
   // 在线模式：不要让对方看到自己的基地位置
@@ -843,7 +864,7 @@ class Game{
       let[cx,cy]=cs[i];let b=new Building('大本营',cx,cy,i)
       this.grid.place(b,cx,cy);ENGINE.players[i].addBuilding(b)
     }
-    ENGINE.players.forEach(p=>p.gold=10)
+    ENGINE.players.forEach(p=>p.gold=12)
     let placed=0
     function placeOp(gx,gy){
       let b=new Building('据点',gx,gy,-1)
@@ -966,15 +987,16 @@ class Game{
     if(this.buildMode){
       let hq=p.getHQ()
       if(hq&&!t.occ&&eDist([gx,gy],[hq.gx,hq.gy])<=5&&p.gold>=8){
-        p.gold-=8
+        pushUndoState('build');p.gold-=8
         let b=new Building('资源采集器',gx,gy,p.id)
         b.underConstruction=true;b.buildTimer=2;b.gold=0
         b.collectorId=p.consumeCollectorId()
         this.grid.place(b,gx,gy);p.addBuilding(b)
         console.log('Building resource collector #'+b.collectorId+', ready in 2 rounds')
         notifyOnlineState('build')
+        this.buildMode=null;this.ghostPos=null
       }
-      this.buildMode=null;this.ghostPos=null;this._updateButtons();return
+      this._updateButtons();return
     }
     let o=t.occ
     if(o&&!canSeeEntity(o,p.id))o=null
@@ -990,7 +1012,7 @@ class Game{
       let u=SEL.u;if(!u)return
       if(SEL.hl.has(gx+','+gy)){
         if(t.occ&&t.occ!==u){clearSel();return}
-        this.grid.remove(u);u.moveTo(gx,gy);t.occ=u
+        clearUndoHistory();this.grid.remove(u);u.moveTo(gx,gy);t.occ=u
         notifyOnlineState('move')
         // 移动后立即刷新视野，确保新位置发现的敌人可以被攻击
         this.updateVision()
@@ -1010,7 +1032,7 @@ class Game{
           let target=tt.occ
           if(!canTarget(u,target,u.gx,u.gy)){clearSel();return}
           if(target.isAir&&!u.canTargetAir){clearSel();return}
-          playAttackSE(u)
+          pushUndoState('attack');playAttackSE(u)
           u.attack(target)
           var soundLen=u.attacks>1?400:600
           var _this=this,_p=curP(),_u=u,_target=target,_blastHits=u.blast>0?calcBlastHits(target.gx,target.gy,u.blast,u.eD(target),u.pid,target):[]
@@ -1055,6 +1077,7 @@ class Game{
                   _this.grid.remove(h.ent);ENGINE.players.forEach(pp=>pp.removeBuilding(h.ent))
                   var ni=_this.neutralBuildings.indexOf(h.ent)
                   if(ni>=0)_this.neutralBuildings.splice(ni,1)
+                  _this.dying.push({ent:h.ent,alpha:255})
                 }
                 _sd=true
               })
@@ -1110,7 +1133,7 @@ class Game{
     if(!eqList)return
     let eq=eqList.find(e=>e.name===eqName)
     if(!eq||pp.gold<eq.cost)return
-    pp.gold=r2(pp.gold-eq.cost)
+    pushUndoState('equip');pp.gold=r2(pp.gold-eq.cost)
     let _oldHp=u.hp,_oldMax=u.maxHp
     let nu=new Unit(u.type,u.gx,u.gy,u.pid,eq)
     nu.moved=u.moved;nu.attacked=u.attacked;nu.done=u.done;nu.stationed=u.stationed;nu.hp=u.hp;nu.remainingAttacks=u.remainingAttacks
@@ -1223,7 +1246,7 @@ class Game{
     if(!b||b.type!=='据点'||!b.captured||b.outpostTier!==0||b.upgrading)return
     let pp=curP()
     if(pp.gold<10)return
-    pp.gold-=10
+    pushUndoState('outpost-upgrade');pp.gold-=10
     b.upgrading=true;b.outpostBranch=branch
     b.upTimer=branch==='combat'?1:3
     this._showOutpost(b);this._updateButtons()
@@ -1233,7 +1256,7 @@ class Game{
     if(isOnlineGame()&&!onlineCanControl())return
     let pp=curP()
     if(pp.gold<cost||pp.researched[name]||pp.researching.some(r=>r.name===name))return
-    pp.gold-=cost;pp.researching.push({name:name,timer:time})
+    pushUndoState('research');pp.gold-=cost;pp.researching.push({name:name,timer:time})
     if(SEL.b)this._showHQ(SEL.b);this._updateButtons()
     notifyOnlineState('research')
   }
@@ -1241,7 +1264,7 @@ class Game{
     if(isOnlineGame()&&!onlineCanControl())return
     let b=SEL.b;if(!b)return
     let p=curP()
-    if(b.canUpgrade()&&p.gold>=b.upgradeCost){p.gold-=b.upgradeCost;b.startUpgrade();this._showHQ(b);this._updateButtons();notifyOnlineState('hq-upgrade')}
+    if(b.canUpgrade()&&p.gold>=b.upgradeCost){pushUndoState('hq-upgrade');p.gold-=b.upgradeCost;b.startUpgrade();this._showHQ(b);this._updateButtons();notifyOnlineState('hq-upgrade')}
   }
   addEffect(gx,gy,type){
     this.effects.push({gx:gx,gy:gy,type:type,life:120})
@@ -1252,7 +1275,7 @@ class Game{
     if(!cost||p.gold<cost)return
     let pos=this._findSpawn(bx,by)
     if(!pos)return
-    p.gold-=cost
+    pushUndoState('recruit');p.gold-=cost
     let u=new Unit(ut,pos[0],pos[1],p.id);u.done=true;this.grid.place(u,pos[0],pos[1]);p.addUnit(u)
     this._updateButtons()
     notifyOnlineState('recruit-outpost')
@@ -1263,7 +1286,7 @@ class Game{
     if(!cost||p.gold<cost)return
     let pos=this._findSpawn(b.gx,b.gy)
     if(!pos)return
-    p.gold-=cost
+    pushUndoState('recruit');p.gold-=cost
     let u=new Unit(ut,pos[0],pos[1],p.id);u.done=true;this.grid.place(u,pos[0],pos[1]);p.addUnit(u)
     this._showHQ(b);this._updateButtons()
     notifyOnlineState('recruit')
@@ -1299,7 +1322,7 @@ class Game{
         if(t&&t.occ&&t.occ instanceof Building&&t.occ.pid!==p.id){
           let b=t.occ
           p.lastSeen[k]={type:b.type,hp:b.hp,maxHp:b.maxHp,pid:b.pid,tier:b.tier,
-            outpostTier:b.outpostTier||0,outpostBranch:b.outpostBranch||null,turn:ENGINE.turn}
+            outpostTier:b.outpostTier||0,outpostBranch:b.outpostBranch||null,collectorId:b.collectorId,turn:ENGINE.turn}
         }else if(!t||!t.occ||!(t.occ instanceof Building)){
           delete p.lastSeen[k]  // 建筑不在了，清除记忆
         }
@@ -1343,7 +1366,10 @@ class Game{
       let ua=document.getElementById('udActions')
       let ic=document.getElementById('udIcon')
       if(!bb)return
-      bb.innerHTML=isOnlineGame()&&!onlineCanControl()?'':'<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
+      var _undoBtn=UNDO_HISTORY.length>0&&(!isOnlineGame()||onlineCanControl())?'<button class="btn" onclick="undoLastAction()" style="font-size:12px;padding:4px 10px">↩ 撤回</button>':''
+      var _endBtn=isOnlineGame()&&!onlineCanControl()?'':'<button class="btn btn-blue" onclick="endTurn()">结束回合</button>'
+      var _surrenderBtn=isOnlineGame()&&!onlineCanControl()?'':'<button class="btn btn-danger" onclick="surrender()" style="font-size:11px;padding:2px 8px;margin-left:4px">🏳️ 投降</button>'
+      bb.innerHTML=_undoBtn+_endBtn+_surrenderBtn
       let u=SEL.u
       if(u){
         ud.style.display='flex'
@@ -1381,7 +1407,7 @@ class Game{
             let eqs=EQUIP_DATA[u.type]
             if(eqs)eqs.forEach(eq=>{
               if(curP().researched[eq.name]&&curP().gold>=eq.cost)
-                acts+='<button class="btn btn-primary" onclick="G._equipUnit(\''+eq.name+'\')" style="font-size:11px;padding:4px 8px">'+eq.name+'</button>'
+                var _eqSafe=eq.name.replace(/'/g,"\\'");acts+='<button class="btn btn-primary" onclick="G._equipUnit(\''+_eqSafe+'\')" style="font-size:11px;padding:4px 8px">'+eq.name+'</button>'
             })
           }
         }
@@ -1395,12 +1421,21 @@ class Game{
 }
 function skipUnit(){
   if(isOnlineGame()&&!onlineCanControl())return
-  if(SEL.u&&!SEL.u.done){SEL.u.done=true;clearSel();G._updateButtons();notifyOnlineState('skip')}
+  if(SEL.u&&!SEL.u.done){pushUndoState('skip');SEL.u.done=true;clearSel();G._updateButtons();notifyOnlineState('skip')}
 }
 function stationUnit(){
   if(isOnlineGame()&&!onlineCanControl())return
   let u=SEL.u;if(!u||u.done)return
-  if(curP().buildings.some(b=>(b.type==='大本营'||b.type==='据点')&&b.inHeal(u.gx,u.gy))){u.stationed=true;u.done=true;clearSel();G._updateButtons();notifyOnlineState('station')}
+  if(curP().buildings.some(b=>(b.type==='大本营'||b.type==='据点')&&b.inHeal(u.gx,u.gy))){pushUndoState('station');u.stationed=true;u.done=true;clearSel();G._updateButtons();notifyOnlineState('station')}
+}
+function surrender(){
+  if(isOnlineGame()&&!onlineCanControl())return
+  if(!confirm('确定要投降吗？本局游戏将直接失败。'))return
+  let p=curP();if(!p||!p.alive)return
+  p.alive=false
+  let al=ENGINE.players.filter(pp=>pp.alive)
+  clearSel();if(G){G._updateButtons()}
+  if(al.length<=1){showGameOver(al[0]||null)}else if(isOnlineGame())onlineSendState('surrender')
 }
 function endTurn(){
   if(isOnlineGame()&&!onlineCanControl())return
@@ -1410,7 +1445,7 @@ function endTurn(){
     SEL.hl.clear();SEL.phase='SEL';SEL.rangeLabel=''
     if(G){G.hoverRangeUnit=null;G.hoverRangeType=''}
     nextTurn()
-    if(G)G._centerOnCur()
+    if(G){G._updateButtons();G._centerOnCur()}
     // 必须绕过 notifyOnlineState（它检查 onlineCanControl，此时 ENGINE.cur 已变）
     if(isOnlineGame()&&ENGINE.state!=='GAME_OVER'){setTimeout(function(){onlineSendState('end-turn')},0)}
   }catch(e){
@@ -1444,7 +1479,7 @@ function render(){
       let[sx,sy]=G.cam.g2s(gx,gy);let sz=TS*G.cam.z
       ctx.globalAlpha=0.4;ctx.fillStyle='#4a4a8a';ctx.fillRect(sx+2,sy+2,sz-4,sz-4);ctx.strokeStyle='#aaa';ctx.lineWidth=2;ctx.strokeRect(sx+2,sy+2,sz-4,sz-4);ctx.globalAlpha=1
       let n=curP().nextCollectorId()  // peek,不会消耗编号
-      let expGold=r2(3*Math.pow(0.8,n))
+      let expGold=r2(4.5*Math.pow(0.8,n))
       ctx.fillStyle='#caba6a';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom'
       ctx.fillText('🪙'+expGold.toFixed(1)+'/回合',sx+sz/2,sy-4)
     }
@@ -1679,7 +1714,7 @@ function drawBuilding(b){
   else if(b.type==='据点'&&dispOpTier>0)name=dispOpBr==='combat'?'战斗型T2据点':'资源型T2据点'
   else name=b.type
   let img=SPR[name]
-  if(!img){
+  if(img===undefined){
     img=new Image()
     let loaded=false
     img.onload=function(){SPR[name]=this;loaded=true}
@@ -1897,6 +1932,7 @@ function boot(){
           lines='🔍 '+ago+'回合前为：'+pidLabel+' | '+ls.type+' HP:'+Math.floor(ls.hp)+'/'+Math.floor(ls.maxHp)
           if(ls.type==='大本营')lines+=' T'+(ls.tier+1)
           if(ls.type==='据点'&&ls.outpostTier>0)lines+=ls.outpostBranch==='combat'?' 战斗型':' 经济型'
+          if(ls.type==='资源采集器'&&ls.collectorId>=0)lines+=' | #'+ls.collectorId
         }else{
           lines='❓ 迷雾中的建筑  | 从未亲眼见过'
         }
@@ -1918,6 +1954,7 @@ function boot(){
           let pidLabel=o.pid>=0?'玩家'+(o.pid+1):'中立'
           lines=pidLabel+' | '+o.type+' HP:'+Math.floor(o.hp)+'/'+Math.floor(o.maxHp)+' 护甲:'+o.armor+terrainTxt+(o.type==='大本营'?' T'+(o.tier+1):'')
           if(o.type==='据点'&&o.outpostTier>0)lines+=' '+(o.outpostBranch==='combat'?'战斗型':'经济型')
+          if(o.type==='资源采集器'&&o.collectorId>=0)lines+=' | #'+o.collectorId
         }
       }
       tip.textContent=lines;tip.style.display='block';tip.style.left=Math.max(10,Math.min(e.clientX+15,W-280))+'px';tip.style.top=Math.min(e.clientY-10,H-60)+'px'

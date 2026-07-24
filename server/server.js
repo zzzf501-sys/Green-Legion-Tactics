@@ -81,7 +81,12 @@ wss.on("connection", ws => {
     }
 
     if (msg.type === "create") {
-      const players = Math.max(2, Math.min(4, Number(msg.players || 2)));
+      const raw = Number(msg.players);
+      if (!Number.isFinite(raw) || raw < 2 || raw > 4) {
+        send(ws, { type: "error", message: "玩家数量无效" });
+        return;
+      }
+      const players = Math.max(2, Math.min(4, raw));
       const id = roomCode();
       const room = { id, players, state: null, clients: [] };
       rooms.set(id, room);
@@ -128,6 +133,29 @@ wss.on("connection", ws => {
       }
       room.state = msg.state;
       broadcast(room, { type: "state", roomId: room.id, playerId: client.playerId, reason: msg.reason, state: room.state }, ws);
+      return;
+    }
+
+    if (msg.type === "rejoin") {
+      const room = rooms.get(msg.roomId);
+      if (!room) {
+        send(ws, { type: "error", message: "房间已过期，请重新创建" });
+        return;
+      }
+      const playerId = Number(msg.playerId);
+      if (!Number.isFinite(playerId) || playerId < 0 || playerId >= room.players) {
+        send(ws, { type: "error", message: "玩家编号无效" });
+        return;
+      }
+      // 踢掉该玩家的旧连接（如果有）
+      const existing = room.clients.find(c => c.playerId === playerId);
+      if (existing) { try { existing.ws.close() } catch(e) {}; room.clients = room.clients.filter(c => c !== existing) }
+      client.roomId = msg.roomId;
+      client.playerId = playerId;
+      room.clients.push(client);
+      send(ws, { type: "joined", roomId: room.id, playerId, players: room.players, state: room.state });
+      broadcast(room, { type: "peer-joined", roomId: room.id, playerId, count: room.clients.length }, ws);
+      console.log("player rejoined", room.id, playerId);
       return;
     }
   });

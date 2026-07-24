@@ -58,7 +58,8 @@ function onlineTurnText(){
 }
 
 function onlineConnect(){
-  return new Promise(function(resolve,reject){
+  if(window.ONLINE._connecting)return window.ONLINE._connecting
+  window.ONLINE._connecting=new Promise(function(resolve,reject){
     let url=(document.getElementById('onlineUrl').value||onlineDefaultUrl()).trim()
     localStorage.setItem('onlineUrl',url)
     onlineSetStatus('连接服务器中...\n'+url)
@@ -73,13 +74,16 @@ function onlineConnect(){
     ws.onclose=function(){
       window.ONLINE.connected=false
       onlineSetStatus('连接已断开')
+      // 自动重连：如果曾在游戏中，尝试重连
+      try{var _rc=JSON.parse(localStorage.getItem('onlineReconnect'));if(_rc&&_rc.roomId&&_rc.playerId>=0){setTimeout(onlineReconnect,1000)}}catch(e){}
     }
     ws.onmessage=function(ev){
       let msg
       try{msg=JSON.parse(ev.data)}catch(e){return}
       onlineHandleMessage(msg)
     }
-  })
+  }).finally(function(){delete window.ONLINE._connecting})
+  return window.ONLINE._connecting
 }
 
 function onlineSend(msg){
@@ -102,8 +106,9 @@ async function onlineCreateRoom(){
 
 async function onlineJoinRoom(){
   try{
-    let roomId=(document.getElementById('onlineRoom').value||'').trim().toUpperCase()
-    if(!roomId){onlineSetStatus('请输入房间号');return}
+    let roomId=prompt('请输入房主给你的房间号：')
+    if(!roomId)return
+    roomId=roomId.trim().toUpperCase()
     let ws=window.ONLINE.socket
     if(!ws||ws.readyState!==WebSocket.OPEN)await onlineConnect()
     window.ONLINE.isHost=false
@@ -122,8 +127,9 @@ function onlineHandleMessage(msg){
     window.ONLINE.roomId=msg.roomId
     window.ONLINE.myPlayerId=msg.playerId
     window.ONLINE.playerCount=msg.players
-    document.getElementById('onlineRoom').value=msg.roomId
     document.getElementById('online-panel').style.display='none'
+    // 保存房间信息用于断线重连
+    try{localStorage.setItem('onlineReconnect',JSON.stringify({url:onlineDefaultUrl(),roomId:msg.roomId,playerId:msg.playerId}))}catch(e){}
     startGame(msg.players)
     onlineSendState('initial')
     onlineSetStatus('房间 '+msg.roomId+' 已创建\n你是玩家 1\n把房间号发给朋友加入')
@@ -133,6 +139,8 @@ function onlineHandleMessage(msg){
     window.ONLINE.roomId=msg.roomId
     window.ONLINE.myPlayerId=msg.playerId
     window.ONLINE.playerCount=msg.players
+    // 保存房间信息用于断线重连
+    try{localStorage.setItem('onlineReconnect',JSON.stringify({url:onlineDefaultUrl(),roomId:msg.roomId,playerId:msg.playerId}))}catch(e){}
     document.getElementById('online-panel').style.display='none'
     document.getElementById('menu').style.display='none'
     if(msg.state){
@@ -149,18 +157,36 @@ function onlineHandleMessage(msg){
     if(window.ONLINE.isHost)onlineSendState('peer-joined')
     return
   }
+  if(msg.type==='peer-left'){
+    onlineSetStatus('⏸️ 对手已断开 — 等待重连...')
+    return
+  }
   if(msg.type==='state'){
     if(msg.playerId===window.ONLINE.myPlayerId)return
     var _oldCur=ENGINE.cur
+    var _cm=G&&G.cam?{ox:G.cam.ox,oy:G.cam.oy,tox:G.cam.tox,toy:G.cam.toy,z:G.cam.z,tz:G.cam.tz}:null
+    clearUndoHistory()
     window.ONLINE.applyingRemote=true
-    deserializeGameState(msg.state,{center:true})
+    deserializeGameState(msg.state,{center:false})
     window.ONLINE.applyingRemote=false
+    if(_cm&&G&&G.cam){Object.assign(G.cam,_cm)}
     if(ENGINE.state!=='GAME_OVER'&&ENGINE.cur!==_oldCur)showTurnNotify()
     onlineSetStatus('房间 '+window.ONLINE.roomId+'\n你是玩家 '+(window.ONLINE.myPlayerId+1)+'\n'+onlineTurnText())
     return
   }
 }
 
+function onlineClearReconnect(){try{localStorage.removeItem('onlineReconnect')}catch(e){}}
+function onlineReconnect(){
+  try{
+    var _rc=JSON.parse(localStorage.getItem('onlineReconnect'))
+    if(!_rc||!_rc.roomId||_rc.playerId<0)return
+    document.getElementById('onlineUrl').value=_rc.url||onlineDefaultUrl()
+    onlineConnect().then(function(){
+      onlineSend({type:'rejoin',roomId:_rc.roomId,playerId:_rc.playerId})
+    }).catch(function(){setTimeout(onlineReconnect,3000)})
+  }catch(e){}
+}
 function onlineSendState(reason){
   if(window.ONLINE.applyingRemote||!window.ONLINE.connected||!G||!ENGINE.players.length)return
   onlineSend({

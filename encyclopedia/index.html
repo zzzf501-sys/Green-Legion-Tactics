@@ -138,7 +138,7 @@ body{flex-direction:column}
 <div style="margin-top:12px;padding:10px 14px;background:#141420;border-radius:6px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">📝 示例：</strong><br>🪖 士兵（伤害 1）攻击 🚀 坦克（护甲 2）→ <strong style="color:#cc7a7a;">1 − 2 = 0 真实伤害</strong> → 无法击穿装甲<br>🚀 坦克（伤害 4）攻击 🛡️ 装甲车（护甲 1）→ <strong style="color:#7acc7a;">4 − 1 = 3 真实伤害</strong></div>
 <div style="margin-top:12px;font-size:.9rem;color:#b0b0c0;line-height:1.8;"><strong style="color:#e8dcc8;">💥 多次攻击 & 爆炸：</strong><br>• 多次攻击单位（如装甲车×3）每点击算一次攻击，一回合可攻击多次<br>• 爆炸范围（高爆炮半径2、轰炸机半径1.5）：对目标周围所有敌方单位造成伤害<br>• 自杀无人机攻击后自毁</div></div>
 <div class="rule-card"><h3>⛰️ 高度地形</h3><p style="color:#b0b0c0;line-height:1.8;">每局会随机生成横向、纵向或斜向的细断续山势主线及其中心对称副本，3/4 人大地图会出现更多方向的蜿蜒山势；整体以平地和丘陵为主，少量高地与山峰。地形分为平地、丘陵、高地、山脉四级高度。地面单位上坡更耗行动力，下坡消耗更低；高处攻击低处会增加有效射程，低处攻击高处会降低有效射程：高度差 1 修正 ±1，差 2 或以上修正 ±2，最多 ±2。山脉可通过，但移动消耗最高。丘陵、高地、山脉会显示不同的写实地表纹理。</p><table><thead><tr><th>地形</th><th>高度</th><th>基础移动消耗</th><th>战术效果</th></tr></thead><tbody><tr><td>平地</td><td>0</td><td>1.0</td><td>基准射程</td></tr><tr><td>丘陵</td><td>1</td><td>1.4</td><td>比目标高 1 时射程 +1；低打丘陵最多 -1</td></tr><tr><td>高地</td><td>2</td><td>1.8</td><td>比目标高 2 时射程 +2；低打高地最多 -2</td></tr><tr><td>山脉</td><td>3</td><td>2.6</td><td>最高地形，射程修正仍封顶 ±2，通行昂贵</td></tr></tbody></table></div>
-<div class="rule-card"><h3>🌫️ 战争迷雾</h3><p style="color:#b0b0c0;line-height:1.8;">当前玩家视野外的地图会被暗雾覆盖，敌方单位只有进入视野后才会显示、被鼠标提示或被攻击锁定。已探索过的敌方建筑会保留已知位置，但会被暗雾压暗。地面单位站在丘陵/高地/山脉上时，视野额外增加地形高度；空军不吃地形视野加成。</p><table><thead><tr><th>来源</th><th>基础视野</th><th>说明</th></tr></thead><tbody><tr><td>士兵</td><td>4</td><td>基础侦察</td></tr><tr><td>军用吉普</td><td>7</td><td>高速侦察核心</td></tr><tr><td>侦察机</td><td>11</td><td>T2 空中侦察单位，无法攻击</td></tr><tr><td>装甲车 / 防空车</td><td>5</td><td>推进与防空警戒</td></tr><tr><td>坦克 / 野战炮</td><td>4</td><td>标准战斗视野</td></tr><tr><td>火箭炮</td><td>3</td><td>超远射程但视野短，需要侦察配合</td></tr><tr><td>战斗机</td><td>9</td><td>制空侦察单位</td></tr><tr><td>轰炸机</td><td>6</td><td>中等空中视野</td></tr><tr><td>大本营</td><td>7 / 8 / 9</td><td>随等级提升</td></tr><tr><td>据点 / 资源采集器</td><td>5 / 3</td><td>战斗型据点视野 +1</td></tr><tr><td>SpaceX 星链计划</td><td>全图</td><td>T3 战略科技，完成后当前玩家获得全图视野</td></tr></tbody></table></div>
+<div class="rule-card"><h3>🌫️ 战争迷雾</h3><p style="color:#b0b0c0;line-height:1.8;">当前玩家视野外的地图会被暗雾覆盖，敌方单位只有进入视野后才会显示、被鼠标提示或被攻击锁定。已探索过的敌方建筑会保留已知位置，但会被暗雾压暗。地面单位站在丘陵/高地/山脉上时，视野额外增加地形高度；空军不吃地形视野加成。</p><table><thead><tr><th>来源</th><th>基础视野</th><th>说明</th></tr></thead><tbody><tr><td>士兵</td><td>5</td><td>射程2+移速3</td></tr><tr><td>坦克</td><td>8</td><td>射程3+移速5</td></tr><tr><td>军用吉普</td><td>11</td><td>射程3+移速8，高速侦察核心</td></tr><tr><td>火箭炮</td><td>17</td><td>射程15+移速2，超远程需配合</td></tr><tr><td>野战炮</td><td>9</td><td>射程6+移速3</td></tr><tr><td>装甲车</td><td>8</td><td>射程3+移速5，可对空</td></tr><tr><td>战斗机</td><td>13</td><td>射程3+移速10，空中单位</td></tr><tr><td>轰炸机</td><td>7</td><td>射程1.5+移速5，空中单位</td></tr><tr><td>防空车</td><td>9</td><td>射程4+移速5，双模式</td></tr><tr><td>自杀无人机</td><td>9</td><td>射程1+移速8</td></tr><tr><td>侦察机</td><td>11</td><td>T2 空中侦察单位，无法攻击，例外值</td></tr><tr><td>大本营</td><td>7 / 8 / 9</td><td>随等级提升</td></tr><tr><td>据点 / 资源采集器</td><td>5 / 3</td><td>战斗型据点视野 +1</td></tr><tr><td>SpaceX 星链计划</td><td>全图</td><td>T3 战略科技，完成后当前玩家获得全图视野</td></tr></tbody></table></div>
 <div class="rule-card"><h3>🛡️ 耐打计算</h3><p style="color:#b0b0c0;margin-bottom:6px;">以下为每个兵种被 <strong>1 下 / 2 下 / 3 下</strong> 消灭时，敌方每次攻击所需达到的伤害值。</p><div class="rule-formula">所需伤害 = 生命 ÷ 攻击次数 + 护甲</div></div>
 <div id="duraTable" style="margin-top:28px;"></div>
 <div style="margin-top:40px;">
@@ -212,25 +212,25 @@ document.querySelectorAll('.nav-link').forEach(function(e){e.classList.remove('a
 var l=document.querySelector('.nav-link[data-chapter="'+id+'"]');if(l)l.classList.add('active');
 }
 // DATA_UD
-var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,label:'🪖 士兵',img:'../assets/images/士兵.png',weapon:'制式步枪',quote:'基础步兵单位，生产线上的消耗品，也是战线上的基石。'},
-'坦克':{hp:10,armor:2,speed:5,damage:4,range:3,price:7,attacks:1,label:'🚀 坦克',img:'../assets/images/坦克.png',weapon:'标准火炮',quote:'钢铁洪流的中坚力量，正面突破的绝对核心。'},
-'军用吉普':{hp:3,armor:0,speed:8,damage:2,range:3,price:3,attacks:1,label:'🚙 军用吉普',img:'../assets/images/军用吉普.png',weapon:'车载机枪',quote:'轻便快速的侦察载具，来去如风，一击即走。',tier:'T1'},
-'火箭炮':{hp:10,armor:0,speed:2,damage:7,range:15,price:18,attacks:1,label:'🚀 火箭炮',img:'../assets/images/火箭炮.png',weapon:'多管火箭巢',quote:'超远程火力覆盖，敌后纵深的噩梦。'},
-'野战炮':{hp:3,armor:1,speed:3,damage:5,range:6,price:5,attacks:1,label:'🎯 野战炮',img:'../assets/images/野战炮.png',weapon:'重型榴弹炮',quote:'曲射火力支援，攻城的必备利器。'},
-'装甲车':{hp:6,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../assets/images/装甲车.png',weapon:'双联机枪',quote:'兼具火力与运载能力的战场多面手。',canTargetAir:true,tier:'T1'},
-'战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,label:'🛩️ 战斗机',img:'../assets/images/战斗机.png',weapon:'航炮',quote:'制空权的绝对掌控者，来去如风。',type:'air',canTargetAir:true},
-'轰炸机':{hp:16,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../assets/images/轰炸机.png',weapon:'航空炸弹',quote:'钢铁暴雨，大地的噩梦。',type:'air',canTargetAir:false,reload:1,blast:1.5},
-'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../assets/images/防空车.png',weapon:'双管高炮',quote:'天空的守护者，让敌机有来无回。',canTargetAir:true,airDamage:8,airRange:14},
-'自杀无人机':{hp:2,armor:0,speed:8,damage:4,range:1,price:2,attacks:1,label:'💥 自杀无人机',img:'../assets/images/自杀无人机.png',weapon:'自爆弹头',quote:'廉价的单程攻击武器，以命换命。攻击后自毁。',tier:'T2',selfDestruct:true},
-'侦察机':{hp:2.5,armor:0,speed:12,damage:0,range:0,price:5,attacks:0,label:'🛰️ 侦察机',weapon:'无武装侦察吊舱',quote:'高速空中侦察平台，不能攻击，但能为远程火力打开视野。',tier:'T2',type:'air',canTargetAir:false}};
+var UD={'士兵':{hp:1.5,armor:0,speed:3,damage:1,range:2,price:1,attacks:1,label:'🪖 士兵',img:'../assets/images/士兵.png',weapon:'制式步枪',quote:'最低造价(1金)的炮灰步兵，可装备提升射程(最高6)获得对空能力。'},
+'坦克':{hp:10,armor:2,speed:5,damage:4,range:3,price:7,attacks:1,label:'🚀 坦克',img:'../assets/images/坦克.png',weapon:'标准火炮',quote:'高血量高护甲的突击核心，可改穿甲炮(伤7)或高爆炮(范围2)。'},
+'军用吉普':{hp:3,armor:0,speed:8,damage:2,range:3,price:3,attacks:1,label:'🚙 军用吉普',img:'../assets/images/军用吉普.png',weapon:'车载机枪',quote:'全游最快(移速8)的侦察单位，可改火箭助推(速13)或重甲(甲1)。',tier:'T1'},
+'火箭炮':{hp:10,armor:0,speed:2,damage:7,range:15,price:18,attacks:1,label:'🚀 火箭炮',img:'../assets/images/火箭炮.png',weapon:'多管火箭巢',quote:'最远射程(15)的超远程炮台，移速慢(2)视野短(3)，需侦察机开眼。'},
+'野战炮':{hp:3,armor:1,speed:3,damage:5,range:6,price:5,attacks:1,label:'🎯 野战炮',img:'../assets/images/野战炮.png',weapon:'重型榴弹炮',quote:'高性价比(5金)的曲射火力，可轻量提速或巨炮(伤12射程10)特化。'},
+'装甲车':{hp:6,armor:1,speed:5,damage:1.5,range:3,price:6,attacks:3,label:'🛡️ 装甲车',img:'../assets/images/装甲车.png',weapon:'双联机枪',quote:'一回合连射3次的机枪平台，对地对空兼备，持续输出能力强。',canTargetAir:true,tier:'T1'},
+'战斗机':{hp:5,armor:1,speed:10,damage:5.5,range:3,price:8,attacks:1,label:'🛩️ 战斗机',img:'../assets/images/战斗机.png',weapon:'航炮',quote:'高速(速10)空中格斗机，对空对地皆可，地面单位无法反击。',type:'air',canTargetAir:true},
+'轰炸机':{hp:16,armor:3,speed:5,damage:12,range:1,price:15,attacks:1,label:'💣 轰炸机',img:'../assets/images/轰炸机.png',weapon:'航空炸弹',quote:'重甲(甲3)空中堡垒，范围爆炸(半径1.5)，每2回合装弹可出击一次。',type:'air',canTargetAir:false,reload:1,blast:1.5},
+'防空车':{hp:5,armor:1,speed:5,damage:3,range:4,price:10,attacks:1,label:'🔫 防空车',img:'../assets/images/防空车.png',weapon:'双管高炮',quote:'双模式防空：对地伤3射程4，对空伤8射程14，切换灵活。',canTargetAir:true,airDamage:8,airRange:14},
+'自杀无人机':{hp:2,armor:0,speed:8,damage:4,range:1,price:2,attacks:1,label:'💥 自杀无人机',img:'../assets/images/自杀无人机.png',weapon:'自爆弹头',quote:'最低费(2金)的自爆单位，速8突脸伤4，一击必杀后自毁。',tier:'T2',selfDestruct:true},
+'侦察机':{hp:2.5,armor:0,speed:12,damage:0,range:0,price:5,attacks:0,label:'🛰️ 侦察机',weapon:'无武装侦察吊舱',quote:'视野11的超高速侦察机，无法攻击或占点，为火箭炮/轰炸机提供目标。',tier:'T2',type:'air',canTargetAir:false}};
 var UK=Object.keys(UD);
-var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'加装高倍光学瞄具与加长精锻枪管，远程狙杀精度大幅提升。',canTargetAir:true,tier:'T1',research_cost:3,research_time:1},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'大口径狙击武器，专为重甲目标与载具设计。',canTargetAir:true,tier:'T2',research_cost:5,research_time:2}],
-'坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'加长炮管与高密度弹芯，牺牲爆破威力换取对重甲的穿透力。',tier:'T3',research_cost:10,research_time:3},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:2,desc:'牺牲单发穿透力，换装大装药榴弹，范围爆炸半径2。',tier:'T2',research_cost:5,research_time:2}],
-'军用吉普':[{name:'无',cost:0,dmg:0,range:0},{name:'火箭助推',cost:1,speed:5,hp:1,desc:'加装火箭助推器，大幅提升移动速度。',tier:'T2',research_cost:5,research_time:2},
-{name:'重甲吉普',cost:1,dmg:0.5,speed:-2,armor:1,hp:0.5,desc:'加装复合装甲，牺牲机动换取生存与火力。',tier:'T1',research_cost:3,research_time:1}],
-'火箭炮':[{name:'无',cost:0,dmg:0,range:0},{name:'对空雷达',cost:3,range:1,canTargetAir:true,desc:'加装对空搜索雷达，获得对空射击能力。',tier:'T3',research_cost:10,research_time:3}],
-'野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-1,dmg:-1,range:-2,speed:2,hp:-1,desc:'减轻结构重量，降低生产成本但削弱火力。',tier:'T2',research_cost:5,research_time:2},
-{name:'巨炮',cost:6,dmg:7,range:4,speed:-1,hp:2,desc:'安装重型巨炮，大幅提升火力与生存能力。',tier:'T3',research_cost:10,research_time:3}],
+var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.5,dmg:0.5,range:4,speed:-1,desc:'射程+4(至6)，获得对空能力，牺牲移速-1。守点防空的性价比之选。',canTargetAir:true,tier:'T1',research_cost:3,research_time:1},{name:'反器械枪',cost:1.5,dmg:4,range:2,desc:'伤害+4(至5)，射程+2(至4)，可对空。步兵反坦克的唯一手段。',canTargetAir:true,tier:'T2',research_cost:5,research_time:2}],
+'坦克':[{name:'无',cost:0,dmg:0,range:0},{name:'穿甲炮',cost:2,dmg:3,range:1,desc:'伤害+3(至7)，穿甲弹专打重甲单位。',tier:'T3',research_cost:10,research_time:3},{name:'高爆炮',cost:1,dmg:-2,range:0,blast:2,desc:'伤害-2(至2)，获得爆炸半径2的范围杀伤，清兵线利器。',tier:'T2',research_cost:5,research_time:2}],
+'军用吉普':[{name:'无',cost:0,dmg:0,range:0},{name:'火箭助推',cost:1,speed:5,hp:1,desc:'移速+5(至13)，血量+1，极致飙车侦察。',tier:'T2',research_cost:5,research_time:2},
+{name:'重甲吉普',cost:1,dmg:0.5,speed:-2,armor:1,hp:0.5,desc:'护甲+1(至1)血量+0.5，吉普变装甲车，但移速-2。',tier:'T1',research_cost:3,research_time:1}],
+'火箭炮':[{name:'无',cost:0,dmg:0,range:0},{name:'对空雷达',cost:3,range:1,canTargetAir:true,desc:'射程+1(至16)，获得对空能力，火箭炮的完整形态。',tier:'T3',research_cost:10,research_time:3}],
+'野战炮':[{name:'无',cost:0,dmg:0,range:0},{name:'轻量化',cost:-1,dmg:-1,range:0,speed:2,hp:-1,desc:'价格-1(至4)移速+2，但伤害-1血量-1，低成本机动特化。',tier:'T2',research_cost:5,research_time:2},
+{name:'巨炮',cost:6,dmg:7,range:4,speed:-1,hp:2,desc:'伤害+7(至12)射程+4(至10)，血量+2，一炮一个小朋友。',tier:'T3',research_cost:10,research_time:3}],
 '装甲车':[{name:'无',cost:0,dmg:0,range:0}],
 '战斗机':[{name:'无',cost:0,dmg:0,range:0}],
 '轰炸机':[{name:'无',cost:0,dmg:0,range:0}],
@@ -238,14 +238,14 @@ var EQ={'士兵':[{name:'无',cost:0,dmg:0,range:0},{name:'射手步枪',cost:0.
 '自杀无人机':[{name:'无',cost:0,dmg:0,range:0}],
 '侦察机':[{name:'无',cost:0,dmg:0,range:0}]};
 var BD={'大本营':{label:'🏰 大本营',quote:'整场战争的心脏，丢了它一切就结束了。',tiers:[
-{tier:'T1',hp:25,armor:0,gold:3,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../assets/images/大本营 T1.png'},
-{tier:'T2',hp:50,armor:0.5,gold:5,upgrade:{cost:30,time:5},tag:'tag-t2',img:'../assets/images/大本营 T2.png'},
-{tier:'T3',hp:85,armor:1,gold:8,upgrade:null,tag:'tag-t3',img:'../assets/images/大本营T3.png'}]},
-'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。编号从0起，产出递减（3×0.8^n）。',tiers:[{tier:'T2',hp:15,armor:0,gold:2,upgrade:null,tag:'tag-t2',img:'../assets/images/资源采集器.png'}]},
+{tier:'T1',hp:25,armor:0,gold:4.5,upgrade:{cost:10,time:3},tag:'tag-t1',img:'../assets/images/大本营 T1.png'},
+{tier:'T2',hp:50,armor:0.5,gold:7.5,upgrade:{cost:30,time:5},tag:'tag-t2',img:'../assets/images/大本营 T2.png'},
+{tier:'T3',hp:85,armor:1,gold:12,upgrade:null,tag:'tag-t3',img:'../assets/images/大本营T3.png'}]},
+'资源采集器':{label:'⛏️ 资源采集器',quote:'经济命脉，持续产金。编号从0起，产出递减（4.5×0.8^n）。',tiers:[{tier:'T2',hp:15,armor:0,gold:3,upgrade:null,tag:'tag-t2',img:'../assets/images/资源采集器.png'}]},
 '据点':{label:'🏴 据点',quote:'中立据点，初始50%HP。可反复易手，占领后可选升级T2分支：战斗型或经济型。',tiers:[
-{tier:'T1',hp:20,armor:0,gold:3,upgrade:null,tag:'tag-t1',img:'../assets/images/据点.jpg'},
-{tier:'T2战斗',hp:50,armor:0.5,gold:4,upgrade:{cost:10,time:1},tag:'tag-t2',img:'../assets/images/据点.jpg',note:'升级回满血量'},
-{tier:'T2经济',hp:30,armor:0,gold:6,upgrade:{cost:10,time:3},tag:'tag-t2',img:'../assets/images/据点.jpg',note:'升级恢复50%失去血量'}]}};
+{tier:'T1',hp:20,armor:0,gold:4.5,upgrade:null,tag:'tag-t1',img:'../assets/images/据点.jpg'},
+{tier:'T2战斗',hp:50,armor:0.5,gold:6,upgrade:{cost:10,time:1},tag:'tag-t2',img:'../assets/images/据点.jpg',note:'升级回满血量'},
+{tier:'T2经济',hp:30,armor:0,gold:9,upgrade:{cost:10,time:3},tag:'tag-t2',img:'../assets/images/据点.jpg',note:'升级恢复50%失去血量'}]}};
 function dc(v){return v<=3?'dura-orange':v<=4?'dura-yellow':v<=7?'dura-blue':''}
 function fm(v){return Number(v).toFixed(1)}
 function renderDura(){
@@ -277,8 +277,8 @@ h+='<div class="section-label">🛠️ 装备</div><div class="equip-grid">';
 el.forEach(function(eq){if(eq.name==='无')return;
 var s='';if(eq.dmg)s+='<span class="'+(eq.dmg>0?'up':'down')+'">伤害 '+(eq.dmg>0?'+':'')+eq.dmg+' (→'+(u.damage+eq.dmg)+')</span> ';
 if(eq.range)s+='<span class="'+(eq.range>0?'up':'down')+'">射程 '+(eq.range>0?'+':'')+eq.range+' (→'+(u.range+eq.range)+')</span> ';
-if(eq.speed)s+='<span class="down">速度 '+eq.speed+' (→'+(u.speed+eq.speed)+')</span> ';
-if(eq.hp)s+='<span class="down">生命 '+(eq.hp>0?'+':'')+eq.hp+' (→'+(u.hp+eq.hp)+')</span> ';
+if(eq.speed)s+='<span class="'+(eq.speed>0?'up':'down')+'">速度 '+eq.speed+' (→'+(u.speed+eq.speed)+')</span> ';
+if(eq.hp)s+='<span class="'+(eq.hp>0?'up':'down')+'">生命 '+(eq.hp>0?'+':'')+eq.hp+' (→'+(u.hp+eq.hp)+')</span> ';
 if(eq.armor)s+='<span class="'+(eq.armor>0?'up':'down')+'">护甲 '+(eq.armor>0?'+':'')+eq.armor+' (→'+(u.armor+eq.armor)+')</span> ';
 if(eq.blast&&eq.blast>1)s+='<br><span class="special">🌀 爆炸范围 ×'+eq.blast+'</span>';
 var cl=eq.cost>=0?'🪙 '+eq.cost+' 元':'<span style="color:#7acc7a;">价格 '+eq.cost+'</span>';
@@ -328,7 +328,7 @@ b.tiers.forEach(function(t){h+='<tr><td><span class="unit-tag '+t.tag+'" style="
 h+='</tbody></table></div>'}c.innerHTML=h;}
 function renderAll(){renderDura();renderCh1();renderCh2();}
 function fillEquip(sid,un){var sel=document.getElementById(sid);sel.innerHTML='';(EQ[un]||[]).forEach(function(eq){
-var ext='';if(eq.dmg)ext+=' +'+eq.dmg;if(eq.range)ext+='/+'+eq.range;if(eq.speed)ext+=' 速'+eq.speed;if(eq.hp)ext+=' 命'+(eq.hp>0?'+':'')+eq.hp;
+var ext='';if(eq.dmg)ext+=' +'+eq.dmg;if(eq.range)ext+='/+'+eq.range;if(eq.speed)ext+=' 速'+(eq.speed>0?'+':'')+eq.speed;if(eq.hp)ext+=' 命'+(eq.hp>0?'+':'')+eq.hp;
 var lbl=(eq.cost>0||eq.cost<0)?eq.name+' ('+ext.trim()+' · '+eq.cost+'元)':eq.name;sel.add(new Option(lbl,eq.name))});}
 function getEq(un,en){return(EQ[un]||[]).find(function(e){return e.name===en})||(EQ[un]||[])[0]||{name:'无',cost:0,dmg:0,range:0}}
 function getQty(pa,pb,sc){var cm=1;if(pa%1!==0||pb%1!==0)cm=2;return{qtyA:pb*cm*sc,qtyB:pa*cm*sc,cm:cm,sc:sc}}

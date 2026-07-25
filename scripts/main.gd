@@ -78,7 +78,7 @@ var hud_top_panel: PanelContainer
 var hud_bottom_panel: HBoxContainer
 var action_container_panel: PanelContainer
 var status_label: Label
-var info_panel: PanelContainer
+var info_panel: Control
 var info_label: Label
 var action_panel: VBoxContainer
 var action_scroll: ScrollContainer
@@ -262,24 +262,13 @@ func _create_ui() -> void:
 	surrender_button.pressed.connect(_on_surrender_pressed)
 	hud_bottom_panel.add_child(surrender_button)
 
-	info_panel = PanelContainer.new()
+	info_panel = Control.new()
 	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var info_style = StyleBoxFlat.new()
-	info_style.bg_color = Color(0.04, 0.04, 0.08, 0.58)
-	info_style.border_color = Color(0.18, 0.20, 0.30, 0.55)
-	info_style.border_width_left = 1
-	info_style.border_width_top = 1
-	info_style.border_width_right = 1
-	info_style.border_width_bottom = 1
-	info_style.content_margin_left = 10
-	info_style.content_margin_top = 6
-	info_style.content_margin_right = 10
-	info_style.content_margin_bottom = 6
-	info_panel.add_theme_stylebox_override("panel", info_style)
 	add_child(info_panel)
 
 	info_label = Label.new()
 	info_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_label.position = Vector2(10, 6)
 	info_label.size = Vector2(420, 72)
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_label.clip_text = true

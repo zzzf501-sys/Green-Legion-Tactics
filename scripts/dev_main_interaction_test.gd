@@ -10,6 +10,7 @@ func _initialize() -> void:
 	await process_frame
 	ok = _expect(main.state != null, "main state exists") and ok
 	ok = _expect(main.board != null, "main board exists") and ok
+	ok = _expect(main.info_panel != null and not (main.info_panel is PanelContainer), "bottom info text holder has no panel background") and ok
 	ok = _expect(main.menu_layer != null and main.menu_layer.visible, "main menu visible on boot") and ok
 	ok = _expect(main.menu_buttons != null and main.menu_buttons.visible, "main menu buttons visible on boot") and ok
 	ok = _expect(not main.board.visible, "board hidden behind menu on boot") and ok

@@ -58,7 +58,7 @@
       ]
     },
     "据点": {"hp": 20, "armor": 0, "gold": 4.5, "vision": 5, "texture": "res://assets/images/据点.jpg"},
-    "资源采集器": {"hp": 15, "armor": 0, "gold": 4.5, "cost": 8, "vision": 3, "texture": "res://assets/images/资源采集器.png"}
+    "资源采集器": {"hp": 15, "armor": 0, "gold": 3, "cost": 8, "vision": 3, "texture": "res://assets/images/资源采集器.png"}
   },
   "production": {
     "大本营": {

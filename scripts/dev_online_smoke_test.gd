@@ -3,12 +3,16 @@ extends SceneTree
 const GameDatabaseScript = preload("res://scripts/core/game_database.gd")
 const GameStateScript = preload("res://scripts/core/game_state.gd")
 
+var server_pid = -1
+
 func _initialize() -> void:
+	server_pid = OS.create_process("node", ["server/server.js"])
+	await create_timer(0.5).timeout
 	var ws = WebSocketPeer.new()
 	var err = ws.connect_to_url("ws://127.0.0.1:3000")
 	if err != OK:
 		push_error("Online smoke connect failed: " + str(err))
-		quit(1)
+		_finish(1)
 		return
 	var opened = false
 	for _i in range(30):
@@ -19,7 +23,7 @@ func _initialize() -> void:
 		await create_timer(0.1).timeout
 	if not opened:
 		push_error("Online smoke socket did not open")
-		quit(1)
+		_finish(1)
 		return
 	ws.send_text(JSON.stringify({"type": "create", "players": 2}))
 	var created = false
@@ -38,7 +42,7 @@ func _initialize() -> void:
 		await create_timer(0.1).timeout
 	if not created or room_id.is_empty() or player_id != 0:
 		push_error("Online smoke room creation failed")
-		quit(1)
+		_finish(1)
 		return
 	var db = GameDatabaseScript.new()
 	db.load_data()
@@ -55,7 +59,7 @@ func _initialize() -> void:
 	err = rejoin.connect_to_url("ws://127.0.0.1:3000")
 	if err != OK:
 		push_error("Online smoke rejoin connect failed: " + str(err))
-		quit(1)
+		_finish(1)
 		return
 	opened = false
 	for _i in range(30):
@@ -66,7 +70,7 @@ func _initialize() -> void:
 		await create_timer(0.1).timeout
 	if not opened:
 		push_error("Online smoke rejoin socket did not open")
-		quit(1)
+		_finish(1)
 		return
 	rejoin.send_text(JSON.stringify({"type": "rejoin", "roomId": room_id, "playerId": player_id}))
 	var rejoined = false
@@ -81,9 +85,14 @@ func _initialize() -> void:
 		await create_timer(0.1).timeout
 	if not rejoined:
 		push_error("Online smoke rejoin failed")
-		quit(1)
+		_finish(1)
 		return
 	print("Godot online smoke test passed")
 	ws.close()
 	rejoin.close()
-	quit(0)
+	_finish(0)
+
+func _finish(code: int) -> void:
+	if server_pid > 0:
+		OS.kill(server_pid)
+	quit(code)

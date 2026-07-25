@@ -872,7 +872,9 @@ func _select_unit(unit: Dictionary) -> void:
 	selected_building_id = -1
 	selected_unit_id = int(unit["id"])
 	var empty_hover: Array[Vector2i] = []
+	var empty_build_tiles: Array[Vector2i] = []
 	board.set_hover_threat(empty_hover, "")
+	board.set_build_tiles(empty_build_tiles, PLAYER_COLORS[state.current_player])
 	board.set_selection(selected_unit_id, -1, state.move_tiles_for(unit), state.attack_targets_for(unit))
 	var empty_threats: Array[Vector2i] = []
 	board.set_tactical_overlays(state.attack_range_tiles_for(unit), empty_threats)
@@ -883,8 +885,10 @@ func _select_building(building: Dictionary) -> void:
 	selected_building_id = int(building["id"])
 	var empty_moves: Array[Vector2i] = []
 	var empty_attacks: Array[Vector2i] = []
+	var empty_build_tiles: Array[Vector2i] = []
 	board.set_selection(-1, selected_building_id, empty_moves, empty_attacks)
 	board.set_tactical_overlays(empty_moves, empty_attacks)
+	board.set_build_tiles(empty_build_tiles, PLAYER_COLORS[state.current_player])
 	_refresh_ui()
 
 func _clear_selection() -> void:
@@ -1660,12 +1664,9 @@ func _apply_remote_state(remote_state: Dictionary) -> void:
 	player_count = int(state.player_count)
 	board.setup(state, db)
 	_sync_board_view_player()
-	if state.current_player == online_player_id:
-		board.center_on_current_player()
-	else:
-		board.zoom = previous_zoom
-		board.camera_offset = previous_offset
-		board._clamp_camera()
+	board.zoom = previous_zoom
+	board.camera_offset = previous_offset
+	board._clamp_camera()
 	state.update_vision()
 
 func _update_online_status(text: String) -> void:

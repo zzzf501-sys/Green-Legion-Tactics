@@ -50,6 +50,31 @@ func _initialize() -> void:
 	ok = _expect(main.state.is_visible(0, Vector2i(main.state.width - 1, main.state.height - 1)), "disabled fog reveals full map") and ok
 	ok = _expect(main.state.width == 60 and main.state.height == 30, "two-player map size matches original") and ok
 	ok = _expect(main.state.units.size() == 0, "local game starts without free units") and ok
+	var player0_hq = _player_hq(main, 0)
+	var player1_hq = _player_hq(main, 1)
+	main.online_connected = true
+	main.online_player_id = 0
+	main.state.fog_enabled = true
+	main.state.current_player = 0
+	main.state.update_vision()
+	main._sync_board_view_player()
+	var online_offset_before = main.board.camera_offset
+	var online_zoom_before = main.board.zoom
+	ok = _expect(main.state.is_visible(0, player0_hq["pos"]), "online player sees own hq before ending turn") and ok
+	ok = _expect(not main.state.is_visible(0, player1_hq["pos"]), "online player does not reveal enemy hq before ending turn") and ok
+	main._on_end_turn_pressed()
+	ok = _expect(main.state.current_player == 1, "online end turn advances to opponent") and ok
+	ok = _expect(main.board.view_player_id == 0, "online board keeps local player viewpoint after ending turn") and ok
+	ok = _expect(main.board.camera_offset == online_offset_before and main.board.zoom == online_zoom_before, "online end turn keeps camera position") and ok
+	ok = _expect(main.state.is_visible(0, player0_hq["pos"]), "online player keeps own fog vision after ending turn") and ok
+	ok = _expect(not main.state.is_visible(0, player1_hq["pos"]), "online end turn does not reveal opponent hq") and ok
+	ok = _expect(not main._can_control_current_turn(), "online player cannot control opponent turn") and ok
+	main.online_connected = false
+	main.online_player_id = -1
+	main.state.current_player = 0
+	main.state.fog_enabled = false
+	main.state.update_vision()
+	main._sync_board_view_player()
 	var old_zoom = main.board.zoom
 	main.board._zoom_at(Vector2(640, 360), 1.2)
 	ok = _expect(main.board.zoom > old_zoom, "board zooms in") and ok
@@ -179,6 +204,12 @@ func _expect(condition: bool, label: String) -> bool:
 	if not condition:
 		push_error("Interaction check failed: " + label)
 	return condition
+
+func _player_hq(main, pid: int) -> Dictionary:
+	for building in main.state.buildings:
+		if str(building.get("type", "")) == "大本营" and int(building.get("pid", -1)) == pid:
+			return building
+	return {}
 
 func _collect_text(node: Node) -> String:
 	var parts: Array[String] = []

@@ -1,0 +1,11 @@
+{
+  "name": "green-legion-tactics-online",
+  "version": "2.7.0",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

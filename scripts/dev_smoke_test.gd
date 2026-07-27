@@ -74,6 +74,9 @@ func _initialize() -> void:
 	ok = _expect(_check_air_units_ignore_terrain_range(db), "air units ignore terrain range modifier") and ok
 	ok = _expect(_check_outpost_upgrade_resets_on_recapture(db), "outpost upgrade resets on recapture") and ok
 	ok = _expect(_check_outpost_balance_values(db), "outpost tier stats match balance rules") and ok
+	ok = _expect(_check_outpost_defeat_capture_rules(db), "defeated outposts change hands and T2 falls back to T1") and ok
+	ok = _expect(_check_building_recovery_rules(db), "buildings recover after three undamaged turns") and ok
+	ok = _expect(_check_units_never_overlap_buildings(db), "units cannot enter or load on building tiles") and ok
 	ok = _expect(_check_end_turn_auto_attack(db), "end turn automatically uses remaining attacks") and ok
 	var state3 = GameStateScript.new()
 	state3.setup(db, 48, 48, 3)
@@ -104,6 +107,7 @@ func _initialize() -> void:
 	var preview_tiles: Array[Vector2i] = [Vector2i(1, 1)]
 	board.set_build_tiles(preview_tiles, Color(0.15, 0.72, 1.0), state.next_collector_income(0))
 	ok = _expect(is_equal_approx(board.build_tile_income, 4.5), "collector build overlay receives gold income") and ok
+	ok = _expect(board._format_build_income(4.5) == "+4.5" and board._format_build_income(3.75) == "+3.75", "collector income badge keeps meaningful decimals") and ok
 	board.clear_selection()
 	ok = _expect(board.selected_unit_id == -1 and board.selected_building_id == -1, "board selection clears") and ok
 	board.queue_free()
@@ -263,8 +267,11 @@ func _check_outpost_upgrade_resets_on_recapture(db) -> bool:
 	state.current_player = 1
 	var enemy = state._add_unit("士兵", 1, Vector2i(5, 6))
 	state.update_vision()
-	if not state.move_unit(int(enemy["id"]), outpost["pos"]):
+	if state.move_tiles_for(enemy).has(outpost["pos"]):
 		return false
+	if state.move_unit(int(enemy["id"]), outpost["pos"]):
+		return false
+	state._apply_damage(outpost, 999.0, 1)
 	return int(outpost.get("pid", -1)) == 1 and not bool(outpost.get("upgrading", false)) and int(outpost.get("up_timer", -1)) == 0 and str(outpost.get("outpost_branch", "")) == ""
 
 func _check_outpost_balance_values(db) -> bool:
@@ -287,6 +294,84 @@ func _check_outpost_balance_values(db) -> bool:
 	economic["outpost_branch"] = "economic"
 	state._finish_outpost_upgrade(economic)
 	return is_equal_approx(float(economic["max_hp"]), 20.0) and is_equal_approx(float(economic["armor"]), 0.0)
+
+func _check_outpost_defeat_capture_rules(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.units.clear()
+	state.buildings.clear()
+	var upgrading = state._add_building("据点", 1, Vector2i(5, 5), 0)
+	upgrading["upgrading"] = true
+	upgrading["up_timer"] = 2
+	upgrading["outpost_branch"] = "economic"
+	state._apply_damage(upgrading, 999.0, 0)
+	if not state.buildings.has(upgrading):
+		return false
+	if int(upgrading.get("pid", -1)) != 0 or not bool(upgrading.get("captured", false)):
+		return false
+	if bool(upgrading.get("upgrading", true)) or int(upgrading.get("up_timer", -1)) != 0 or str(upgrading.get("outpost_branch", "invalid")) != "":
+		return false
+	if not is_equal_approx(float(upgrading.get("max_hp", 0.0)), 20.0) or not is_equal_approx(float(upgrading.get("hp", 0.0)), 10.0):
+		return false
+	var tier2 = state._add_building("据点", 1, Vector2i(8, 5), 0)
+	tier2["outpost_branch"] = "combat"
+	state._finish_outpost_upgrade(tier2)
+	state._apply_damage(tier2, 999.0, 0)
+	return state.buildings.has(tier2) \
+		and int(tier2.get("pid", -1)) == 0 \
+		and int(tier2.get("outpost_tier", -1)) == 0 \
+		and str(tier2.get("outpost_branch", "invalid")) == "" \
+		and is_equal_approx(float(tier2.get("max_hp", 0.0)), 20.0) \
+		and is_equal_approx(float(tier2.get("hp", 0.0)), 10.0) \
+		and is_equal_approx(float(tier2.get("armor", -1.0)), 0.0) \
+		and is_equal_approx(float(tier2.get("gold", 0.0)), 4.5)
+
+func _check_building_recovery_rules(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.buildings.clear()
+	var outpost = state._add_building("据点", 0, Vector2i(5, 5), 0)
+	outpost["hp"] = 10.0
+	outpost["damaged_this_turn"] = true
+	state._building_turn_start(outpost)
+	if not is_equal_approx(float(outpost["hp"]), 10.0) or int(outpost["turns_since_damage"]) != 0:
+		return false
+	state._building_turn_start(outpost)
+	state._building_turn_start(outpost)
+	if not is_equal_approx(float(outpost["hp"]), 10.0) or int(outpost["turns_since_damage"]) != 2:
+		return false
+	state._building_turn_start(outpost)
+	if not is_equal_approx(float(outpost["hp"]), 12.0):
+		return false
+	state._building_turn_start(outpost)
+	return is_equal_approx(float(outpost["hp"]), 14.0)
+
+func _check_units_never_overlap_buildings(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.units.clear()
+	state.buildings.clear()
+	for y in range(state.height):
+		for x in range(state.width):
+			state.terrain_grid[y][x] = "plain"
+	state.current_player = 0
+	var building = state._add_building("据点", 1, Vector2i(6, 6), 0)
+	var unit = state._add_unit("士兵", 0, Vector2i(5, 6))
+	if state.move_tiles_for(unit).has(building["pos"]):
+		return false
+	if state.move_unit(int(unit["id"]), building["pos"]):
+		return false
+	state.move_unit_group([int(unit["id"])], building["pos"])
+	if not state.building_at(unit["pos"]).is_empty():
+		return false
+	unit["pos"] = building["pos"]
+	var restored = GameStateScript.new()
+	restored.db = db
+	restored.load_from_dict(state.to_dict())
+	for restored_unit in restored.units:
+		if not restored.building_at(restored_unit["pos"]).is_empty():
+			return false
+	return true
 
 func _check_end_turn_auto_attack(db) -> bool:
 	var state = GameStateScript.new()

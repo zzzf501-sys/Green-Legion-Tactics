@@ -3,6 +3,7 @@ extends Node
 const GameDatabaseScript = preload("res://scripts/core/game_database.gd")
 const GameStateScript = preload("res://scripts/core/game_state.gd")
 const BoardViewScript = preload("res://scripts/view/board_view.gd")
+const TacticalAIScript = preload("res://scripts/ai/tactical_ai.gd")
 const PLAYER_COLORS = [
 	Color(0.95, 0.18, 0.22),
 	Color(0.25, 0.48, 1.0),
@@ -72,6 +73,7 @@ class StatsChart:
 var db
 var state
 var board
+var ai_controller
 var selected_unit_id = -1
 var selected_building_id = -1
 var hud_top_panel: PanelContainer
@@ -88,6 +90,7 @@ var restart_button: Button
 var main_menu_button: Button
 var surrender_button: Button
 var formations_button: Button
+var unit_bottom_actions: HBoxContainer
 var game_encyclopedia_button: Button
 var game_settings_button: Button
 var game_over_panel: PanelContainer
@@ -134,10 +137,15 @@ var formation_menu_open = false
 var pending_formation_unit_ids: Array[int] = []
 var formation_dialog: ConfirmationDialog
 var formation_name_input: LineEdit
+var vs_ai = false
+var ai_player_id = 1
+var ai_thinking = false
 
 func _ready() -> void:
 	db = GameDatabaseScript.new()
 	db.load_data()
+	ai_controller = TacticalAIScript.new()
+	ai_controller.setup(db)
 	state = GameStateScript.new()
 	_setup_state()
 	_create_audio()
@@ -183,11 +191,7 @@ func _layout_game_ui() -> void:
 	if hud_bottom_panel != null:
 		hud_bottom_panel.position = Vector2(max(190.0, size.x * 0.5 - 170.0), max(40.0, size.y - 42.0))
 	if info_panel != null:
-		var info_width = min(520.0, max(300.0, size.x - action_panel_width - 560.0))
-		info_panel.position = Vector2(action_panel_width + 12.0, max(42.0, size.y - 136.0))
-		info_panel.size = Vector2(info_width, 84.0)
-	if info_label != null:
-		info_label.size = Vector2(max(280.0, info_panel.size.x - 20.0), 72.0)
+		info_panel.size = Vector2(min(380.0, max(280.0, size.x - 24.0)), 112.0)
 
 func _setup_state() -> void:
 	var map_size = Vector2i(48, 24)
@@ -279,6 +283,11 @@ func _create_ui() -> void:
 	formations_button.pressed.connect(_toggle_formation_menu)
 	hud_bottom_panel.add_child(formations_button)
 
+	unit_bottom_actions = HBoxContainer.new()
+	unit_bottom_actions.add_theme_constant_override("separation", 6)
+	unit_bottom_actions.visible = false
+	hud_bottom_panel.add_child(unit_bottom_actions)
+
 	formation_dialog = ConfirmationDialog.new()
 	formation_dialog.title = "新建编队"
 	formation_dialog.ok_button_text = "保存"
@@ -290,16 +299,25 @@ func _create_ui() -> void:
 	formation_dialog.confirmed.connect(_confirm_formation_name)
 	add_child(formation_dialog)
 
-	info_panel = Control.new()
+	info_panel = PanelContainer.new()
 	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_panel.visible = false
+	var hover_style = StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.025, 0.03, 0.055, 0.94)
+	hover_style.border_color = Color(0.38, 0.48, 0.72, 0.9)
+	hover_style.set_border_width_all(1)
+	hover_style.set_corner_radius_all(4)
+	hover_style.content_margin_left = 10
+	hover_style.content_margin_right = 10
+	hover_style.content_margin_top = 7
+	hover_style.content_margin_bottom = 7
+	info_panel.add_theme_stylebox_override("panel", hover_style)
 	add_child(info_panel)
 
 	info_label = Label.new()
 	info_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	info_label.position = Vector2(10, 6)
-	info_label.size = Vector2(420, 72)
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info_label.clip_text = true
+	info_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	info_panel.add_child(info_label)
 
 	action_container_panel = PanelContainer.new()
@@ -341,42 +359,7 @@ func _create_game_over_panel() -> void:
 	game_over_panel.add_theme_stylebox_override("panel", style)
 	add_child(game_over_panel)
 
-	_create_online_ui()
 	_layout_game_ui()
-
-func _create_online_ui() -> void:
-	var box = VBoxContainer.new()
-	online_inline_panel = box
-	box.visible = false
-	box.position = Vector2(900, 650)
-	box.size = Vector2(360, 58)
-	add_child(box)
-	var row = HBoxContainer.new()
-	box.add_child(row)
-	online_url_input = LineEdit.new()
-	online_url_input.text = _saved_online_url()
-	online_url_input.placeholder_text = "ws://服务器IP:3000"
-	online_url_input.custom_minimum_size = Vector2(150, 28)
-	row.add_child(online_url_input)
-	online_room_input = LineEdit.new()
-	online_room_input.placeholder_text = "房号"
-	online_room_input.custom_minimum_size = Vector2(54, 28)
-	row.add_child(online_room_input)
-	var create_btn = Button.new()
-	create_btn.text = "建房"
-	create_btn.pressed.connect(_on_online_create_pressed)
-	row.add_child(create_btn)
-	var join_btn = Button.new()
-	join_btn.text = "加入"
-	join_btn.pressed.connect(_on_online_join_pressed)
-	row.add_child(join_btn)
-	var leave_btn = Button.new()
-	leave_btn.text = "断开"
-	leave_btn.pressed.connect(_on_online_leave_pressed)
-	row.add_child(leave_btn)
-	online_status_label = Label.new()
-	online_status_label.text = "本地热座"
-	box.add_child(online_status_label)
 
 func _create_menu_ui() -> void:
 	menu_layer = Control.new()
@@ -413,6 +396,13 @@ func _create_menu_ui() -> void:
 	online_btn.custom_minimum_size = Vector2(260, 42)
 	online_btn.pressed.connect(_show_online_menu)
 	menu_buttons.add_child(online_btn)
+
+	var ai_btn = Button.new()
+	ai_btn.text = "人机对战"
+	ai_btn.custom_minimum_size = Vector2(260, 42)
+	ai_btn.tooltip_text = "与普通难度电脑进行 1 对 1 对战"
+	ai_btn.pressed.connect(_start_ai_game)
+	menu_buttons.add_child(ai_btn)
 
 	var encyclopedia_btn = _make_menu_image_button("res://assets/images/百科全书按钮.png", "百科全书")
 	encyclopedia_btn.pressed.connect(_show_encyclopedia)
@@ -488,9 +478,9 @@ func _create_online_menu_panel() -> void:
 	online_menu_panel.anchor_right = 0.5
 	online_menu_panel.anchor_bottom = 0.5
 	online_menu_panel.offset_left = -230
-	online_menu_panel.offset_top = -120
+	online_menu_panel.offset_top = -190
 	online_menu_panel.offset_right = 230
-	online_menu_panel.offset_bottom = 120
+	online_menu_panel.offset_bottom = 190
 	menu_layer.add_child(online_menu_panel)
 	var box = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
@@ -499,10 +489,22 @@ func _create_online_menu_panel() -> void:
 	title.text = "远程联机"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	var url = Label.new()
-	url.text = "服务器地址在右下角填写，默认 ws://175.178.173.76:3000"
-	url.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(url)
+	var server_label = Label.new()
+	server_label.text = "服务器地址"
+	box.add_child(server_label)
+	online_url_input = LineEdit.new()
+	online_url_input.text = _saved_online_url()
+	online_url_input.placeholder_text = "ws://服务器IP:3000"
+	online_url_input.custom_minimum_size = Vector2(420, 34)
+	box.add_child(online_url_input)
+	var room_label = Label.new()
+	room_label.text = "房间号"
+	box.add_child(room_label)
+	online_room_input = LineEdit.new()
+	online_room_input.placeholder_text = "输入房间号，例如 AB12CD"
+	online_room_input.custom_minimum_size = Vector2(420, 34)
+	online_room_input.text_submitted.connect(func(_text): _on_online_join_pressed())
+	box.add_child(online_room_input)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	box.add_child(row)
@@ -517,9 +519,13 @@ func _create_online_menu_panel() -> void:
 	create_btn.pressed.connect(_on_online_create_pressed)
 	box.add_child(create_btn)
 	var join_btn = Button.new()
-	join_btn.text = "加入右下角房号"
+	join_btn.text = "加入房间"
 	join_btn.pressed.connect(_on_online_join_pressed)
 	box.add_child(join_btn)
+	online_status_label = Label.new()
+	online_status_label.text = "输入房间号即可加入"
+	online_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(online_status_label)
 	var back = Button.new()
 	back.text = "返回"
 	back.pressed.connect(_show_menu_home)
@@ -713,9 +719,11 @@ func _render_encyclopedia_chapter(chapter_id: String) -> void:
 func _set_game_visible(visible: bool) -> void:
 	if board != null:
 		board.visible = visible
-	for node in [hud_top_panel, hud_bottom_panel, info_panel, action_container_panel, game_encyclopedia_button, game_settings_button]:
+	for node in [hud_top_panel, hud_bottom_panel, action_container_panel, game_encyclopedia_button, game_settings_button]:
 		if node != null:
 			node.visible = visible
+	if not visible:
+		_hide_hover_info()
 	if not visible and settings_panel != null:
 		settings_panel.visible = false
 	for node in [online_url_input, online_room_input, online_status_label]:
@@ -808,6 +816,8 @@ func _set_online_inputs_visible(visible: bool) -> void:
 			node.visible = visible
 
 func _return_to_main_menu() -> void:
+	vs_ai = false
+	ai_thinking = false
 	_clear_selection()
 	_clear_undo_history()
 	_on_online_leave_pressed()
@@ -817,8 +827,21 @@ func _return_to_main_menu() -> void:
 	_show_menu_home()
 
 func _start_local_game(count: int) -> void:
+	vs_ai = false
+	ai_thinking = false
+	_start_match(count)
+
+func _start_ai_game() -> void:
+	vs_ai = true
+	ai_player_id = 1
+	ai_thinking = false
+	local_fog_enabled = true
+	_start_match(2)
+
+func _start_match(count: int) -> void:
 	player_count = clampi(count, 2, 4)
-	local_fog_enabled = local_fog_checkbox == null or local_fog_checkbox.button_pressed
+	if not vs_ai:
+		local_fog_enabled = local_fog_checkbox == null or local_fog_checkbox.button_pressed
 	formations.clear()
 	selected_group_unit_ids.clear()
 	formation_menu_open = false
@@ -896,38 +919,43 @@ func _on_tile_clicked(pos: Vector2i) -> void:
 
 func _on_tile_hovered(pos: Vector2i) -> void:
 	if not state.in_bounds(pos):
+		_hide_hover_info()
 		return
 	var empty_tiles: Array[Vector2i] = []
 	board.set_hover_threat(empty_tiles, "")
 	var viewer = _local_view_player()
 	var terrain: Dictionary = db.terrain_data(state.terrain_at(pos))
 	var lines = ["地形：%s  高度 %s  移动 %.1f" % [terrain.get("name", "未知"), terrain.get("height", 0), terrain.get("move_cost", 1.0)]]
+	var show_card = false
 	if build_mode == "资源采集器":
+		show_card = true
 		var origin = state.get_building_by_id(build_origin_id)
-		lines.append("")
 		if state.can_build_collector(origin, pos):
 			lines.append("可建造资源采集器：8 金 / 2 回合")
 		else:
 			lines.append("资源采集器需建在大本营 5 格内空地")
 	var unit: Dictionary = state.unit_at(pos)
 	if not unit.is_empty() and (int(unit["pid"]) == viewer or state.is_visible(viewer, pos)):
-		lines.append("")
+		show_card = true
 		lines.append("单位：%s / %s" % [unit["type"], _player_name(int(unit["pid"]))])
 		lines.append("HP：%.1f / %.1f" % [unit["hp"], unit["max_hp"]])
 		lines.append("护甲：%.1f  伤害：%.1f  射程：%.1f  移速：%d" % [unit["armor"], unit["damage"], unit["range"], unit["speed"]])
+		var equip_name = str(unit.get("equip", ""))
+		if not equip_name.is_empty():
+			lines.append("装备：%s" % equip_name)
 		if int(unit["pid"]) != viewer and int(unit["pid"]) >= 0:
 			var threat = state.hover_threat_tiles_for_unit(unit)
 			var radius = float(unit.get("speed", 0)) + state.max_possible_range_for(unit, unit["pos"])
 			board.set_hover_threat(threat, "威胁范围(%.1f)" % radius)
 	var building: Dictionary = state.building_at(pos)
 	if not building.is_empty() and state.is_explored(viewer, pos):
+		show_card = true
 		var building_visible = state.is_visible(viewer, pos)
 		var display = building
 		if not building_visible:
 			var memory = state.building_memory_for(viewer, pos)
 			if not memory.is_empty():
 				display = memory
-		lines.append("")
 		lines.append("建筑：%s / %s" % [display.get("type", building["type"]), _player_name(int(display.get("pid", building["pid"])))])
 		if building_visible:
 			var extra = ""
@@ -942,7 +970,32 @@ func _on_tile_hovered(pos: Vector2i) -> void:
 			var seen_turn = int(display.get("turn", state.turn))
 			lines.append("上次侦察：回合 %d" % seen_turn)
 			lines.append("HP：%.1f / %.1f  护甲：%.1f  收入：%.1f" % [float(display.get("hp", 0.0)), float(display.get("max_hp", 0.0)), float(display.get("armor", 0.0)), float(display.get("gold", 0.0))])
+	if show_card:
+		_show_hover_info(lines)
+	else:
+		_hide_hover_info()
+
+func _show_hover_info(lines) -> void:
+	if info_panel == null or info_label == null:
+		return
 	info_label.text = "\n".join(lines)
+	var viewport_size = get_viewport().get_visible_rect().size
+	var card_width = min(380.0, max(280.0, viewport_size.x - 24.0))
+	var card_height = clamp(30.0 + lines.size() * 22.0, 74.0, 154.0)
+	info_panel.size = Vector2(card_width, card_height)
+	var mouse = get_viewport().get_mouse_position()
+	var desired = mouse + Vector2(18.0, 18.0)
+	if desired.x + card_width > viewport_size.x - 8.0:
+		desired.x = mouse.x - card_width - 18.0
+	if desired.y + card_height > viewport_size.y - 8.0:
+		desired.y = mouse.y - card_height - 18.0
+	info_panel.position = Vector2(clamp(desired.x, 8.0, max(8.0, viewport_size.x - card_width - 8.0)), clamp(desired.y, 36.0, max(36.0, viewport_size.y - card_height - 8.0)))
+	info_panel.visible = game_started
+	info_panel.move_to_front()
+
+func _hide_hover_info() -> void:
+	if info_panel != null:
+		info_panel.visible = false
 
 func _select_unit(unit: Dictionary) -> void:
 	selected_building_id = -1
@@ -1093,10 +1146,37 @@ func _on_end_turn_pressed() -> void:
 	if automatic_attacks > 0:
 		_play_sfx("cannon")
 	_clear_undo_history()
-	_after_turn_state_changed(not online_connected)
+	_after_turn_state_changed(not online_connected and not vs_ai)
 	_notify_online("end-turn")
+	if vs_ai and not state.game_over and state.current_player == ai_player_id:
+		call_deferred("_run_ai_turn")
+
+func _run_ai_turn() -> void:
+	if not vs_ai or ai_thinking or state.game_over or state.current_player != ai_player_id:
+		return
+	ai_thinking = true
+	_clear_selection()
+	_after_turn_state_changed(false)
+	await get_tree().create_timer(0.25).timeout
+	var report = ai_controller.take_turn(state, ai_player_id)
+	state.last_event = "电脑：生产 %d，移动 %d，攻击 %d，发展 %d" % [
+		int(report.get("produced", 0)),
+		int(report.get("moved", 0)),
+		int(report.get("attacked", 0)),
+		int(report.get("developed", 0))
+	]
+	_after_turn_state_changed(false)
+	await get_tree().create_timer(0.25).timeout
+	if not state.game_over and state.current_player == ai_player_id:
+		var automatic_attacks = state.end_turn()
+		if automatic_attacks > 0 or int(report.get("attacked", 0)) > 0:
+			_play_sfx("cannon")
+	ai_thinking = false
+	_clear_undo_history()
+	_after_turn_state_changed(not state.game_over)
 
 func _on_restart_pressed() -> void:
+	ai_thinking = false
 	_clear_selection()
 	formations.clear()
 	if game_over_panel != null:
@@ -1107,7 +1187,7 @@ func _on_restart_pressed() -> void:
 	_after_turn_state_changed(true)
 
 func _on_player_count_pressed(count: int) -> void:
-	if online_connected:
+	if online_connected or vs_ai:
 		return
 	player_count = clampi(count, 2, 4)
 	_clear_selection()
@@ -1136,6 +1216,8 @@ func _sync_board_view_player() -> void:
 func _local_view_player() -> int:
 	if online_connected and online_player_id >= 0:
 		return online_player_id
+	if vs_ai:
+		return 0
 	return state.current_player
 
 func _refresh_ui() -> void:
@@ -1147,6 +1229,8 @@ func _refresh_ui() -> void:
 	var online_text = ""
 	if online_connected:
 		online_text = "   联机房间 %s   你是%s" % [online_room_id, _player_name(online_player_id)]
+	elif vs_ai:
+		online_text = "   人机对战%s" % ("   电脑思考中" if ai_thinking else "")
 	status_label.text = "%s玩家%d   回合 %d   🪙 %.2f (+%.2f/回合)%s" % [_player_color_prefix(state.current_player), state.current_player + 1, state.turn, float(player["gold"]), _current_income(state.current_player), online_text]
 	if surrender_button != null:
 		surrender_button.disabled = not _can_control_current_turn()
@@ -1154,6 +1238,7 @@ func _refresh_ui() -> void:
 		end_turn_button.disabled = not _can_control_current_turn()
 	if undo_button != null:
 		undo_button.disabled = undo_history.is_empty() or not _can_control_current_turn()
+	_refresh_unit_bottom_actions()
 	_refresh_action_panel()
 
 func _current_income(pid: int) -> float:
@@ -1211,13 +1296,61 @@ func _make_action_button(text: String) -> Button:
 func _bind_action_hover(control: Control, text: String) -> void:
 	control.tooltip_text = text
 	control.mouse_entered.connect(func():
-		info_label.text = text
+		_show_hover_info(text.split("\n"))
 	)
+	control.mouse_exited.connect(_hide_hover_info)
+
+func _refresh_unit_bottom_actions() -> void:
+	if unit_bottom_actions == null:
+		return
+	for child in unit_bottom_actions.get_children():
+		unit_bottom_actions.remove_child(child)
+		child.queue_free()
+	unit_bottom_actions.visible = false
+	if selected_unit_id < 0 or not _can_control_current_turn():
+		return
+	var unit = state.get_unit_by_id(selected_unit_id)
+	if unit.is_empty() or int(unit.get("pid", -1)) != state.current_player:
+		return
+	unit_bottom_actions.visible = true
+	var unit_type = str(unit.get("type", ""))
+	var current_equip = str(unit.get("equip", ""))
+	if not current_equip.is_empty():
+		var equipped = Label.new()
+		equipped.text = "装备：%s" % current_equip
+		equipped.tooltip_text = _unit_info_text(unit_type)
+		unit_bottom_actions.add_child(equipped)
+	else:
+		var unlocked: Array = []
+		for equip in db.equipment_for(unit_type):
+			var equip_name = str(equip.get("name", ""))
+			if state.players[state.current_player]["equipment"].has(state.equipment_key(unit_type, equip_name)):
+				unlocked.append(equip)
+		if unlocked.is_empty():
+			var none = Label.new()
+			none.text = "装备：无"
+			unit_bottom_actions.add_child(none)
+		else:
+			for equip in unlocked:
+				var equip_name = str(equip.get("name", ""))
+				var equip_button = Button.new()
+				equip_button.text = "%s  %.1f 金" % [equip_name, float(equip.get("cost", 0.0))]
+				equip_button.tooltip_text = _equipment_info_text(unit_type, equip)
+				equip_button.disabled = not state.can_equip_unit(unit, equip_name)
+				var captured_unit_id = int(unit["id"])
+				var captured_equip_name = equip_name
+				equip_button.pressed.connect(func(): _on_equip_unit_pressed(captured_unit_id, captured_equip_name))
+				unit_bottom_actions.add_child(equip_button)
+	var skip = Button.new()
+	skip.text = "待机"
+	skip.tooltip_text = "结束该单位本回合的行动"
+	skip.pressed.connect(func(): _on_skip_unit_pressed(int(unit["id"])))
+	unit_bottom_actions.add_child(skip)
 
 func _refresh_action_panel() -> void:
 	for child in action_panel.get_children():
 		child.queue_free()
-	var should_show = selected_unit_id >= 0 or selected_building_id >= 0 or not selected_group_unit_ids.is_empty() or formation_menu_open or build_mode == "资源采集器" or (online_connected and not _can_control_current_turn())
+	var should_show = selected_building_id >= 0 or not selected_group_unit_ids.is_empty() or formation_menu_open or not _can_control_current_turn()
 	if action_container_panel != null:
 		action_container_panel.visible = game_started and should_show
 	if not should_show:
@@ -1246,30 +1379,14 @@ func _refresh_action_panel() -> void:
 		group_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		action_panel.add_child(group_label)
 		return
-	if selected_unit_id >= 0:
-		var unit = state.get_unit_by_id(selected_unit_id)
-		if not unit.is_empty():
-			var label = Label.new()
-			label.text = "已选单位：%s\nHP %.1f / %.1f  护甲 %.1f\n伤害 %.1f  射程 %.1f  移速 %d\n剩余攻击：%d / %d" % [
-				unit["type"],
-				float(unit["hp"]),
-				float(unit["max_hp"]),
-				float(unit["armor"]),
-				float(unit["damage"]),
-				float(unit["range"]),
-				int(unit["speed"]),
-				int(unit["remaining_attacks"]),
-				int(unit["attacks"])
-			]
-			action_panel.add_child(label)
-			_add_unit_equip_buttons(unit)
-			var skip = _make_action_button("待机")
-			skip.pressed.connect(func(): _on_skip_unit_pressed(int(unit["id"])))
-			action_panel.add_child(skip)
-		return
 	if online_connected and not _can_control_current_turn():
 		var wait = Label.new()
 		wait.text = "联机中，等待 %s 操作。" % _player_name(state.current_player)
+		action_panel.add_child(wait)
+		return
+	if vs_ai and not _can_control_current_turn():
+		var wait = Label.new()
+		wait.text = "电脑正在行动……"
 		action_panel.add_child(wait)
 		return
 	if selected_building_id >= 0:
@@ -1670,7 +1787,11 @@ func _save_settlement_png() -> void:
 			game_over_status_label.text = "保存失败：" + str(err)
 
 func _can_control_current_turn() -> bool:
-	return not online_connected or online_player_id == state.current_player
+	if online_connected:
+		return online_player_id == state.current_player
+	if vs_ai:
+		return not ai_thinking and state.current_player != ai_player_id
+	return true
 
 func _notify_online(reason: String) -> void:
 	if not online_connected or online_socket == null or online_player_id < 0:

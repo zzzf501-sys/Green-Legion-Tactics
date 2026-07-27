@@ -112,6 +112,11 @@ func set_build_tiles(tiles: Array[Vector2i], color: Color, income: float = -1.0)
 	build_tile_income = income
 	queue_redraw()
 
+func build_preview_tile() -> Vector2i:
+	if build_tiles.has(hover_tile):
+		return hover_tile
+	return Vector2i(-1, -1)
+
 func clear_selection() -> void:
 	selected_group_unit_ids.clear()
 	var empty_moves: Array[Vector2i] = []
@@ -271,8 +276,11 @@ func _draw_terrain() -> void:
 				draw_texture_rect(texture, rect, false)
 
 func _draw_overlays() -> void:
-	for pos in build_tiles:
+	var preview_tile = build_preview_tile()
+	if preview_tile.x >= 0:
+		var pos = preview_tile
 		var rect = tile_rect(pos).grow(-3)
+		draw_rect(rect, Color(build_color.r, build_color.g, build_color.b, 0.10), true)
 		draw_rect(rect, Color(build_color.r, build_color.g, build_color.b, 0.96), false, max(2.0, 2.0 * zoom))
 		if build_tile_income >= 0.0:
 			_draw_build_income_badge(rect, build_tile_income)
@@ -298,14 +306,23 @@ func _draw_overlays() -> void:
 
 func _draw_build_income_badge(tile: Rect2, income: float) -> void:
 	var badge_height = clampf(17.0 * zoom, 14.0, 20.0)
-	var badge = Rect2(tile.position + Vector2(2.0, 2.0), Vector2(max(38.0, tile.size.x - 4.0), badge_height))
+	var font_size = int(clampf(11.0 * zoom, 9.0, 13.0))
+	var income_text = _format_build_income(income)
+	var text_width = ThemeDB.fallback_font.get_string_size(income_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var badge_width = max(tile.size.x - 4.0, 21.0 + text_width)
+	var badge_x = clampf(tile.position.x + 2.0, 2.0, max(2.0, viewport_size.x - badge_width - 2.0))
+	var badge = Rect2(Vector2(badge_x, tile.position.y + 2.0), Vector2(badge_width, badge_height))
 	draw_rect(badge, Color(0.025, 0.03, 0.06, 0.88), true)
 	draw_rect(badge, Color(0.92, 0.70, 0.18, 0.92), false, 1.0)
 	var coin_center = Vector2(badge.position.x + 8.0, badge.position.y + badge.size.y * 0.5)
 	draw_circle(coin_center, clampf(4.0 * zoom, 3.0, 5.0), Color(0.96, 0.73, 0.16))
 	draw_circle(coin_center, clampf(2.0 * zoom, 1.5, 3.0), Color(1.0, 0.88, 0.38), false, 1.0)
-	var font_size = int(clampf(11.0 * zoom, 9.0, 13.0))
-	draw_string(ThemeDB.fallback_font, Vector2(badge.position.x + 15.0, badge.position.y + badge.size.y - 4.0), "+%.2f" % income, HORIZONTAL_ALIGNMENT_LEFT, badge.size.x - 17.0, font_size, Color(1.0, 0.91, 0.56))
+	draw_string(ThemeDB.fallback_font, Vector2(badge.position.x + 15.0, badge.position.y + badge.size.y - 4.0), income_text, HORIZONTAL_ALIGNMENT_LEFT, text_width + 2.0, font_size, Color(1.0, 0.91, 0.56))
+
+func _format_build_income(income: float) -> String:
+	var text = "+%.2f" % income
+	text = text.trim_suffix("0").trim_suffix("0").trim_suffix(".")
+	return text
 
 func _draw_buildings() -> void:
 	var viewer = _view_player()

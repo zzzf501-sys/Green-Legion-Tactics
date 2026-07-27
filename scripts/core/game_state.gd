@@ -250,6 +250,10 @@ func _nearest_free_tile(origin: Vector2i) -> Vector2i:
 	return Vector2i(-1, -1)
 
 func _add_unit(unit_type: String, pid: int, pos: Vector2i) -> Dictionary:
+	if not in_bounds(pos) or not occupant_at(pos).is_empty():
+		pos = _nearest_free_unit_tile(pos)
+		if pos == Vector2i(-1, -1):
+			return {}
 	var data = db.unit_data(unit_type)
 	var unit = {
 		"id": next_unit_id,
@@ -282,6 +286,8 @@ func _add_unit(unit_type: String, pid: int, pos: Vector2i) -> Dictionary:
 	return unit
 
 func _add_building(building_type: String, pid: int, pos: Vector2i, tier: int) -> Dictionary:
+	if not in_bounds(pos) or not occupant_at(pos).is_empty():
+		return {}
 	var data = db.building_data(building_type)
 	var stats = data
 	if data.has("tiers"):
@@ -369,8 +375,7 @@ func move_tiles_for(unit: Dictionary, ignore_moved: bool = false, ignored_unit_i
 			var blocking_unit = unit_at(next)
 			if not blocking_unit.is_empty() and not ignored_unit_ids.has(int(blocking_unit.get("id", -1))):
 				continue
-			var building = building_at(next)
-			if not building.is_empty() and building["type"] == "大本营" and int(building["pid"]) != int(unit["pid"]):
+			if not building_at(next).is_empty():
 				continue
 			var next_cost = float(costs[current]) + _step_cost(unit, current, next)
 			if next_cost > budget:
@@ -443,9 +448,10 @@ func move_unit_group(unit_ids: Array[int], target: Vector2i) -> int:
 		var destination: Vector2i = assignments[unit_id]
 		if destination == unit["pos"]:
 			continue
+		if not building_at(destination).is_empty():
+			continue
 		unit["pos"] = destination
 		unit["moved"] = true
-		_capture_building_at(unit["pos"], int(unit["pid"]))
 		moved_count += 1
 	if moved_count > 0:
 		update_vision()
@@ -553,11 +559,12 @@ func move_unit(unit_id: int, target: Vector2i) -> bool:
 	var unit = get_unit_by_id(unit_id)
 	if not is_current_players_unit(unit):
 		return false
+	if not building_at(target).is_empty():
+		return false
 	if not move_tiles_for(unit).has(target):
 		return false
 	unit["pos"] = target
 	unit["moved"] = true
-	_capture_building_at(target, int(unit["pid"]))
 	update_vision()
 	return true
 
@@ -569,26 +576,6 @@ func skip_unit(unit_id: int) -> bool:
 	unit["done"] = true
 	unit["remaining_attacks"] = 0
 	return true
-
-func _capture_building_at(pos: Vector2i, pid: int) -> void:
-	var building = building_at(pos)
-	if building.is_empty():
-		return
-	if building["type"] == "大本营":
-		return
-	if int(building.get("pid", -1)) == pid:
-		return
-	if bool(building.get("upgrading", false)):
-		building["upgrading"] = false
-		building["up_timer"] = 0
-		if building["type"] == "据点" and int(building.get("outpost_tier", 0)) <= 0:
-			building["outpost_branch"] = ""
-	building["pid"] = pid
-	building["captured"] = true
-	building["hp"] = max(1.0, float(building.get("max_hp", 1.0)) * 0.5)
-	building["turns_since_damage"] = 0
-	building["damaged_this_turn"] = false
-	update_vision()
 
 func attack(unit_id: int, target_pos: Vector2i) -> bool:
 	var unit = get_unit_by_id(unit_id)
@@ -625,8 +612,30 @@ func _apply_damage(target: Dictionary, damage: float, killer_pid: int = -1) -> v
 	if target.has("type") and target.has("speed"):
 		_record_kill_value(killer_pid, str(target.get("type", "")))
 		units.erase(target)
+	elif str(target.get("type", "")) == "据点" and killer_pid >= 0:
+		_capture_defeated_outpost(target, killer_pid)
 	else:
 		buildings.erase(target)
+
+func _capture_defeated_outpost(outpost: Dictionary, new_pid: int) -> void:
+	# Outposts change hands instead of being destroyed. A defeated T2 outpost
+	# first falls back to its original T1 form, matching the HTML rules.
+	outpost["upgrading"] = false
+	outpost["up_timer"] = 0
+	outpost["outpost_tier"] = 0
+	outpost["outpost_branch"] = ""
+	var stats = db.building_data("据点")
+	outpost["tier"] = 0
+	outpost["max_hp"] = float(stats.get("hp", 20.0))
+	outpost["armor"] = float(stats.get("armor", 0.0))
+	outpost["gold"] = float(stats.get("gold", 4.5))
+	outpost["pid"] = new_pid
+	outpost["captured"] = true
+	outpost["hp"] = float(outpost["max_hp"]) * 0.5
+	outpost["turns_since_damage"] = 0
+	# Preserve the hit marker so the newly captured outpost cannot heal on its
+	# first owner turn immediately after being defeated.
+	outpost["damaged_this_turn"] = true
 
 func _apply_blast(attacker: Dictionary, center: Vector2i) -> void:
 	var radius = float(attacker.get("blast", 0.0))
@@ -1352,10 +1361,36 @@ func load_from_dict(data: Dictionary) -> void:
 			building["turns_since_damage"] = 0
 		if not building.has("damaged_this_turn"):
 			building["damaged_this_turn"] = false
+	_resolve_unit_building_overlaps()
 	game_over = bool(data.get("game_over", false))
 	winner = int(data.get("winner", -1))
 	last_event = str(data.get("last_event", ""))
 	update_vision()
+
+func _resolve_unit_building_overlaps() -> void:
+	var stranded: Array[Dictionary] = []
+	for unit in units:
+		if building_at(unit["pos"]).is_empty():
+			continue
+		var replacement = _nearest_free_unit_tile(unit["pos"])
+		if replacement != Vector2i(-1, -1):
+			unit["pos"] = replacement
+		else:
+			stranded.append(unit)
+	for unit in stranded:
+		units.erase(unit)
+
+func _nearest_free_unit_tile(origin: Vector2i) -> Vector2i:
+	var max_radius = max(width, height)
+	for radius in range(1, max_radius + 1):
+		for y in range(origin.y - radius, origin.y + radius + 1):
+			for x in range(origin.x - radius, origin.x + radius + 1):
+				if abs(x - origin.x) != radius and abs(y - origin.y) != radius:
+					continue
+				var pos = Vector2i(x, y)
+				if in_bounds(pos) and unit_at(pos).is_empty() and building_at(pos).is_empty():
+					return pos
+	return Vector2i(-1, -1)
 
 func _pack_entities(source: Array) -> Array:
 	var result = []

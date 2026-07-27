@@ -10,11 +10,29 @@ func _initialize() -> void:
 	await process_frame
 	ok = _expect(main.state != null, "main state exists") and ok
 	ok = _expect(main.board != null, "main board exists") and ok
-	ok = _expect(main.info_panel != null and not (main.info_panel is PanelContainer), "bottom info text holder has no panel background") and ok
+	ok = _expect(main.info_panel is PanelContainer and not main.info_panel.visible, "hover information card starts hidden") and ok
 	ok = _expect(main.menu_layer != null and main.menu_layer.visible, "main menu visible on boot") and ok
 	ok = _expect(main.menu_buttons != null and main.menu_buttons.visible, "main menu buttons visible on boot") and ok
+	ok = _expect(_collect_text(main.menu_buttons).find("人机对战") >= 0, "main menu exposes AI battle mode") and ok
 	ok = _expect(not main.board.visible, "board hidden behind menu on boot") and ok
 	ok = _expect(not main.game_settings_button.visible, "in-game settings button stays hidden on main menu") and ok
+	main._start_ai_game()
+	ok = _expect(main.vs_ai and main.player_count == 2, "AI battle starts as a two-player match") and ok
+	ok = _expect(main._local_view_player() == 0, "AI battle keeps the human fog perspective") and ok
+	main._on_end_turn_pressed()
+	await create_timer(0.8).timeout
+	ok = _expect(main.state.current_player == 0 and not main.ai_thinking, "AI completes its turn and returns control") and ok
+	ok = _expect(_count_units_for(main, 1) >= 2, "AI produces an opening force") and ok
+	ok = _expect(main._can_control_current_turn(), "human can act after AI turn") and ok
+	main._return_to_main_menu()
+	ok = _expect(not main.vs_ai and main.menu_buttons.visible, "leaving AI battle returns to normal menu state") and ok
+	main._show_online_menu()
+	ok = _expect(main.online_menu_panel.visible, "online menu opens") and ok
+	ok = _expect(main.online_room_input.visible and main.online_room_input.placeholder_text.find("输入房间号") >= 0, "online menu exposes room id input") and ok
+	main.online_room_input.text = ""
+	main._on_online_join_pressed()
+	ok = _expect(main.online_status_label.text == "先输入房间号", "empty room id is rejected with a visible message") and ok
+	main._show_menu_home()
 	var viewport_width = main.get_viewport().get_visible_rect().size.x
 	ok = _expect(absf(main.game_encyclopedia_button.get_global_rect().end.x - viewport_width) <= 2.0, "encyclopedia button aligns with top-right edge") and ok
 	ok = _expect(absf(main.game_settings_button.get_global_rect().end.x - main.game_encyclopedia_button.get_global_rect().position.x) <= 2.0, "settings button sits directly left of encyclopedia") and ok
@@ -57,7 +75,7 @@ func _initialize() -> void:
 	main._start_local_game(2)
 	ok = _expect(not main.menu_layer.visible and main.board.visible, "local game starts from menu") and ok
 	ok = _expect(main.game_settings_button.visible, "in-game settings button is visible") and ok
-	ok = _expect(main.hud_bottom_panel.get_child_count() == 3, "bottom bar only keeps tactical controls") and ok
+	ok = _expect(main.hud_bottom_panel.get_child_count() == 4 and not main.unit_bottom_actions.visible, "bottom bar reserves a hidden slot for contextual unit actions") and ok
 	main._toggle_game_settings()
 	ok = _expect(main.settings_panel.visible and main.settings_game_actions.visible, "gear opens in-game settings and match controls") and ok
 	var in_game_settings_text = _collect_text(main.settings_panel)
@@ -111,10 +129,23 @@ func _initialize() -> void:
 		main._on_tile_clicked(own_hq["pos"])
 		ok = _expect(main.selected_building_id == int(own_hq["id"]), "click hq selects building") and ok
 		ok = _expect(main.board.selected_building_id == int(own_hq["id"]), "board building selection set") and ok
+		main._on_tile_hovered(own_hq["pos"])
+		ok = _expect(main.info_panel.visible and main.info_label.text.find("建筑") >= 0 and main.info_label.text.find("HP") >= 0, "own building hover shows building stats") and ok
 		var tier1_actions = _collect_text(main.action_panel)
 		ok = _expect(tier1_actions.find("反器械枪") < 0 and tier1_actions.find("穿甲炮") < 0, "locked equipment remains hidden before hq upgrade") and ok
 		ok = _expect(tier1_actions.find("SpaceX") < 0, "locked strategic technology remains hidden before hq upgrade") and ok
 		main.state.players[main.state.current_player]["gold"] = 30.0
+		main._on_build_collector_pressed(int(own_hq["id"]))
+		ok = _expect(main.build_mode == "资源采集器" and not main.action_container_panel.visible, "collector placement hides the blocking action panel") and ok
+		ok = _expect(not main.board.build_tiles.is_empty(), "collector placement keeps valid tiles for hit testing") and ok
+		if not main.board.build_tiles.is_empty():
+			var valid_preview: Vector2i = main.board.build_tiles[0]
+			main.board.hover_tile = valid_preview
+			ok = _expect(main.board.build_preview_tile() == valid_preview, "collector preview follows the hovered valid tile") and ok
+			main.board.hover_tile = own_hq["pos"]
+			ok = _expect(main.board.build_preview_tile() == Vector2i(-1, -1), "collector preview stays hidden on invalid tiles") and ok
+		main._clear_selection()
+		main._refresh_ui()
 		main._on_produce_pressed(int(own_hq["id"]), "士兵")
 		ok = _expect(main.state.units.size() == 1 and not main.undo_history.is_empty(), "produce action creates undo snapshot") and ok
 		main._on_undo_pressed()
@@ -133,6 +164,14 @@ func _initialize() -> void:
 		main.state.end_turn()
 		ok = _expect(not bool(collector.get("under_construction", false)) and float(collector.get("gold", 0.0)) > 0.0, "collector completes and produces income") and ok
 		main.board.setup(main.state, main.db)
+	var enemy_building: Dictionary = {}
+	for building in main.state.buildings:
+		if int(building.get("pid", -1)) != main.state.current_player and int(building.get("pid", -1)) >= 0:
+			enemy_building = building
+			break
+	if not enemy_building.is_empty():
+		main._on_tile_hovered(enemy_building["pos"])
+		ok = _expect(main.info_panel.visible and main.info_label.text.find("建筑") >= 0 and main.info_label.text.find("HP") >= 0, "visible enemy building hover shows owner and stats") and ok
 	var own_outpost: Dictionary = {}
 	for building in main.state.buildings:
 		if building["type"] == "据点":
@@ -162,9 +201,10 @@ func _initialize() -> void:
 		ok = _expect(main.selected_unit_id == int(own_unit["id"]), "click unit selects unit") and ok
 		ok = _expect(main.board.move_tiles.size() > 0, "unit selection has move tiles") and ok
 		ok = _expect(main.board.threat_tiles.is_empty(), "own unit selection does not show global threat overlay") and ok
-		ok = _expect(_collect_text(main.action_panel).find("护甲") >= 0, "selected unit panel shows armor") and ok
+		ok = _expect(not main.action_container_panel.visible, "selected unit no longer opens the blocking left panel") and ok
+		ok = _expect(main.unit_bottom_actions.visible and _collect_text(main.unit_bottom_actions).find("待机") >= 0, "selected unit actions sit beside formations") and ok
 		main._on_tile_hovered(own_unit["pos"])
-		ok = _expect(main.info_label.text.find("护甲") >= 0, "unit hover tooltip shows armor") and ok
+		ok = _expect(main.info_panel.visible and main.info_label.text.find("护甲") >= 0, "own unit hover card shows armor") and ok
 		var enemy_hover_pos = own_unit["pos"] + Vector2i(4, 0)
 		if not main.state.in_bounds(enemy_hover_pos) or not main.state.occupant_at(enemy_hover_pos).is_empty():
 			enemy_hover_pos = own_unit["pos"] + Vector2i(0, 4)
@@ -172,6 +212,7 @@ func _initialize() -> void:
 			var enemy_hover_unit = main.state._add_unit("士兵", 1, enemy_hover_pos)
 			main.state.update_vision()
 			main._on_tile_hovered(enemy_hover_unit["pos"])
+			ok = _expect(main.info_panel.visible and main.info_label.text.find("单位") >= 0 and main.info_label.text.find("HP") >= 0, "visible enemy hover shows unit stats") and ok
 			ok = _expect(main.board.hover_threat_tiles.size() > 0, "enemy hover shows threat range") and ok
 			ok = _expect(main.board.hover_threat_label.find("威胁范围") >= 0, "enemy hover labels threat range") and ok
 		main._on_tile_clicked(own_unit["pos"])
@@ -278,6 +319,13 @@ func _player_hq(main, pid: int) -> Dictionary:
 		if str(building.get("type", "")) == "大本营" and int(building.get("pid", -1)) == pid:
 			return building
 	return {}
+
+func _count_units_for(main, pid: int) -> int:
+	var count = 0
+	for unit in main.state.units:
+		if int(unit.get("pid", -1)) == pid:
+			count += 1
+	return count
 
 func _collect_text(node: Node) -> String:
 	var parts: Array[String] = []

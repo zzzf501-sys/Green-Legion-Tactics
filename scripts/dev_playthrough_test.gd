@@ -15,8 +15,7 @@ func _initialize() -> void:
 	main._apply_resolution(Vector2i(1600, 900))
 	ok = _expect(main.selected_resolution == Vector2i(1600, 900), "resolution setting applied") and ok
 	ok = _expect(main.hud_top_panel.size.x > 0 and main.board.viewport_size.x > 0, "layout remains valid after resolution change") and ok
-	ok = _expect(main.info_panel.position.y + main.info_panel.size.y <= main.hud_bottom_panel.position.y - 4.0, "info panel stays above bottom buttons") and ok
-	ok = _expect(main.info_label.size.y >= 70.0, "info label has enough vertical room") and ok
+	ok = _expect(main.info_panel is PanelContainer and not main.info_panel.visible, "hover card remains hidden until an entity is inspected") and ok
 
 	var hq: Dictionary = _find_hq(main, 0)
 	ok = _expect(not hq.is_empty(), "player hq exists") and ok
@@ -26,6 +25,8 @@ func _initialize() -> void:
 	main._on_tile_clicked(hq["pos"])
 	ok = _expect(main.selected_building_id == int(hq["id"]), "hq selectable") and ok
 	ok = _expect(main.action_container_panel.visible, "left action panel visible after selecting hq") and ok
+	main._on_tile_hovered(hq["pos"])
+	ok = _expect(main.info_panel.visible and main.info_panel.size.y >= 74.0, "building hover card has enough vertical room") and ok
 	ok = _expect(main.state.produce_unit(int(hq["id"]), "士兵"), "produce soldier") and ok
 	ok = _expect(main.state.units.size() == 1, "soldier spawned") and ok
 

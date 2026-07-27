@@ -14,6 +14,10 @@ func _initialize() -> void:
 	ok = _expect(main.menu_layer != null and main.menu_layer.visible, "main menu visible on boot") and ok
 	ok = _expect(main.menu_buttons != null and main.menu_buttons.visible, "main menu buttons visible on boot") and ok
 	ok = _expect(not main.board.visible, "board hidden behind menu on boot") and ok
+	ok = _expect(not main.game_settings_button.visible, "in-game settings button stays hidden on main menu") and ok
+	var viewport_width = main.get_viewport().get_visible_rect().size.x
+	ok = _expect(absf(main.game_encyclopedia_button.get_global_rect().end.x - viewport_width) <= 2.0, "encyclopedia button aligns with top-right edge") and ok
+	ok = _expect(absf(main.game_settings_button.get_global_rect().end.x - main.game_encyclopedia_button.get_global_rect().position.x) <= 2.0, "settings button sits directly left of encyclopedia") and ok
 	main._show_encyclopedia()
 	ok = _expect(main.encyclopedia_panel.visible, "encyclopedia opens") and ok
 	ok = _expect(not main.menu_buttons.visible, "menu buttons hidden behind encyclopedia") and ok
@@ -25,6 +29,11 @@ func _initialize() -> void:
 	ok = _expect(main.encyclopedia_content.get_parsed_text().find("装备研究") >= 0, "encyclopedia has equipment details") and ok
 	main._render_encyclopedia_chapter("ch2")
 	ok = _expect(main.encyclopedia_content.get_parsed_text().find("建筑大全") >= 0, "encyclopedia has buildings chapter") and ok
+	var building_text = main.encyclopedia_content.get_parsed_text()
+	ok = _expect(building_text.find("战斗型") >= 0 and building_text.find("30") >= 0 and building_text.find("0.5") >= 0, "encyclopedia shows combat outpost stats") and ok
+	ok = _expect(building_text.find("经济型") >= 0 and building_text.find("20") >= 0, "encyclopedia shows economic outpost stats") and ok
+	ok = _expect(main._building_action_info_text("outpost-combat").find("HP 30，护甲 0.5") >= 0, "combat outpost tooltip matches stats") and ok
+	ok = _expect(main._building_action_info_text("outpost-economic").find("HP 20，护甲 0") >= 0, "economic outpost tooltip matches stats") and ok
 	main._render_encyclopedia_chapter("ch3")
 	ok = _expect(main.encyclopedia_content.get_parsed_text().find("科技树") >= 0, "encyclopedia has tech chapter") and ok
 	ok = _expect(main.encyclopedia_content.get_parsed_text().find("SpaceX") >= 0, "encyclopedia has strategic tech") and ok
@@ -47,9 +56,18 @@ func _initialize() -> void:
 	main.local_fog_checkbox.button_pressed = false
 	main._start_local_game(2)
 	ok = _expect(not main.menu_layer.visible and main.board.visible, "local game starts from menu") and ok
+	ok = _expect(main.game_settings_button.visible, "in-game settings button is visible") and ok
+	ok = _expect(main.hud_bottom_panel.get_child_count() == 3, "bottom bar only keeps tactical controls") and ok
+	main._toggle_game_settings()
+	ok = _expect(main.settings_panel.visible and main.settings_game_actions.visible, "gear opens in-game settings and match controls") and ok
+	var in_game_settings_text = _collect_text(main.settings_panel)
+	ok = _expect(in_game_settings_text.find("分辨率") >= 0 and in_game_settings_text.find("音乐音量") >= 0 and in_game_settings_text.find("音效音量") >= 0, "in-game settings include display and audio controls") and ok
+	ok = _expect(in_game_settings_text.find("重新开始") >= 0 and in_game_settings_text.find("返回主菜单") >= 0 and in_game_settings_text.find("投降") >= 0, "in-game settings include match management controls") and ok
+	main._close_settings_panel()
+	ok = _expect(not main.settings_panel.visible, "in-game settings can be closed") and ok
 	ok = _expect(not main.state.fog_enabled, "local hotseat can disable fog of war") and ok
 	ok = _expect(main.state.is_visible(0, Vector2i(main.state.width - 1, main.state.height - 1)), "disabled fog reveals full map") and ok
-	ok = _expect(main.state.width == 60 and main.state.height == 30, "two-player map size matches original") and ok
+	ok = _expect(main.state.width == 48 and main.state.height == 24, "two-player map uses the fast-match size") and ok
 	ok = _expect(main.state.units.size() == 0, "local game starts without free units") and ok
 	var player0_hq = _player_hq(main, 0)
 	var player1_hq = _player_hq(main, 1)
@@ -93,6 +111,9 @@ func _initialize() -> void:
 		main._on_tile_clicked(own_hq["pos"])
 		ok = _expect(main.selected_building_id == int(own_hq["id"]), "click hq selects building") and ok
 		ok = _expect(main.board.selected_building_id == int(own_hq["id"]), "board building selection set") and ok
+		var tier1_actions = _collect_text(main.action_panel)
+		ok = _expect(tier1_actions.find("反器械枪") < 0 and tier1_actions.find("穿甲炮") < 0, "locked equipment remains hidden before hq upgrade") and ok
+		ok = _expect(tier1_actions.find("SpaceX") < 0, "locked strategic technology remains hidden before hq upgrade") and ok
 		main.state.players[main.state.current_player]["gold"] = 30.0
 		main._on_produce_pressed(int(own_hq["id"]), "士兵")
 		ok = _expect(main.state.units.size() == 1 and not main.undo_history.is_empty(), "produce action creates undo snapshot") and ok
@@ -160,9 +181,12 @@ func _initialize() -> void:
 		if not main.board.move_tiles.is_empty():
 			move_target = main.board.move_tiles[0]
 		if main.state.in_bounds(move_target):
+			main.sfx_player.stop()
+			main.sfx_player.stream = null
 			main._on_tile_clicked(move_target)
 			var moved_unit = main.state.get_unit_by_id(int(own_unit["id"]))
 			ok = _expect(not moved_unit.is_empty() and moved_unit["pos"] == move_target, "ui click moves unit") and ok
+			ok = _expect(main.sfx_player.stream == null, "unit movement does not play a sound effect") and ok
 			ok = _expect(not main.undo_history.is_empty(), "unit move creates undo snapshot") and ok
 			main._on_undo_pressed()
 			var undone_unit = main.state.get_unit_by_id(int(own_unit["id"]))
@@ -178,8 +202,48 @@ func _initialize() -> void:
 			own_unit["remaining_attacks"] = 1
 			main._on_tile_clicked(own_unit["pos"])
 			ok = _expect(main.board.attack_tiles.has(target_pos), "ui marks adjacent neutral building attackable") and ok
+			main.sfx_player.stop()
+			main.sfx_player.stream = null
 			main._on_tile_clicked(target_pos)
 			ok = _expect(float(neutral.get("hp", 5.0)) < 5.0, "ui click attacks neutral building") and ok
+			ok = _expect(main.sfx_player.stream != null, "unit attack plays a sound effect") and ok
+	var group_units: Array[int] = []
+	var group_anchor = own_hq["pos"] + Vector2i(2, 2)
+	for offset in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1)]:
+		var spawn_pos: Vector2i = group_anchor + offset
+		if main.state.in_bounds(spawn_pos) and main.state.occupant_at(spawn_pos).is_empty():
+			var group_unit = main.state._add_unit("士兵", main.state.current_player, spawn_pos)
+			group_units.append(int(group_unit["id"]))
+	if group_units.size() >= 2:
+		var select_start = main.board.tile_rect(group_anchor).position + Vector2(2, 2)
+		var select_end = main.board.tile_rect(group_anchor + Vector2i(1, 1)).end - Vector2(2, 2)
+		_send_left_drag(main.board, select_start, select_end, true, false)
+		ok = _expect(main.board.selected_group_unit_ids.size() == group_units.size(), "box selection is shown on board") and ok
+		var before_positions: Array[Vector2i] = []
+		for unit_id in group_units:
+			before_positions.append(main.state.get_unit_by_id(unit_id)["pos"])
+		var group_target = group_anchor + Vector2i(5, 0)
+		_send_left_click(main.board, main.board.tile_rect(group_target).get_center())
+		var after_positions: Array[Vector2i] = []
+		for unit_id in group_units:
+			after_positions.append(main.state.get_unit_by_id(unit_id)["pos"])
+		ok = _expect(after_positions != before_positions, "group move advances units toward target") and ok
+		var unique_positions = {}
+		for pos in after_positions:
+			unique_positions["%d,%d" % [pos.x, pos.y]] = true
+		ok = _expect(unique_positions.size() == after_positions.size(), "group move assigns non-overlapping destinations") and ok
+		var min_pos: Vector2i = after_positions[0]
+		var max_pos: Vector2i = after_positions[0]
+		for pos in after_positions:
+			min_pos = Vector2i(min(min_pos.x, pos.x), min(min_pos.y, pos.y))
+			max_pos = Vector2i(max(max_pos.x, pos.x), max(max_pos.y, pos.y))
+		_send_left_drag(main.board, main.board.tile_rect(min_pos).position + Vector2(2, 2), main.board.tile_rect(max_pos).end - Vector2(2, 2), false, true)
+		ok = _expect(main.pending_formation_unit_ids.size() == group_units.size(), "alt-left box selection starts formation creation") and ok
+		main.formation_name_input.text = "测试编队"
+		main._confirm_formation_name()
+		ok = _expect(main.formations.size() == 1 and main.formations[0]["name"] == "测试编队", "formation can be named and saved") and ok
+		main._select_formation(0)
+		ok = _expect(main.selected_group_unit_ids.size() == group_units.size(), "formation menu reselects living units") and ok
 	main._clear_selection()
 	ok = _expect(main.selected_unit_id == -1 and main.selected_building_id == -1, "main selection clears") and ok
 	main._on_surrender_pressed()
@@ -188,9 +252,12 @@ func _initialize() -> void:
 	ok = _expect(main.game_over_panel.get_child_count() > 0, "settlement panel has content") and ok
 	main._on_restart_pressed()
 	ok = _expect(not main.state.game_over and not main.game_over_panel.visible, "restart clears settlement") and ok
+	main._on_player_count_pressed(3)
+	ok = _expect(main.state.players.size() == 3, "main switches to three players") and ok
+	ok = _expect(main.state.width == 48 and main.state.height == 48, "three-player map uses the fast-match size") and ok
 	main._on_player_count_pressed(4)
 	ok = _expect(main.state.players.size() == 4, "main switches to four players") and ok
-	ok = _expect(main.state.width == 80 and main.state.height == 80, "four-player map size matches original") and ok
+	ok = _expect(main.state.width == 60 and main.state.height == 60, "four-player map uses the fast-match size") and ok
 	main._return_to_main_menu()
 	ok = _expect(main.menu_layer.visible and main.menu_buttons.visible and not main.board.visible, "return to main menu from game") and ok
 	main.queue_free()
@@ -221,3 +288,36 @@ func _collect_text(node: Node) -> String:
 	for child in node.get_children():
 		parts.append(_collect_text(child))
 	return "\n".join(parts)
+
+func _send_left_drag(board, start: Vector2, finish: Vector2, ctrl: bool, alt: bool) -> void:
+	var press = InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = start
+	press.ctrl_pressed = ctrl
+	press.alt_pressed = alt
+	board._unhandled_input(press)
+	var motion = InputEventMouseMotion.new()
+	motion.position = finish
+	motion.ctrl_pressed = ctrl
+	motion.alt_pressed = alt
+	board._unhandled_input(motion)
+	var release = InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = finish
+	release.ctrl_pressed = ctrl
+	release.alt_pressed = alt
+	board._unhandled_input(release)
+
+func _send_left_click(board, position: Vector2) -> void:
+	var press = InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = position
+	board._unhandled_input(press)
+	var release = InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = position
+	board._unhandled_input(release)

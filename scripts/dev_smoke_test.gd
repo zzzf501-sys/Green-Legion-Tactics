@@ -13,14 +13,15 @@ func _initialize() -> void:
 	ok = _expect(db.buildings.has("大本营"), "hq exists") and ok
 
 	var state = GameStateScript.new()
-	state.setup(db, 60, 30, 2)
+	state.setup(db, 48, 24, 2)
 	ok = _expect(state.players.size() == 2, "two players spawned") and ok
-	ok = _expect(state.width == 60 and state.height == 30, "two-player map size matches original") and ok
+	ok = _expect(state.width == 48 and state.height == 24, "two-player map uses the fast-match size") and ok
 	ok = _expect(state.units.size() == 0, "no free starting units") and ok
 	ok = _expect(state.buildings.size() == 5, "starting buildings spawned") and ok
 	var terrain_signature = JSON.stringify(state.terrain_grid)
 	var terrain_counts = _terrain_counts(state)
 	ok = _expect(int(terrain_counts.get("hill", 0)) + int(terrain_counts.get("highland", 0)) + int(terrain_counts.get("mountain", 0)) > 0, "random height terrain spawned") and ok
+	ok = _expect(is_equal_approx(state.next_collector_income(0), 4.5), "first collector preview shows 4.50 gold") and ok
 	state.new_game()
 	ok = _expect(JSON.stringify(state.terrain_grid) != terrain_signature, "terrain changes between games") and ok
 
@@ -69,10 +70,21 @@ func _initialize() -> void:
 	ok = _expect(_check_action_order_rules(db), "move-then-attack and attack-then-no-move rules") and ok
 	ok = _expect(_check_blast_splashes_from_building_target(db), "blast hits units around building target") and ok
 	ok = _expect(_check_outpost_produces_while_upgrading(db), "outpost can produce while upgrading") and ok
+	ok = _expect(_check_collector_income_sequence(db), "collector income preview follows diminishing sequence") and ok
+	ok = _expect(_check_air_units_ignore_terrain_range(db), "air units ignore terrain range modifier") and ok
+	ok = _expect(_check_outpost_upgrade_resets_on_recapture(db), "outpost upgrade resets on recapture") and ok
+	ok = _expect(_check_outpost_balance_values(db), "outpost tier stats match balance rules") and ok
+	ok = _expect(_check_end_turn_auto_attack(db), "end turn automatically uses remaining attacks") and ok
+	var state3 = GameStateScript.new()
+	state3.setup(db, 48, 48, 3)
+	ok = _expect(state3.buildings.size() == 7, "three-player map spawns four neutral outposts") and ok
+	ok = _expect(_check_neutral_outpost_access_balance(state3, 1.5), "three-player outposts are equally accessible") and ok
 	var state4 = GameStateScript.new()
-	state4.setup(db, 80, 80, 4)
+	state4.setup(db, 60, 60, 4)
 	ok = _expect(state4.players.size() == 4, "four players spawned") and ok
-	ok = _expect(state4.width == 80 and state4.height == 80, "four-player map size matches original") and ok
+	ok = _expect(state4.width == 60 and state4.height == 60, "four-player map uses the fast-match size") and ok
+	ok = _expect(state4.buildings.size() == 9, "four-player map spawns five neutral outposts") and ok
+	ok = _expect(_check_neutral_outpost_access_balance(state4, 1.0), "four-player outposts are equally accessible") and ok
 	ok = _expect(state4.units.size() == 0, "four-player no free starting units") and ok
 	var board = BoardViewScript.new()
 	get_root().add_child(board)
@@ -89,6 +101,9 @@ func _initialize() -> void:
 	ok = _expect(board._texture_key_for_unit({"type": "坦克", "equip": ""}) == "坦克", "plain unit texture key") and ok
 	board.set_selection(-1, int(hq["id"]), empty_moves, empty_attacks)
 	ok = _expect(board.selected_building_id == int(hq["id"]), "building selection accepts typed empty ranges") and ok
+	var preview_tiles: Array[Vector2i] = [Vector2i(1, 1)]
+	board.set_build_tiles(preview_tiles, Color(0.15, 0.72, 1.0), state.next_collector_income(0))
+	ok = _expect(is_equal_approx(board.build_tile_income, 4.5), "collector build overlay receives gold income") and ok
 	board.clear_selection()
 	ok = _expect(board.selected_unit_id == -1 and board.selected_building_id == -1, "board selection clears") and ok
 	board.queue_free()
@@ -191,3 +206,122 @@ func _check_outpost_produces_while_upgrading(db) -> bool:
 	if not bool(outpost.get("upgrading", false)):
 		return false
 	return state.can_produce(outpost, "士兵")
+
+func _check_collector_income_sequence(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.players[0]["gold"] = 50.0
+	var hq: Dictionary = {}
+	for building in state.buildings:
+		if building["type"] == "大本营" and int(building["pid"]) == 0:
+			hq = building
+			break
+	if hq.is_empty() or not is_equal_approx(state.next_collector_income(0), 4.5):
+		return false
+	var build_pos: Vector2i = hq["pos"] + Vector2i(2, 0)
+	if not state.build_collector(int(hq["id"]), build_pos):
+		return false
+	return is_equal_approx(state.next_collector_income(0), 3.6)
+
+func _check_air_units_ignore_terrain_range(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.fog_enabled = false
+	state.units.clear()
+	state.buildings.clear()
+	for y in range(state.height):
+		for x in range(state.width):
+			state.terrain_grid[y][x] = "plain"
+	state.terrain_grid[5][5] = "mountain"
+	state.terrain_grid[5][9] = "plain"
+	state.current_player = 0
+	var fighter = state._add_unit("战斗机", 0, Vector2i(5, 5))
+	var target = state._add_unit("战斗机", 1, Vector2i(9, 5))
+	state.update_vision()
+	if state.attack_targets_for(fighter).has(target["pos"]):
+		return false
+	return is_equal_approx(state.effective_range(fighter, state.terrain_height(fighter["pos"]), state.terrain_height(target["pos"]), true), float(fighter["range"]))
+
+func _check_outpost_upgrade_resets_on_recapture(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.units.clear()
+	state.buildings.clear()
+	for y in range(state.height):
+		for x in range(state.width):
+			state.terrain_grid[y][x] = "plain"
+	state.current_player = 0
+	state.players[0]["tier"] = 2
+	state.players[0]["gold"] = 50.0
+	var outpost = state._add_building("据点", 0, Vector2i(6, 6), 0)
+	outpost["captured"] = true
+	state.update_vision()
+	if not state.upgrade_outpost(int(outpost["id"]), "economic"):
+		return false
+	if not bool(outpost.get("upgrading", false)) or int(outpost.get("up_timer", 0)) <= 0:
+		return false
+	state.current_player = 1
+	var enemy = state._add_unit("士兵", 1, Vector2i(5, 6))
+	state.update_vision()
+	if not state.move_unit(int(enemy["id"]), outpost["pos"]):
+		return false
+	return int(outpost.get("pid", -1)) == 1 and not bool(outpost.get("upgrading", false)) and int(outpost.get("up_timer", -1)) == 0 and str(outpost.get("outpost_branch", "")) == ""
+
+func _check_outpost_balance_values(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.units.clear()
+	state.buildings.clear()
+	state.current_player = 0
+	state.players[0]["tier"] = 2
+	state.players[0]["gold"] = 50.0
+	var tier1 = state._add_building("据点", 0, Vector2i(4, 4), 0)
+	if not is_equal_approx(float(tier1["max_hp"]), 20.0) or not is_equal_approx(float(tier1["armor"]), 0.0):
+		return false
+	var combat = state._add_building("据点", 0, Vector2i(6, 4), 0)
+	combat["outpost_branch"] = "combat"
+	state._finish_outpost_upgrade(combat)
+	if not is_equal_approx(float(combat["max_hp"]), 30.0) or not is_equal_approx(float(combat["armor"]), 0.5):
+		return false
+	var economic = state._add_building("据点", 0, Vector2i(8, 4), 0)
+	economic["outpost_branch"] = "economic"
+	state._finish_outpost_upgrade(economic)
+	return is_equal_approx(float(economic["max_hp"]), 20.0) and is_equal_approx(float(economic["armor"]), 0.0)
+
+func _check_end_turn_auto_attack(db) -> bool:
+	var state = GameStateScript.new()
+	state.setup(db, 20, 20, 2)
+	state.fog_enabled = false
+	state.units.clear()
+	state.buildings.clear()
+	for y in range(state.height):
+		for x in range(state.width):
+			state.terrain_grid[y][x] = "plain"
+	state.current_player = 0
+	var attacker = state._add_unit("士兵", 0, Vector2i(5, 5))
+	var enemy = state._add_unit("士兵", 1, Vector2i(6, 5))
+	var neutral = state._add_building("据点", -1, Vector2i(5, 6), 0)
+	state.update_vision()
+	var enemy_hp = float(enemy["hp"])
+	var neutral_hp = float(neutral["hp"])
+	var attacks = state.end_turn()
+	return attacks == 1 and float(enemy.get("hp", 0.0)) < enemy_hp and is_equal_approx(float(neutral["hp"]), neutral_hp) and bool(attacker.get("done", false))
+
+func _check_neutral_outpost_access_balance(state, tolerance: float) -> bool:
+	var nearest_distances: Array[float] = []
+	for pid in range(state.player_count):
+		var hq_pos = Vector2i(-1, -1)
+		for building in state.buildings:
+			if building["type"] == "大本营" and int(building["pid"]) == pid:
+				hq_pos = building["pos"]
+				break
+		if hq_pos.x < 0:
+			return false
+		var nearest = INF
+		for building in state.buildings:
+			if building["type"] == "据点" and int(building["pid"]) < 0:
+				nearest = minf(nearest, Vector2(hq_pos).distance_to(Vector2(building["pos"])))
+		if is_inf(nearest):
+			return false
+		nearest_distances.append(nearest)
+	return nearest_distances.max() - nearest_distances.min() <= tolerance

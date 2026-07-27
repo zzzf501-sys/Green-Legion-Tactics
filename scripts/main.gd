@@ -87,7 +87,9 @@ var undo_button: Button
 var restart_button: Button
 var main_menu_button: Button
 var surrender_button: Button
+var formations_button: Button
 var game_encyclopedia_button: Button
+var game_settings_button: Button
 var game_over_panel: PanelContainer
 var game_over_status_label: Label
 var bgm_player: AudioStreamPlayer
@@ -111,6 +113,8 @@ var local_fog_checkbox: CheckBox
 var encyclopedia_panel: PanelContainer
 var online_menu_panel: PanelContainer
 var settings_panel: PanelContainer
+var settings_game_actions: VBoxContainer
+var settings_back_button: Button
 var menu_buttons: VBoxContainer
 var encyclopedia_content: RichTextLabel
 var encyclopedia_nav: VBoxContainer
@@ -124,6 +128,12 @@ var local_fog_enabled = true
 var build_mode = ""
 var build_origin_id = -1
 var undo_history: Array = []
+var selected_group_unit_ids: Array[int] = []
+var formations: Array[Dictionary] = []
+var formation_menu_open = false
+var pending_formation_unit_ids: Array[int] = []
+var formation_dialog: ConfirmationDialog
+var formation_name_input: LineEdit
 
 func _ready() -> void:
 	db = GameDatabaseScript.new()
@@ -136,6 +146,7 @@ func _ready() -> void:
 	_create_menu_ui()
 	_refresh_ui()
 	_set_game_visible(false)
+	call_deferred("_layout_game_ui")
 
 func _process(_delta: float) -> void:
 	_poll_online()
@@ -143,6 +154,9 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		_set_fullscreen(not fullscreen_enabled)
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE and game_started:
+		_clear_selection()
+		_refresh_ui()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_SIZE_CHANGED:
@@ -155,6 +169,12 @@ func _layout_game_ui() -> void:
 	if hud_top_panel != null:
 		hud_top_panel.position = Vector2.ZERO
 		hud_top_panel.size = Vector2(size.x, 28)
+	if game_encyclopedia_button != null:
+		game_encyclopedia_button.position = Vector2(max(0.0, size.x - 74.0), 0.0)
+		game_encyclopedia_button.size = Vector2(74.0, 28.0)
+	if game_settings_button != null:
+		game_settings_button.position = Vector2(max(0.0, size.x - 110.0), 0.0)
+		game_settings_button.size = Vector2(36.0, 28.0)
 	if action_container_panel != null:
 		action_container_panel.position = Vector2(0, 28)
 		action_container_panel.size = Vector2(action_panel_width, max(120.0, size.y - 56))
@@ -170,11 +190,11 @@ func _layout_game_ui() -> void:
 		info_label.size = Vector2(max(280.0, info_panel.size.x - 20.0), 72.0)
 
 func _setup_state() -> void:
-	var map_size = Vector2i(60, 30)
+	var map_size = Vector2i(48, 24)
 	if player_count == 3:
-		map_size = Vector2i(60, 60)
+		map_size = Vector2i(48, 48)
 	elif player_count == 4:
-		map_size = Vector2i(80, 80)
+		map_size = Vector2i(60, 60)
 	state.setup(db, map_size.x, map_size.y, player_count)
 	state.fog_enabled = true if (online_connected or online_is_host or online_player_id >= 0) else local_fog_enabled
 	state.update_vision()
@@ -202,6 +222,8 @@ func _create_board() -> void:
 	board.set_viewport_size(get_viewport().get_visible_rect().size)
 	board.tile_clicked.connect(_on_tile_clicked)
 	board.tile_hovered.connect(_on_tile_hovered)
+	board.group_box_selected.connect(_on_group_box_selected)
+	board.group_move_requested.connect(_on_group_move_requested)
 
 func _create_ui() -> void:
 	hud_top_panel = PanelContainer.new()
@@ -222,15 +244,20 @@ func _create_ui() -> void:
 	status_label.custom_minimum_size = Vector2(430, 24)
 	top_bar.add_child(status_label)
 
-	var spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_bar.add_child(spacer)
-
 	game_encyclopedia_button = Button.new()
 	game_encyclopedia_button.text = "百科"
-	game_encyclopedia_button.custom_minimum_size = Vector2(74, 24)
+	game_encyclopedia_button.position = Vector2(1206, 0)
+	game_encyclopedia_button.size = Vector2(74, 28)
 	game_encyclopedia_button.pressed.connect(_open_encyclopedia_overlay)
-	top_bar.add_child(game_encyclopedia_button)
+	add_child(game_encyclopedia_button)
+
+	game_settings_button = Button.new()
+	game_settings_button.text = "⚙"
+	game_settings_button.tooltip_text = "设置"
+	game_settings_button.position = Vector2(1170, 0)
+	game_settings_button.size = Vector2(36, 28)
+	game_settings_button.pressed.connect(_toggle_game_settings)
+	add_child(game_settings_button)
 
 	hud_bottom_panel = HBoxContainer.new()
 	hud_bottom_panel.position = Vector2(530, 682)
@@ -247,20 +274,21 @@ func _create_ui() -> void:
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	hud_bottom_panel.add_child(end_turn_button)
 
-	restart_button = Button.new()
-	restart_button.text = "重新开始"
-	restart_button.pressed.connect(_on_restart_pressed)
-	hud_bottom_panel.add_child(restart_button)
+	formations_button = Button.new()
+	formations_button.text = "编队"
+	formations_button.pressed.connect(_toggle_formation_menu)
+	hud_bottom_panel.add_child(formations_button)
 
-	main_menu_button = Button.new()
-	main_menu_button.text = "返回主菜单"
-	main_menu_button.pressed.connect(_return_to_main_menu)
-	hud_bottom_panel.add_child(main_menu_button)
-
-	surrender_button = Button.new()
-	surrender_button.text = "投降"
-	surrender_button.pressed.connect(_on_surrender_pressed)
-	hud_bottom_panel.add_child(surrender_button)
+	formation_dialog = ConfirmationDialog.new()
+	formation_dialog.title = "新建编队"
+	formation_dialog.ok_button_text = "保存"
+	formation_dialog.cancel_button_text = "取消"
+	formation_name_input = LineEdit.new()
+	formation_name_input.placeholder_text = "输入编队名称"
+	formation_name_input.custom_minimum_size = Vector2(300, 34)
+	formation_dialog.add_child(formation_name_input)
+	formation_dialog.confirmed.connect(_confirm_formation_name)
+	add_child(formation_dialog)
 
 	info_panel = Control.new()
 	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -505,10 +533,10 @@ func _create_settings_panel() -> void:
 	settings_panel.anchor_right = 0.5
 	settings_panel.anchor_bottom = 0.5
 	settings_panel.offset_left = -210
-	settings_panel.offset_top = -150
+	settings_panel.offset_top = -260
 	settings_panel.offset_right = 210
-	settings_panel.offset_bottom = 150
-	menu_layer.add_child(settings_panel)
+	settings_panel.offset_bottom = 260
+	add_child(settings_panel)
 	var box = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	settings_panel.add_child(box)
@@ -567,10 +595,45 @@ func _create_settings_panel() -> void:
 	)
 	box.add_child(sfx_slider)
 
-	var back = Button.new()
-	back.text = "返回"
-	back.pressed.connect(_show_menu_home)
-	box.add_child(back)
+	var separator = HSeparator.new()
+	box.add_child(separator)
+
+	settings_game_actions = VBoxContainer.new()
+	settings_game_actions.visible = false
+	settings_game_actions.add_theme_constant_override("separation", 8)
+	box.add_child(settings_game_actions)
+
+	restart_button = Button.new()
+	restart_button.text = "重新开始"
+	restart_button.tooltip_text = "放弃当前对局并用相同人数重新生成地图"
+	restart_button.pressed.connect(func():
+		settings_panel.visible = false
+		_on_restart_pressed()
+	)
+	settings_game_actions.add_child(restart_button)
+
+	surrender_button = Button.new()
+	surrender_button.text = "投降"
+	surrender_button.tooltip_text = "当前玩家立即退出本局"
+	surrender_button.pressed.connect(func():
+		settings_panel.visible = false
+		_on_surrender_pressed()
+	)
+	settings_game_actions.add_child(surrender_button)
+
+	main_menu_button = Button.new()
+	main_menu_button.text = "返回主菜单"
+	main_menu_button.tooltip_text = "结束当前连接并返回主菜单"
+	main_menu_button.pressed.connect(func():
+		settings_panel.visible = false
+		_return_to_main_menu()
+	)
+	settings_game_actions.add_child(main_menu_button)
+
+	settings_back_button = Button.new()
+	settings_back_button.text = "返回"
+	settings_back_button.pressed.connect(_close_settings_panel)
+	box.add_child(settings_back_button)
 
 func _create_encyclopedia_panel() -> void:
 	encyclopedia_panel = PanelContainer.new()
@@ -650,9 +713,11 @@ func _render_encyclopedia_chapter(chapter_id: String) -> void:
 func _set_game_visible(visible: bool) -> void:
 	if board != null:
 		board.visible = visible
-	for node in [hud_top_panel, hud_bottom_panel, info_panel, action_container_panel]:
+	for node in [hud_top_panel, hud_bottom_panel, info_panel, action_container_panel, game_encyclopedia_button, game_settings_button]:
 		if node != null:
 			node.visible = visible
+	if not visible and settings_panel != null:
+		settings_panel.visible = false
 	for node in [online_url_input, online_room_input, online_status_label]:
 		if node != null:
 			node.visible = false
@@ -693,6 +758,23 @@ func _open_encyclopedia_overlay() -> void:
 	if settings_panel != null:
 		settings_panel.visible = false
 
+func _toggle_game_settings() -> void:
+	if not game_started or settings_panel == null:
+		return
+	var opening = not settings_panel.visible
+	settings_panel.visible = opening
+	if not opening:
+		return
+	if encyclopedia_panel != null:
+		encyclopedia_panel.visible = false
+	settings_game_actions.visible = true
+	settings_back_button.text = "关闭"
+
+func _close_settings_panel() -> void:
+	settings_panel.visible = false
+	if not game_started:
+		_show_menu_home()
+
 func _close_encyclopedia_panel() -> void:
 	encyclopedia_panel.visible = false
 	if menu_layer != null and menu_layer.visible and not game_started:
@@ -701,6 +783,8 @@ func _close_encyclopedia_panel() -> void:
 func _show_settings() -> void:
 	menu_buttons.visible = false
 	settings_panel.visible = true
+	settings_game_actions.visible = false
+	settings_back_button.text = "返回"
 	player_select_panel.visible = false
 	online_menu_panel.visible = false
 	encyclopedia_panel.visible = false
@@ -735,6 +819,9 @@ func _return_to_main_menu() -> void:
 func _start_local_game(count: int) -> void:
 	player_count = clampi(count, 2, 4)
 	local_fog_enabled = local_fog_checkbox == null or local_fog_checkbox.button_pressed
+	formations.clear()
+	selected_group_unit_ids.clear()
+	formation_menu_open = false
 	_clear_selection()
 	_setup_state()
 	board.setup(state, db)
@@ -767,10 +854,11 @@ func _on_tile_clicked(pos: Vector2i) -> void:
 			_pop_failed_undo()
 			var origin = state.get_building_by_id(build_origin_id)
 			info_label.text = "这里不能建资源采集器：必须在大本营 5 格内空地，且金币足够。"
-			board.set_build_tiles(state.collector_build_tiles(origin), PLAYER_COLORS[state.current_player])
+			board.set_build_tiles(state.collector_build_tiles(origin), Color(0.15, 0.72, 1.0), state.next_collector_income(state.current_player))
 		return
 	var clicked_unit: Dictionary = state.unit_at(pos)
 	if not clicked_unit.is_empty() and state.is_current_players_unit(clicked_unit):
+		selected_group_unit_ids.clear()
 		_select_unit(clicked_unit)
 		return
 	if selected_unit_id >= 0:
@@ -787,7 +875,6 @@ func _on_tile_clicked(pos: Vector2i) -> void:
 		if board.move_tiles.has(pos):
 			_push_undo_state()
 			if state.move_unit(selected_unit_id, pos):
-				_play_sfx("mg")
 				_notify_online("move")
 			else:
 				_pop_failed_undo()
@@ -870,6 +957,7 @@ func _select_unit(unit: Dictionary) -> void:
 	_refresh_ui()
 
 func _select_building(building: Dictionary) -> void:
+	selected_group_unit_ids.clear()
 	selected_unit_id = -1
 	selected_building_id = int(building["id"])
 	var empty_moves: Array[Vector2i] = []
@@ -885,7 +973,89 @@ func _clear_selection() -> void:
 	selected_building_id = -1
 	build_mode = ""
 	build_origin_id = -1
+	selected_group_unit_ids.clear()
+	formation_menu_open = false
 	board.clear_selection()
+
+func _on_group_box_selected(bounds: Rect2i, create_formation: bool) -> void:
+	if not _can_control_current_turn() or state.game_over:
+		return
+	var ids: Array[int] = []
+	for unit in state.units:
+		if int(unit.get("pid", -1)) != state.current_player:
+			continue
+		if bounds.has_point(unit["pos"]):
+			ids.append(int(unit["id"]))
+	if ids.is_empty():
+		_clear_selection()
+		_refresh_ui()
+		return
+	_select_unit_group(ids)
+	if create_formation:
+		pending_formation_unit_ids = ids.duplicate()
+		formation_name_input.text = "编队 %d" % (formations.size() + 1)
+		formation_dialog.popup_centered()
+
+func _select_unit_group(unit_ids: Array[int]) -> void:
+	selected_unit_id = -1
+	selected_building_id = -1
+	build_mode = ""
+	build_origin_id = -1
+	formation_menu_open = false
+	selected_group_unit_ids.clear()
+	for unit_id in unit_ids:
+		var unit = state.get_unit_by_id(unit_id)
+		if not unit.is_empty() and int(unit.get("pid", -1)) == state.current_player:
+			selected_group_unit_ids.append(unit_id)
+	board.set_group_selection(selected_group_unit_ids)
+	_refresh_ui()
+
+func _on_group_move_requested(target: Vector2i) -> void:
+	if selected_group_unit_ids.is_empty() or not _can_control_current_turn():
+		return
+	_push_undo_state()
+	var moved_count = state.move_unit_group(selected_group_unit_ids, target)
+	if moved_count <= 0:
+		_pop_failed_undo()
+		info_label.text = "编队中没有单位能在本回合抵达目标附近。"
+		return
+	_notify_online("group-move")
+	_select_unit_group(selected_group_unit_ids)
+	board.queue_redraw()
+
+func _confirm_formation_name() -> void:
+	var name = formation_name_input.text.strip_edges()
+	if name.is_empty():
+		name = "编队 %d" % (formations.size() + 1)
+	formations.append({"name": name, "unit_ids": pending_formation_unit_ids.duplicate()})
+	pending_formation_unit_ids.clear()
+	formation_menu_open = true
+	_refresh_ui()
+
+func _toggle_formation_menu() -> void:
+	formation_menu_open = not formation_menu_open
+	selected_unit_id = -1
+	selected_building_id = -1
+	_refresh_ui()
+
+func _select_formation(index: int) -> void:
+	if index < 0 or index >= formations.size():
+		return
+	var alive_ids: Array[int] = []
+	var center = Vector2.ZERO
+	for raw_id in formations[index].get("unit_ids", []):
+		var unit = state.get_unit_by_id(int(raw_id))
+		if unit.is_empty() or int(unit.get("pid", -1)) != state.current_player:
+			continue
+		alive_ids.append(int(raw_id))
+		center += Vector2(unit["pos"])
+	formations[index]["unit_ids"] = alive_ids
+	if alive_ids.is_empty():
+		formations.remove_at(index)
+		_refresh_ui()
+		return
+	_select_unit_group(alive_ids)
+	board.center_on_tile(Vector2i((center / float(alive_ids.size())).round()))
 
 func _push_undo_state() -> void:
 	if not _can_control_current_turn():
@@ -919,13 +1089,16 @@ func _on_end_turn_pressed() -> void:
 	if not _can_control_current_turn():
 		return
 	_clear_selection()
-	state.end_turn()
+	var automatic_attacks = state.end_turn()
+	if automatic_attacks > 0:
+		_play_sfx("cannon")
 	_clear_undo_history()
 	_after_turn_state_changed(not online_connected)
 	_notify_online("end-turn")
 
 func _on_restart_pressed() -> void:
 	_clear_selection()
+	formations.clear()
 	if game_over_panel != null:
 		game_over_panel.visible = false
 	_clear_undo_history()
@@ -938,6 +1111,7 @@ func _on_player_count_pressed(count: int) -> void:
 		return
 	player_count = clampi(count, 2, 4)
 	_clear_selection()
+	formations.clear()
 	_clear_undo_history()
 	_setup_state()
 	board.setup(state, db)
@@ -1043,7 +1217,7 @@ func _bind_action_hover(control: Control, text: String) -> void:
 func _refresh_action_panel() -> void:
 	for child in action_panel.get_children():
 		child.queue_free()
-	var should_show = selected_unit_id >= 0 or selected_building_id >= 0 or build_mode == "资源采集器" or (online_connected and not _can_control_current_turn())
+	var should_show = selected_unit_id >= 0 or selected_building_id >= 0 or not selected_group_unit_ids.is_empty() or formation_menu_open or build_mode == "资源采集器" or (online_connected and not _can_control_current_turn())
 	if action_container_panel != null:
 		action_container_panel.visible = game_started and should_show
 	if not should_show:
@@ -1051,6 +1225,27 @@ func _refresh_action_panel() -> void:
 	var title = Label.new()
 	title.text = "操作"
 	action_panel.add_child(title)
+	if formation_menu_open:
+		var help = Label.new()
+		help.text = "编队列表\nAlt + 左键拖框可新建编队"
+		action_panel.add_child(help)
+		if formations.is_empty():
+			var empty = Label.new()
+			empty.text = "暂无编队"
+			action_panel.add_child(empty)
+		for index in range(formations.size()):
+			var formation = formations[index]
+			var captured_index = index
+			var btn = _make_action_button("%s（%d）" % [formation.get("name", "编队"), formation.get("unit_ids", []).size()])
+			btn.pressed.connect(func(): _select_formation(captured_index))
+			action_panel.add_child(btn)
+		return
+	if not selected_group_unit_ids.is_empty():
+		var group_label = Label.new()
+		group_label.text = "已选中 %d 个单位\n左键点击目标格，部队将向目标周围推进。" % selected_group_unit_ids.size()
+		group_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		action_panel.add_child(group_label)
+		return
 	if selected_unit_id >= 0:
 		var unit = state.get_unit_by_id(selected_unit_id)
 		if not unit.is_empty():
@@ -1170,42 +1365,58 @@ func _add_hq_upgrade_button(building: Dictionary) -> void:
 	action_panel.add_child(btn)
 
 func _add_equipment_buttons() -> void:
+	var current_tier = int(state.players[state.current_player].get("tier", 1))
+	var visible_equipment: Array[Dictionary] = []
+	for unit_type in db.equipment.keys():
+		for equip in db.equipment_for(unit_type):
+			if int(equip.get("tier", 1)) <= current_tier:
+				visible_equipment.append({"unit_type": str(unit_type), "equip": equip})
+	if visible_equipment.is_empty():
+		return
 	var sep = Label.new()
 	sep.text = "\n装备研究"
 	action_panel.add_child(sep)
 	var any = false
-	for unit_type in db.equipment.keys():
-		for equip in db.equipment_for(unit_type):
-			var name = str(equip.get("name", ""))
-			var key = state.equipment_key(str(unit_type), name)
-			if state.players[state.current_player]["equipment"].has(key):
-				continue
-			var active_research = state.research_entry(state.current_player, name)
-			if not active_research.is_empty():
-				var label = Label.new()
-				label.text = "%s：%s 研究中：%d 回合" % [unit_type, name, int(active_research.get("timer", 0))]
-				action_panel.add_child(label)
-				any = true
-				continue
+	for visible_entry in visible_equipment:
+		var unit_type = str(visible_entry["unit_type"])
+		var equip: Dictionary = visible_entry["equip"]
+		var name = str(equip.get("name", ""))
+		var key = state.equipment_key(str(unit_type), name)
+		if state.players[state.current_player]["equipment"].has(key):
+			continue
+		var active_research = state.research_entry(state.current_player, name)
+		if not active_research.is_empty():
+			var label = Label.new()
+			label.text = "%s：%s 研究中：%d 回合" % [unit_type, name, int(active_research.get("timer", 0))]
+			action_panel.add_child(label)
 			any = true
-			var captured_unit_type = str(unit_type)
-			var captured_name = name
-			var btn = _make_action_button("%s：%s  🪙 %.1f" % [unit_type, name, float(equip.get("research_cost", 0.0))])
-			_bind_action_hover(btn, _equipment_info_text(captured_unit_type, equip))
-			btn.disabled = not state.can_research_equipment(state.current_player, str(unit_type), name)
-			btn.pressed.connect(func(): _on_equipment_pressed(captured_unit_type, captured_name))
-			action_panel.add_child(btn)
+			continue
+		any = true
+		var captured_unit_type = str(unit_type)
+		var captured_name = name
+		var btn = _make_action_button("%s：%s  🪙 %.1f" % [unit_type, name, float(equip.get("research_cost", 0.0))])
+		_bind_action_hover(btn, _equipment_info_text(captured_unit_type, equip))
+		btn.disabled = not state.can_research_equipment(state.current_player, str(unit_type), name)
+		btn.pressed.connect(func(): _on_equipment_pressed(captured_unit_type, captured_name))
+		action_panel.add_child(btn)
 	if not any:
 		var done = Label.new()
 		done.text = "装备研究已完成"
 		action_panel.add_child(done)
 
 func _add_strategic_buttons() -> void:
+	var current_tier = int(state.players[state.current_player].get("tier", 1))
+	var visible_techs: Array[String] = []
+	for tech_name in db.strategic_techs.keys():
+		if int(db.strategic_techs[tech_name].get("tier", 1)) <= current_tier:
+			visible_techs.append(str(tech_name))
+	if visible_techs.is_empty():
+		return
 	var sep = Label.new()
 	sep.text = "\n战略科技"
 	action_panel.add_child(sep)
 	var any = false
-	for tech_name in db.strategic_techs.keys():
+	for tech_name in visible_techs:
 		if state.players[state.current_player]["strategic"].has(tech_name):
 			continue
 		var active_research = state.research_entry(state.current_player, str(tech_name))
@@ -1293,8 +1504,9 @@ func _on_build_collector_pressed(building_id: int) -> void:
 	build_mode = "资源采集器"
 	build_origin_id = building_id
 	var origin = state.get_building_by_id(building_id)
-	info_label.text = "建造资源采集器：点击大本营 5 格内空地。\n费用 8 金，2 回合完工，完工后按编号产金：4.5 × 0.8^编号。"
-	board.set_build_tiles(state.collector_build_tiles(origin), PLAYER_COLORS[state.current_player])
+	var income = state.next_collector_income(state.current_player)
+	info_label.text = "建造资源采集器：点击大本营 5 格内空地。\n费用 8 金，2 回合完工；当前采集器完工后每回合 +%.2f 金。" % income
+	board.set_build_tiles(state.collector_build_tiles(origin), Color(0.15, 0.72, 1.0), income)
 	_refresh_ui()
 
 func _on_outpost_upgrade_pressed(building_id: int, branch: String) -> void:

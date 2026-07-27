@@ -166,7 +166,17 @@ func _spawn_initial_state() -> void:
 func _player_spawns() -> Array[Vector2i]:
 	if player_count == 2:
 		var mid_y = int(height / 2)
-		return [Vector2i(8, mid_y), Vector2i(51, mid_y)]
+		return [Vector2i(8, mid_y), Vector2i(width - 9, mid_y)]
+	if player_count == 3:
+		var center_x = int(width / 2)
+		var top_y = maxi(6, int(round(height * 0.17)))
+		var bottom_y = mini(height - 7, int(round(height * 0.82)))
+		var half_span = mini(center_x - 6, int(round((bottom_y - top_y) / sqrt(3.0))))
+		return [
+			Vector2i(center_x, top_y),
+			Vector2i(center_x - half_span, bottom_y),
+			Vector2i(center_x + half_span, bottom_y)
+		]
 	return [
 		Vector2i(8, 8),
 		Vector2i(width - 9, 8),
@@ -178,10 +188,39 @@ func _neutral_outpost_positions(spawns: Array[Vector2i]) -> Array[Vector2i]:
 	if player_count == 2:
 		var mid_x = int((spawns[0].x + spawns[1].x) / 2)
 		var mid_y = int(height / 2)
+		var vertical_offset = mini(12, maxi(4, int(height / 3)))
+		var horizontal_offset = mini(5, maxi(2, int(width / 10)))
 		return [
-			Vector2i(mid_x - 5, mid_y - 12),
+			Vector2i(mid_x - horizontal_offset, mid_y - vertical_offset),
 			Vector2i(mid_x, mid_y),
-			Vector2i(mid_x + 5, mid_y + 12)
+			Vector2i(mid_x + horizontal_offset, mid_y + vertical_offset)
+		]
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	if player_count == 3:
+		var centroid = Vector2.ZERO
+		for spawn in spawns:
+			centroid += Vector2(spawn)
+		centroid /= float(spawns.size())
+		var inward_ratio = rng.randf_range(0.40, 0.56)
+		var positions: Array[Vector2i] = []
+		for spawn in spawns:
+			positions.append(Vector2i(Vector2(spawn).lerp(centroid, inward_ratio).round()))
+		positions.append(Vector2i(centroid.round()))
+		return positions
+	if player_count == 4:
+		var left = spawns[0].x
+		var right = spawns[1].x
+		var top = spawns[0].y
+		var bottom = spawns[2].y
+		var inset_x = rng.randi_range(maxi(7, int(width * 0.16)), maxi(8, int(width * 0.27)))
+		var inset_y = rng.randi_range(maxi(7, int(height * 0.16)), maxi(8, int(height * 0.27)))
+		return [
+			Vector2i(left + inset_x, top + inset_y),
+			Vector2i(right - inset_x, top + inset_y),
+			Vector2i(left + inset_x, bottom - inset_y),
+			Vector2i(right - inset_x, bottom - inset_y),
+			Vector2i(int((left + right + 1) / 2), int((top + bottom + 1) / 2))
 		]
 	var positions: Array[Vector2i] = []
 	var top_mid = Vector2i(int((spawns[0].x + spawns[1].x) / 2), int((spawns[0].y + spawns[1].y) / 2))
@@ -310,7 +349,7 @@ func get_unit_by_id(id: int) -> Dictionary:
 func is_current_players_unit(unit: Dictionary) -> bool:
 	return not unit.is_empty() and int(unit.get("pid", -1)) == current_player and not bool(unit.get("done", false))
 
-func move_tiles_for(unit: Dictionary, ignore_moved: bool = false) -> Array[Vector2i]:
+func move_tiles_for(unit: Dictionary, ignore_moved: bool = false, ignored_unit_ids: Array[int] = []) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	if unit.is_empty() or (bool(unit.get("moved", false)) and not ignore_moved):
 		return result
@@ -325,7 +364,10 @@ func move_tiles_for(unit: Dictionary, ignore_moved: bool = false) -> Array[Vecto
 		var current: Vector2i = frontier.pop_front()
 		for dir in dirs:
 			var next: Vector2i = current + dir
-			if not in_bounds(next) or is_unit_blocked(next):
+			if not in_bounds(next):
+				continue
+			var blocking_unit = unit_at(next)
+			if not blocking_unit.is_empty() and not ignored_unit_ids.has(int(blocking_unit.get("id", -1))):
 				continue
 			var building = building_at(next)
 			if not building.is_empty() and building["type"] == "大本营" and int(building["pid"]) != int(unit["pid"]):
@@ -340,6 +382,74 @@ func move_tiles_for(unit: Dictionary, ignore_moved: bool = false) -> Array[Vecto
 		if pos != unit["pos"]:
 			result.append(pos)
 	return result
+
+func move_unit_group(unit_ids: Array[int], target: Vector2i) -> int:
+	if not in_bounds(target):
+		return 0
+	var movable_units: Array[Dictionary] = []
+	var movable_ids: Array[int] = []
+	var selected_positions: Array[Vector2i] = []
+	for unit_id in unit_ids:
+		var unit = get_unit_by_id(unit_id)
+		if unit.is_empty() or int(unit.get("pid", -1)) != current_player:
+			continue
+		selected_positions.append(unit["pos"])
+		if not is_current_players_unit(unit) or bool(unit.get("moved", false)):
+			continue
+		movable_units.append(unit)
+		movable_ids.append(unit_id)
+	if movable_units.is_empty():
+		return 0
+	var assignments: Dictionary = {}
+	var reserved: Dictionary = {}
+	var proposals: Array[Dictionary] = []
+	for unit in movable_units:
+		var reachable = move_tiles_for(unit, false, movable_ids)
+		var current_distance = _distance(unit["pos"], target)
+		var best_reachable_distance = INF
+		for pos in reachable:
+			if not selected_positions.has(pos):
+				best_reachable_distance = min(best_reachable_distance, _distance(pos, target))
+		if current_distance <= best_reachable_distance:
+			var current_pos: Vector2i = unit["pos"]
+			assignments[int(unit["id"])] = current_pos
+			reserved["%d,%d" % [current_pos.x, current_pos.y]] = true
+			continue
+		for pos in reachable:
+			if selected_positions.has(pos):
+				continue
+			var occupant = unit_at(pos)
+			if not occupant.is_empty() and not movable_ids.has(int(occupant.get("id", -1))):
+				continue
+			proposals.append({
+				"unit_id": int(unit["id"]),
+				"pos": pos,
+				"score": _distance(pos, target) * 1000.0 + _distance(unit["pos"], pos)
+			})
+	proposals.sort_custom(func(a: Dictionary, b: Dictionary): return float(a["score"]) < float(b["score"]))
+	for proposal in proposals:
+		var unit_id = int(proposal["unit_id"])
+		var pos: Vector2i = proposal["pos"]
+		var key = "%d,%d" % [pos.x, pos.y]
+		if assignments.has(unit_id) or reserved.has(key):
+			continue
+		assignments[unit_id] = pos
+		reserved[key] = true
+	var moved_count = 0
+	for unit in movable_units:
+		var unit_id = int(unit["id"])
+		if not assignments.has(unit_id):
+			continue
+		var destination: Vector2i = assignments[unit_id]
+		if destination == unit["pos"]:
+			continue
+		unit["pos"] = destination
+		unit["moved"] = true
+		_capture_building_at(unit["pos"], int(unit["pid"]))
+		moved_count += 1
+	if moved_count > 0:
+		update_vision()
+	return moved_count
 
 func attack_targets_for(unit: Dictionary) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
@@ -468,6 +578,11 @@ func _capture_building_at(pos: Vector2i, pid: int) -> void:
 		return
 	if int(building.get("pid", -1)) == pid:
 		return
+	if bool(building.get("upgrading", false)):
+		building["upgrading"] = false
+		building["up_timer"] = 0
+		if building["type"] == "据点" and int(building.get("outpost_tier", 0)) <= 0:
+			building["outpost_branch"] = ""
 	building["pid"] = pid
 	building["captured"] = true
 	building["hp"] = max(1.0, float(building.get("max_hp", 1.0)) * 0.5)
@@ -536,14 +651,71 @@ func _apply_blast(attacker: Dictionary, center: Vector2i) -> void:
 	for building in damaged_buildings:
 		_apply_damage(building, max(0.0, float(attacker.get("damage", 0.0)) - float(building.get("armor", 0.0))), int(attacker["pid"]))
 
-func end_turn() -> void:
+func auto_attack_remaining_units(pid: int) -> int:
+	if pid != current_player or game_over:
+		return 0
+	var attack_count = 0
+	var unit_ids: Array[int] = []
+	for unit in units:
+		if int(unit.get("pid", -1)) == pid:
+			unit_ids.append(int(unit["id"]))
+	unit_ids.sort()
+	for unit_id in unit_ids:
+		while not game_over:
+			var unit = get_unit_by_id(unit_id)
+			if unit.is_empty() or not is_current_players_unit(unit):
+				break
+			if int(unit.get("remaining_attacks", 0)) <= 0 or int(unit.get("rl", 0)) > 0:
+				break
+			var target_pos = _best_auto_attack_target(unit)
+			if target_pos.x < 0:
+				break
+			if not attack(unit_id, target_pos):
+				break
+			attack_count += 1
+	if attack_count > 0:
+		last_event = "%s 自动完成 %d 次攻击" % [players[pid]["name"], attack_count]
+	return attack_count
+
+func _best_auto_attack_target(unit: Dictionary) -> Vector2i:
+	var best_pos = Vector2i(-1, -1)
+	var best_score = -INF
+	for pos in attack_targets_for(unit):
+		var target = occupant_at(pos)
+		if target.is_empty():
+			continue
+		var target_pid = int(target.get("pid", -1))
+		if target_pid < 0 or target_pid == int(unit.get("pid", -1)):
+			continue
+		var raw_damage = _unit_damage_against(unit, target)
+		var dealt_damage = max(0.0, raw_damage - float(target.get("armor", 0.0)))
+		if dealt_damage <= 0.0:
+			continue
+		var hp = float(target.get("hp", 0.0))
+		var lethal_bonus = 6000.0 if hp <= dealt_damage else 0.0
+		var score = lethal_bonus - hp
+		if target.has("speed"):
+			var unit_value = float(db.unit_data(str(target.get("type", ""))).get("price", 0.0))
+			score += 2500.0 + unit_value * 100.0 + float(target.get("damage", 0.0)) * 10.0
+		else:
+			score += 4000.0 if str(target.get("type", "")) == "大本营" else 500.0
+		score -= _distance(unit["pos"], pos) * 0.01
+		if score > best_score:
+			best_score = score
+			best_pos = pos
+	return best_pos
+
+func end_turn() -> int:
+	var automatic_attacks = auto_attack_remaining_units(current_player)
+	if game_over:
+		return automatic_attacks
 	var alive_count = 0
 	for player in players:
 		if bool(player.get("alive", true)):
 			alive_count += 1
 	if alive_count <= 1:
 		_check_victory()
-		return
+		return automatic_attacks
 	var was = current_player
 	for _i in range(players.size()):
 		current_player = (current_player + 1) % players.size()
@@ -566,6 +738,7 @@ func end_turn() -> void:
 				_building_turn_start(building)
 	_start_player_turn(current_player)
 	update_vision()
+	return automatic_attacks
 
 func _start_player_turn(pid: int) -> void:
 	for unit in units:
@@ -885,9 +1058,8 @@ func _tick_building_progress(building: Dictionary) -> void:
 		building["build_timer"] = max(0, int(building.get("build_timer", 0)) - 1)
 		if int(building["build_timer"]) <= 0:
 			building["under_construction"] = false
-			var base_gold = 4.5
 			var collector_id = max(0, int(building.get("collector_id", 0)))
-			building["gold"] = snapped(base_gold * pow(0.8, collector_id), 0.01)
+			building["gold"] = collector_income_for_id(collector_id)
 	if bool(building.get("upgrading", false)):
 		building["up_timer"] = max(0, int(building.get("up_timer", 0)) - 1)
 		if int(building["up_timer"]) <= 0:
@@ -939,6 +1111,12 @@ func _next_collector_id(pid: int) -> int:
 	while used.has(id):
 		id += 1
 	return id
+
+func collector_income_for_id(collector_id: int) -> float:
+	return snapped(4.5 * pow(0.8, maxi(0, collector_id)), 0.01)
+
+func next_collector_income(pid: int) -> float:
+	return collector_income_for_id(_next_collector_id(pid))
 
 func _apply_researched_equipment_to_unit(unit: Dictionary) -> void:
 	var pid = int(unit.get("pid", -1))
@@ -1026,6 +1204,8 @@ func _step_cost(unit: Dictionary, from_pos: Vector2i, to_pos: Vector2i) -> float
 func effective_range(unit: Dictionary, from_height: int, to_height: int, target_is_air: bool = false) -> float:
 	if target_is_air and float(unit.get("air_range", 0.0)) > 0.0:
 		return float(unit["air_range"])
+	if bool(unit.get("is_air", false)):
+		return max(1.0, float(unit.get("range", 1.0)))
 	var mod = clamp(from_height - to_height, -2, 2)
 	return max(1.0, float(unit.get("range", 1.0)) + float(mod))
 

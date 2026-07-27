@@ -116,6 +116,7 @@ var local_fog_checkbox: CheckBox
 var encyclopedia_panel: PanelContainer
 var online_menu_panel: PanelContainer
 var settings_panel: PanelContainer
+var controls_panel: PanelContainer
 var settings_game_actions: VBoxContainer
 var settings_back_button: Button
 var menu_buttons: VBoxContainer
@@ -263,6 +264,7 @@ func _create_ui() -> void:
 	game_settings_button.pressed.connect(_toggle_game_settings)
 	add_child(game_settings_button)
 
+
 	hud_bottom_panel = HBoxContainer.new()
 	hud_bottom_panel.position = Vector2(530, 682)
 	hud_bottom_panel.add_theme_constant_override("separation", 8)
@@ -341,6 +343,7 @@ func _create_ui() -> void:
 	action_scroll.add_child(action_panel)
 
 	_create_game_over_panel()
+	_create_controls_panel()
 
 func _create_game_over_panel() -> void:
 	game_over_panel = PanelContainer.new()
@@ -604,6 +607,11 @@ func _create_settings_panel() -> void:
 	var separator = HSeparator.new()
 	box.add_child(separator)
 
+	var controls_btn = Button.new()
+	controls_btn.text = "操作说明"
+	controls_btn.tooltip_text = "查看按键操作"
+	controls_btn.pressed.connect(_toggle_controls_panel)
+	box.add_child(controls_btn)
 	settings_game_actions = VBoxContainer.new()
 	settings_game_actions.visible = false
 	settings_game_actions.add_theme_constant_override("separation", 8)
@@ -640,6 +648,69 @@ func _create_settings_panel() -> void:
 	settings_back_button.text = "返回"
 	settings_back_button.pressed.connect(_close_settings_panel)
 	box.add_child(settings_back_button)
+
+func _create_controls_panel() -> void:
+	controls_panel = PanelContainer.new()
+	controls_panel.visible = false
+	controls_panel.anchor_left = 0.5
+	controls_panel.anchor_top = 0.5
+	controls_panel.anchor_right = 0.5
+	controls_panel.anchor_bottom = 0.5
+	controls_panel.offset_left = -220
+	controls_panel.offset_top = -170
+	controls_panel.offset_right = 220
+	controls_panel.offset_bottom = 170
+	add_child(controls_panel)
+	var box = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	controls_panel.add_child(box)
+	var title = Label.new()
+	title.text = "操作说明"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var text = RichTextLabel.new()
+	text.bbcode_enabled = true
+	text.custom_minimum_size = Vector2(400, 280)
+	text.text = \
+"[b]视角操作[/b]
+放大/缩小：鼠标滚轮（以光标为中心）
+平移地图：WASD / 方向键 / 鼠标左键拖拽
+
+[b]选择操作[/b]
+选择单位/建筑：鼠标左键点击
+框选单位：Ctrl + 按住鼠标左键拖框
+编队框选：Alt + 按住鼠标左键拖框（松开后弹出命名对话框）
+选中编队：点击底部「编队」按钮
+
+[b]单位操作[/b]
+移动：选中单位 → 点击蓝色高亮格
+攻击：选中单位 → 点击红色高亮目标
+跳过行动：选中单位 → 底部「待机」按钮
+驻扎回血：选中单位 → 底部「驻扎」
+
+[b]其他[/b]
+取消选中：ESC
+结束回合：底部「结束回合」或按 Enter
+全屏切换：F11"
+	box.add_child(text)
+	var close = Button.new()
+	close.text = "关闭"
+	close.pressed.connect(_close_controls_panel)
+	box.add_child(close)
+
+func _toggle_controls_panel() -> void:
+	if controls_panel == null:
+		return
+	var opening = not controls_panel.visible
+	controls_panel.visible = opening
+	if settings_panel != null:
+		settings_panel.visible = false
+	if encyclopedia_panel != null:
+		encyclopedia_panel.visible = false
+
+func _close_controls_panel() -> void:
+	if controls_panel != null:
+		controls_panel.visible = false
 
 func _create_encyclopedia_panel() -> void:
 	encyclopedia_panel = PanelContainer.new()
@@ -726,6 +797,8 @@ func _set_game_visible(visible: bool) -> void:
 		_hide_hover_info()
 	if not visible and settings_panel != null:
 		settings_panel.visible = false
+	if not visible and controls_panel != null:
+		controls_panel.visible = false
 	for node in [online_url_input, online_room_input, online_status_label]:
 		if node != null:
 			node.visible = false
@@ -765,6 +838,8 @@ func _open_encyclopedia_overlay() -> void:
 		online_menu_panel.visible = false
 	if settings_panel != null:
 		settings_panel.visible = false
+	if controls_panel != null:
+		controls_panel.visible = false
 
 func _toggle_game_settings() -> void:
 	if not game_started or settings_panel == null:
@@ -776,14 +851,16 @@ func _toggle_game_settings() -> void:
 	if encyclopedia_panel != null:
 		encyclopedia_panel.visible = false
 	settings_game_actions.visible = true
+	if controls_panel != null:
+		controls_panel.visible = false
 	settings_back_button.text = "关闭"
 
 func _close_settings_panel() -> void:
 	settings_panel.visible = false
 	if not game_started:
 		_show_menu_home()
-
 func _close_encyclopedia_panel() -> void:
+
 	encyclopedia_panel.visible = false
 	if menu_layer != null and menu_layer.visible and not game_started:
 		menu_buttons.visible = true

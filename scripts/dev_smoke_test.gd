@@ -37,9 +37,9 @@ func _initialize() -> void:
 			hq = building
 			break
 	ok = _expect(not hq.is_empty(), "current hq found") and ok
-	ok = _expect(state.can_produce(hq, "士兵"), "can produce soldier") and ok
+	ok = _expect(state.can_produce(hq, "战团"), "can produce E1 warband") and ok
 	var old_unit_count = state.units.size()
-	ok = _expect(state.produce_unit(int(hq["id"]), "士兵"), "produce soldier") and ok
+	ok = _expect(state.produce_unit(int(hq["id"]), "战团"), "produce E1 warband") and ok
 	ok = _expect(state.units.size() == old_unit_count + 1, "unit count increased") and ok
 	var first_unit: Dictionary = state.units[0]
 	first_unit["done"] = false
@@ -50,23 +50,42 @@ func _initialize() -> void:
 	if not moves.is_empty():
 		ok = _expect(state.move_unit(int(first_unit["id"]), moves[0]), "unit can move") and ok
 	state.players[state.current_player]["gold"] = 99.0
+	state.turn = 13
 	ok = _expect(state.upgrade_hq(int(hq["id"])), "upgrade hq to T2") and ok
-	ok = _expect(bool(hq.get("upgrading", false)) and int(hq.get("up_timer", 0)) == 3, "hq T2 upgrade starts timer") and ok
-	ok = _expect(state.can_produce(hq, "士兵"), "hq can produce while upgrading") and ok
-	_advance_full_rounds(state, 3)
+	ok = _expect(bool(hq.get("upgrading", false)) and int(hq.get("up_timer", 0)) == 2, "hq E2 upgrade starts timer") and ok
+	ok = _expect(state.can_produce(hq, "战团"), "hq can produce while upgrading") and ok
+	_advance_full_rounds(state, 2)
 	ok = _expect(int(state.players[state.current_player]["tier"]) == 2, "tier is T2") and ok
 	ok = _expect(int(hq["tier"]) == 1, "hq is T2") and ok
-	ok = _expect(state.research_equipment(state.current_player, "军用吉普", "火箭助推"), "research jeep boost") and ok
-	ok = _expect(not state.players[state.current_player]["equipment"].has("军用吉普:火箭助推"), "equipment waits for research timer") and ok
-	_advance_full_rounds(state, 2)
-	ok = _expect(state.players[state.current_player]["equipment"].has("军用吉普:火箭助推"), "equipment recorded") and ok
+	state.players[state.current_player]["technology"].append("e2_horsemanship")
+	state.players[state.current_player]["researched"].append("e2_horsemanship")
+	ok = _expect(state.research_equipment(state.current_player, "骑兵", "轻骑鞍具"), "research E2 cavalry saddle") and ok
+	ok = _expect(not state.players[state.current_player]["equipment"].has("骑兵:轻骑鞍具"), "equipment waits for research timer") and ok
+	_advance_full_rounds(state, 1)
+	ok = _expect(state.players[state.current_player]["equipment"].has("骑兵:轻骑鞍具"), "equipment recorded") and ok
+	state.turn = 27
+	state.players[state.current_player]["gold"] = 999.0
 	ok = _expect(state.upgrade_hq(int(hq["id"])), "upgrade hq to T3") and ok
-	_advance_full_rounds(state, 5)
+	_advance_full_rounds(state, 2)
 	ok = _expect(int(state.players[state.current_player]["tier"]) == 3, "tier is T3") and ok
+	state.turn = 42
+	state.players[state.current_player]["gold"] = 999.0
+	ok = _expect(state.upgrade_hq(int(hq["id"])), "upgrade hq to E4") and ok
+	_advance_full_rounds(state, 3)
+	ok = _expect(int(state.players[state.current_player]["era"]) == 4, "era is E4") and ok
+	state.turn = 58
+	state.players[state.current_player]["gold"] = 999.0
+	ok = _expect(state.upgrade_hq(int(hq["id"])), "upgrade hq to E5") and ok
+	_advance_full_rounds(state, 3)
+	ok = _expect(int(state.players[state.current_player]["era"]) == 5, "era is E5") and ok
+	state.players[state.current_player]["gold"] = 999.0
+	for prerequisite in ["e5_electronic_warfare", "e5_smart_logistics"]:
+		state.players[state.current_player]["technology"].append(prerequisite)
+		state.players[state.current_player]["researched"].append(prerequisite)
 	ok = _expect(state.research_strategic(state.current_player, "SpaceX 星链计划"), "research starlink") and ok
 	_advance_full_rounds(state, 3)
 	ok = _expect(state.players[state.current_player]["strategic"].has("SpaceX 星链计划"), "starlink recorded") and ok
-	ok = _expect(state.is_visible(state.current_player, Vector2i(state.width - 1, state.height - 1)), "starlink full vision") and ok
+	ok = _expect(state.is_explored(state.current_player, Vector2i(state.width - 1, state.height - 1)), "starlink explores the full map") and ok
 	ok = _expect(_check_action_order_rules(db), "move-then-attack and attack-then-no-move rules") and ok
 	ok = _expect(_check_blast_splashes_from_building_target(db), "blast hits units around building target") and ok
 	ok = _expect(_check_outpost_produces_while_upgrading(db), "outpost can produce while upgrading") and ok
@@ -94,19 +113,19 @@ func _initialize() -> void:
 	board.setup(state, db)
 	var empty_moves: Array[Vector2i] = []
 	var empty_attacks: Array[Vector2i] = []
-	ok = _expect(board._texture_key_for_building({"type": "大本营", "tier": 0}) == "大本营", "hq T1 texture key") and ok
-	ok = _expect(board._texture_key_for_building({"type": "大本营", "tier": 1}) == "大本营 T2", "hq T2 texture key") and ok
-	ok = _expect(board._texture_key_for_building({"type": "大本营", "tier": 2}) == "大本营T3", "hq T3 texture key") and ok
-	ok = _expect(board._texture_key_for_building({"type": "据点", "outpost_tier": 1, "outpost_branch": "combat"}) == "战斗型T2据点", "combat outpost texture key") and ok
-	ok = _expect(board._texture_key_for_building({"type": "据点", "outpost_tier": 1, "outpost_branch": "economic"}) == "资源型T2据点", "economic outpost texture key") and ok
-	ok = _expect(board._texture_key_for_unit({"type": "士兵", "equip": "射手步枪"}) == "士兵-射手步枪", "equipped soldier texture key") and ok
-	ok = _expect(board._texture_key_for_unit({"type": "军用吉普", "equip": "重甲吉普"}) == "军用吉普-重甲吉普", "equipped jeep texture key") and ok
+	ok = _expect(board._texture_key_for_building({"type": "大本营", "tier": 0}) == "hq:E1", "hq E1 texture key") and ok
+	ok = _expect(board._texture_key_for_building({"type": "大本营", "tier": 1}) == "hq:E2", "hq E2 texture key") and ok
+	ok = _expect(board._texture_key_for_building({"type": "大本营", "tier": 4}) == "hq:E5", "hq E5 texture key") and ok
+	ok = _expect(board._texture_key_for_building({"type": "据点", "era": 2, "outpost_tier": 1, "outpost_branch": "combat"}) == "outpost:E2:combat", "combat outpost texture key") and ok
+	ok = _expect(board._texture_key_for_building({"type": "据点", "era": 5, "outpost_tier": 1, "outpost_branch": "economic"}) == "outpost:E5:economic", "economic outpost texture key") and ok
+	ok = _expect(board._texture_key_for_unit({"type": "士兵", "equip": "射手步枪"}) in ["士兵-射手步枪", "士兵"], "equipped soldier has texture or text fallback key") and ok
+	ok = _expect(board._texture_key_for_unit({"type": "军用吉普", "equip": "重甲吉普"}) in ["军用吉普-重甲吉普", "军用吉普"], "equipped jeep has texture or text fallback key") and ok
 	ok = _expect(board._texture_key_for_unit({"type": "坦克", "equip": ""}) == "坦克", "plain unit texture key") and ok
 	board.set_selection(-1, int(hq["id"]), empty_moves, empty_attacks)
 	ok = _expect(board.selected_building_id == int(hq["id"]), "building selection accepts typed empty ranges") and ok
 	var preview_tiles: Array[Vector2i] = [Vector2i(1, 1)]
 	board.set_build_tiles(preview_tiles, Color(0.15, 0.72, 1.0), state.next_collector_income(0))
-	ok = _expect(is_equal_approx(board.build_tile_income, 4.5), "collector build overlay receives gold income") and ok
+	ok = _expect(is_equal_approx(board.build_tile_income, state.next_collector_income(0)), "collector build overlay receives era-adjusted gold income") and ok
 	ok = _expect(board._format_build_income(4.5) == "+4.5" and board._format_build_income(3.75) == "+3.75", "collector income badge keeps meaningful decimals") and ok
 	board.clear_selection()
 	ok = _expect(board.selected_unit_id == -1 and board.selected_building_id == -1, "board selection clears") and ok
@@ -201,20 +220,24 @@ func _check_outpost_produces_while_upgrading(db) -> bool:
 			state.terrain_grid[y][x] = "plain"
 	state.current_player = 0
 	state.players[0]["tier"] = 2
+	state.players[0]["era"] = 2
 	state.players[0]["gold"] = 50.0
 	var outpost = state._add_building("据点", 0, Vector2i(6, 6), 0)
 	outpost["captured"] = true
+	outpost["capture_turn"] = -99
 	state.update_vision()
 	if not state.upgrade_outpost(int(outpost["id"]), "combat"):
 		return false
 	if not bool(outpost.get("upgrading", false)):
 		return false
-	return state.can_produce(outpost, "士兵")
+	return state.can_produce(outpost, "战团")
 
 func _check_collector_income_sequence(db) -> bool:
 	var state = GameStateScript.new()
 	state.setup(db, 20, 20, 2)
 	state.players[0]["gold"] = 50.0
+	state.players[0]["technology"].append("e1_organized_gathering")
+	state.players[0]["researched"].append("e1_organized_gathering")
 	var hq: Dictionary = {}
 	for building in state.buildings:
 		if building["type"] == "大本营" and int(building["pid"]) == 0:
@@ -256,6 +279,7 @@ func _check_outpost_upgrade_resets_on_recapture(db) -> bool:
 			state.terrain_grid[y][x] = "plain"
 	state.current_player = 0
 	state.players[0]["tier"] = 2
+	state.players[0]["era"] = 2
 	state.players[0]["gold"] = 50.0
 	var outpost = state._add_building("据点", 0, Vector2i(6, 6), 0)
 	outpost["captured"] = true
@@ -281,6 +305,7 @@ func _check_outpost_balance_values(db) -> bool:
 	state.buildings.clear()
 	state.current_player = 0
 	state.players[0]["tier"] = 2
+	state.players[0]["era"] = 2
 	state.players[0]["gold"] = 50.0
 	var tier1 = state._add_building("据点", 0, Vector2i(4, 4), 0)
 	if not is_equal_approx(float(tier1["max_hp"]), 20.0) or not is_equal_approx(float(tier1["armor"]), 0.0):
@@ -288,18 +313,20 @@ func _check_outpost_balance_values(db) -> bool:
 	var combat = state._add_building("据点", 0, Vector2i(6, 4), 0)
 	combat["outpost_branch"] = "combat"
 	state._finish_outpost_upgrade(combat)
-	if not is_equal_approx(float(combat["max_hp"]), 30.0) or not is_equal_approx(float(combat["armor"]), 0.5):
+	if not is_equal_approx(float(combat["max_hp"]), 51.0) or not is_equal_approx(float(combat["armor"]), 1.5):
 		return false
 	var economic = state._add_building("据点", 0, Vector2i(8, 4), 0)
 	economic["outpost_branch"] = "economic"
 	state._finish_outpost_upgrade(economic)
-	return is_equal_approx(float(economic["max_hp"]), 20.0) and is_equal_approx(float(economic["armor"]), 0.0)
+	return is_equal_approx(float(economic["max_hp"]), 34.0) and is_equal_approx(float(economic["armor"]), 0.5)
 
 func _check_outpost_defeat_capture_rules(db) -> bool:
 	var state = GameStateScript.new()
 	state.setup(db, 20, 20, 2)
 	state.units.clear()
 	state.buildings.clear()
+	state.players[1]["tier"] = 2
+	state.players[1]["era"] = 2
 	var upgrading = state._add_building("据点", 1, Vector2i(5, 5), 0)
 	upgrading["upgrading"] = true
 	upgrading["up_timer"] = 2
@@ -324,13 +351,16 @@ func _check_outpost_defeat_capture_rules(db) -> bool:
 		and is_equal_approx(float(tier2.get("max_hp", 0.0)), 20.0) \
 		and is_equal_approx(float(tier2.get("hp", 0.0)), 10.0) \
 		and is_equal_approx(float(tier2.get("armor", -1.0)), 0.0) \
-		and is_equal_approx(float(tier2.get("gold", 0.0)), 4.5)
+		and is_equal_approx(float(tier2.get("gold", 0.0)), 1.0)
 
 func _check_building_recovery_rules(db) -> bool:
 	var state = GameStateScript.new()
 	state.setup(db, 20, 20, 2)
+	state.players[0]["technology"].append("e1_palisade")
+	state.players[0]["researched"].append("e1_palisade")
 	state.buildings.clear()
 	var outpost = state._add_building("据点", 0, Vector2i(5, 5), 0)
+	outpost["capture_turn"] = -99
 	outpost["hp"] = 10.0
 	outpost["damaged_this_turn"] = true
 	state._building_turn_start(outpost)

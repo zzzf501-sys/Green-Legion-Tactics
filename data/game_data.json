@@ -1,4 +1,23 @@
 {
+  "schema_version": 2,
+  "meta": {
+    "name": "绿色军团：E1-E5 五时代陆军",
+    "design_version": "v0.1",
+    "core_unit_count": 20,
+    "equipment_slot_count": 1,
+    "adjacency_max_stacks": 2,
+    "grand_war_round": 75
+  },
+  "rules": {
+    "damage_formula": "max(0, attack + target_modifier - armor)",
+    "adjacency": {"distance": 1, "includes_diagonal": true, "max_same_source_stacks": 2},
+    "unit_upgrade": {"requires_friendly_garrison": true, "consumes_turn": true, "preserve_hp_ratio": true, "preserve_experience": true},
+    "equipment": {"slots": 1, "mutually_exclusive": true, "hp_conversion": "new_max_hp * (1 + old_hp_ratio) / 2"},
+    "outpost_income_recovery": [0.0, 0.5, 1.0],
+    "outpost_income_decay": [1.0, 0.75, 0.55, 0.4],
+    "collector_base_income": 4.5,
+    "collector_decay": 0.8
+  },
   "terrain": {
     "plain": {"name": "平地", "height": 0, "move_cost": 1.0, "color": "#2d3a2d", "texture": "res://assets/images/深绿色地皮.jpg"},
     "grass": {"name": "草地", "height": 0, "move_cost": 1.0, "color": "#4c6a35", "texture": "res://assets/images/浅绿色地皮.jpg"},
@@ -6,66 +25,225 @@
     "highland": {"name": "高地", "height": 2, "move_cost": 1.8, "color": "#68623f", "texture": "res://assets/images/terrain/terrain-highland.jpg"},
     "mountain": {"name": "山脉", "height": 3, "move_cost": 2.6, "color": "#7b7770", "texture": "res://assets/images/terrain/terrain-mountain.jpg"}
   },
-  "techs": {
-    "T1": {"name": "基础军事", "cost": 0, "unlocks": ["士兵", "军用吉普", "装甲车"]},
-    "T2": {"name": "T2 作战体系", "cost": 12, "unlocks": ["坦克", "野战炮", "自杀无人机", "侦察机"]},
-    "T3": {"name": "制空与远程火力", "cost": 24, "unlocks": ["火箭炮", "战斗机", "轰炸机", "防空车"]}
+  "eras": {
+    "E1": {"index": 1, "name": "部落战争", "open_round": 1, "end_round": 13, "multiplier": 1.0, "command_capacity": 22, "logistics_multiplier": 1.0, "hq_upgrade_cost": 15, "hq_upgrade_time": 2, "units": ["战团", "斥候", "投石队", "部落侦察"]},
+    "E2": {"index": 2, "name": "冷兵器战争", "open_round": 14, "end_round": 27, "multiplier": 1.7, "command_capacity": 24, "logistics_multiplier": 1.1, "hq_upgrade_cost": 27, "hq_upgrade_time": 2, "units": ["方阵", "骑兵", "弓弩/投石车", "轻骑侦察"]},
+    "E3": {"index": 3, "name": "火药战争", "open_round": 28, "end_round": 42, "multiplier": 3.0, "command_capacity": 26, "logistics_multiplier": 1.2, "hq_upgrade_cost": 48, "hq_upgrade_time": 3, "units": ["火枪连", "龙骑兵", "野战炮", "工兵/观测队"]},
+    "E4": {"index": 4, "name": "机械化战争", "open_round": 43, "end_round": 58, "multiplier": 5.0, "command_capacity": 28, "logistics_multiplier": 1.3, "hq_upgrade_cost": 78, "hq_upgrade_time": 3, "units": ["士兵", "主战坦克", "自行火炮", "吉普"]},
+    "E5": {"index": 5, "name": "信息化战争", "open_round": 59, "end_round": 74, "multiplier": 7.5, "command_capacity": 30, "logistics_multiplier": 1.4, "units": ["网络化步兵", "无人战车", "精确火箭", "无人机/电子战"]}
   },
-  "equipment": {
-    "士兵": [
-      {"name": "射手步枪", "cost": 0.5, "dmg": 0.5, "range": 4, "speed": -1, "can_target_air": true, "tier": 1, "research_cost": 3, "research_time": 1},
-      {"name": "反器械枪", "cost": 1.5, "dmg": 4, "range": 2, "can_target_air": true, "tier": 2, "research_cost": 5, "research_time": 2}
-    ],
-    "坦克": [
-      {"name": "穿甲炮", "cost": 2, "dmg": 3, "range": 1, "tier": 3, "research_cost": 10, "research_time": 3},
-      {"name": "高爆炮", "cost": 1, "dmg": -2, "blast": 2, "tier": 2, "research_cost": 5, "research_time": 2}
-    ],
-    "军用吉普": [
-      {"name": "火箭助推", "cost": 1, "speed": 5, "hp": 1, "tier": 2, "research_cost": 5, "research_time": 2},
-      {"name": "重甲吉普", "cost": 1, "armor": 1, "speed": -2, "dmg": 0.5, "hp": 0.5, "tier": 1, "research_cost": 3, "research_time": 1}
-    ],
-    "火箭炮": [
-      {"name": "对空雷达", "cost": 3, "range": 1, "can_target_air": true, "tier": 3, "research_cost": 10, "research_time": 3}
-    ],
-    "野战炮": [
-      {"name": "轻量化", "cost": -1, "dmg": -1, "range": 0, "speed": 2, "hp": -1, "tier": 2, "research_cost": 5, "research_time": 2},
-      {"name": "巨炮", "cost": 6, "dmg": 7, "range": 4, "speed": -1, "hp": 2, "tier": 3, "research_cost": 10, "research_time": 3}
-    ]
+  "techs": {
+    "T1": {"name": "E1 部落战争", "era": "E1", "cost": 0, "unlocks": ["战团", "斥候", "投石队", "部落侦察"]},
+    "T2": {"name": "E2 冷兵器战争", "era": "E2", "cost": 10, "unlocks": ["方阵", "骑兵", "弓弩/投石车", "轻骑侦察"]},
+    "T3": {"name": "E3 火药战争", "era": "E3", "cost": 18, "unlocks": ["火枪连", "龙骑兵", "野战炮", "工兵/观测队"]},
+    "T4": {"name": "E4 机械化战争", "era": "E4", "cost": 32, "unlocks": ["士兵", "主战坦克", "自行火炮", "吉普"]},
+    "T5": {"name": "E5 信息化战争", "era": "E5", "cost": 52, "unlocks": ["网络化步兵", "无人战车", "精确火箭", "无人机/电子战"]}
+  },
+  "technologies": {
+    "e1_flint_weapons": {"name": "燧石武器", "era": "E1", "routes": ["firepower"], "cost": 3, "research_time": 1, "unlocks": ["投石队", "E1武器装备"]},
+    "e1_hunting_groups": {"name": "狩猎编组", "era": "E1", "routes": ["mobile", "support"], "cost": 3, "research_time": 1, "unlocks": ["斥候", "部落侦察"]},
+    "e1_organized_gathering": {"name": "有组织采集", "era": "E1", "routes": ["development"], "cost": 4, "research_time": 1, "unlocks": ["资源采集器"]},
+    "e1_palisade": {"name": "木栅工事", "era": "E1", "routes": ["development"], "cost": 4, "research_time": 1, "prerequisites": ["e1_organized_gathering"], "unlocks": ["建筑延迟回血", "驻扎"]},
+    "e2_standing_phalanx": {"name": "常备方阵", "era": "E2", "routes": ["line"], "cost": 6, "research_time": 1, "unlocks": ["方阵", "方阵装备"]},
+    "e2_horsemanship": {"name": "驯马术", "era": "E2", "routes": ["mobile", "support"], "cost": 6, "research_time": 1, "prerequisites": ["e1_hunting_groups"], "unlocks": ["骑兵", "轻骑侦察"]},
+    "e2_composite_bow": {"name": "复合弓与配重", "era": "E2", "routes": ["firepower"], "cost": 7, "research_time": 2, "prerequisites": ["e1_flint_weapons"], "unlocks": ["弓弩/投石车"]},
+    "e2_road_stations": {"name": "道路驿站", "era": "E2", "routes": ["development"], "cost": 9, "research_time": 2, "prerequisites": ["e1_organized_gathering"], "effects": {"logistics_multiplier": 1.1}},
+    "e3_standard_firearms": {"name": "标准化火器", "era": "E3", "routes": ["line"], "cost": 10, "research_time": 2, "prerequisites": ["e2_standing_phalanx"], "unlocks": ["火枪连"]},
+    "e3_dragoon_tactics": {"name": "龙骑战术", "era": "E3", "routes": ["mobile"], "cost": 10, "research_time": 2, "prerequisites": ["e2_horsemanship"], "unlocks": ["龙骑兵"]},
+    "e3_ballistics": {"name": "弹道学", "era": "E3", "routes": ["firepower"], "cost": 12, "research_time": 2, "prerequisites": ["e2_composite_bow"], "unlocks": ["野战炮", "实心弹"]},
+    "e3_field_engineers": {"name": "野战工兵", "era": "E3", "routes": ["support"], "cost": 10, "research_time": 2, "prerequisites": ["e2_horsemanship"], "unlocks": ["工兵/观测队", "观测", "维修", "爆破"]},
+    "e3_industrial_logistics": {"name": "工业化后勤", "era": "E3", "routes": ["development"], "cost": 14, "research_time": 2, "prerequisites": ["e2_road_stations"], "effects": {"logistics_multiplier": 1.2}},
+    "e4_mechanized_warfare": {"name": "机械化作战", "era": "E4", "routes": ["line"], "cost": 18, "research_time": 2, "prerequisites": ["e3_standard_firearms"], "unlocks": ["士兵"]},
+    "e4_armored_warfare": {"name": "装甲战争", "era": "E4", "routes": ["mobile"], "cost": 30, "research_time": 3, "prerequisites": ["e3_dragoon_tactics"], "unlocks": ["主战坦克"]},
+    "e4_self_propelled_firepower": {"name": "自行火力", "era": "E4", "routes": ["firepower"], "cost": 24, "research_time": 2, "prerequisites": ["e3_ballistics"], "unlocks": ["自行火炮"]},
+    "e4_motorized_recon": {"name": "摩托化侦察", "era": "E4", "routes": ["support"], "cost": 18, "research_time": 2, "prerequisites": ["e3_field_engineers"], "unlocks": ["吉普"]},
+    "e4_radio_fire_control": {"name": "无线电火控", "era": "E4", "routes": ["development"], "cost": 22, "research_time": 2, "prerequisites": ["e3_industrial_logistics"], "effects": {"logistics_multiplier": 1.3}},
+    "e5_networked_infantry": {"name": "网络化步兵", "era": "E5", "routes": ["line"], "cost": 30, "research_time": 2, "prerequisites": ["e4_mechanized_warfare"], "unlocks": ["网络化步兵", "共享视野"]},
+    "e5_autonomous_systems": {"name": "自主装甲系统", "era": "E5", "routes": ["mobile"], "cost": 40, "research_time": 3, "prerequisites": ["e4_armored_warfare"], "unlocks": ["无人战车"]},
+    "e5_precision_guidance": {"name": "精确制导", "era": "E5", "routes": ["firepower"], "cost": 45, "research_time": 3, "prerequisites": ["e4_self_propelled_firepower"], "unlocks": ["精确火箭", "制导装备"]},
+    "e5_unmanned_recon": {"name": "无人侦察系统", "era": "E5", "routes": ["support"], "cost": 32, "research_time": 2, "prerequisites": ["e4_motorized_recon"], "unlocks": ["无人机/电子战"]},
+    "e5_electronic_warfare": {"name": "电子战", "era": "E5", "routes": ["support"], "cost": 35, "research_time": 2, "prerequisites": ["e5_unmanned_recon"], "unlocks": ["干扰吊舱", "视野压制", "反标记"]},
+    "e5_smart_logistics": {"name": "智能后勤", "era": "E5", "routes": ["development"], "cost": 28, "research_time": 2, "prerequisites": ["e4_radio_fire_control"], "effects": {"logistics_multiplier": 1.4}},
+    "e5_starlink": {"name": "SpaceX 星链计划", "era": "E5", "cost": 85, "research_time": 3, "strategic": true, "prerequisites": ["e5_electronic_warfare", "e5_smart_logistics"], "effects": {"explore_all_terrain": true, "shared_friendly_vision": true, "global_scan_interval": 3, "global_scan_duration": 1, "drone_warhead_damage": 5}}
   },
   "strategic_techs": {
-    "SpaceX 星链计划": {"tier": 3, "cost": 30, "research_time": 3, "desc": "解锁全图视野，并使自杀无人机伤害 +1。"}
+    "SpaceX 星链计划": {"id": "e5_starlink", "tier": 5, "era": "E5", "cost": 85, "research_time": 3, "prerequisites": ["e5_electronic_warfare", "e5_smart_logistics"], "desc": "全图地形探索、己方共享视野，并每3回合扫描1回合；电子战区域可阻断共享。"}
   },
   "units": {
-    "士兵": {"hp": 1.5, "armor": 0, "speed": 3, "damage": 1, "range": 2, "price": 1, "attacks": 1, "vision": 5, "texture": "res://assets/images/士兵.png"},
-    "坦克": {"hp": 10, "armor": 2, "speed": 5, "damage": 4, "range": 3, "price": 7, "attacks": 1, "vision": 8, "texture": "res://assets/images/坦克.png"},
-    "军用吉普": {"hp": 3, "armor": 0, "speed": 8, "damage": 2, "range": 3, "price": 3, "attacks": 1, "vision": 11, "texture": "res://assets/images/军用吉普.png"},
-    "火箭炮": {"hp": 10, "armor": 0, "speed": 2, "damage": 7, "range": 15, "price": 18, "attacks": 1, "vision": 17, "texture": "res://assets/images/火箭炮.png"},
-    "野战炮": {"hp": 3, "armor": 1, "speed": 3, "damage": 5, "range": 6, "price": 5, "attacks": 1, "vision": 9, "texture": "res://assets/images/野战炮.png"},
-    "装甲车": {"hp": 6, "armor": 1, "speed": 5, "damage": 1.5, "range": 3, "price": 6, "attacks": 3, "vision": 8, "can_target_air": true, "texture": "res://assets/images/装甲车.png"},
-    "战斗机": {"hp": 5, "armor": 1, "speed": 10, "damage": 5.5, "range": 3, "price": 8, "attacks": 1, "vision": 13, "is_air": true, "can_target_air": true, "texture": "res://assets/images/战斗机.png"},
-    "轰炸机": {"hp": 16, "armor": 3, "speed": 5, "damage": 12, "range": 1.5, "price": 15, "attacks": 1, "vision": 7, "is_air": true, "blast": 1.5, "reload": 1, "texture": "res://assets/images/轰炸机.png"},
-    "防空车": {"hp": 5, "armor": 1, "speed": 5, "damage": 3, "range": 4, "price": 10, "attacks": 1, "vision": 9, "can_target_air": true, "air_damage": 8, "air_range": 14, "texture": "res://assets/images/防空车.png"},
-    "自杀无人机": {"hp": 2, "armor": 0, "speed": 8, "damage": 4, "range": 1, "price": 2, "attacks": 1, "vision": 9, "self_destruct": true, "texture": "res://assets/images/自杀无人机.png"},
-    "侦察机": {"hp": 2.5, "armor": 0, "speed": 12, "damage": 0, "range": 0, "price": 5, "attacks": 0, "vision": 11, "is_air": true, "texture": "res://assets/images/侦察机.png"}
+    "战团": {"id": "e1_warband", "era": "E1", "route": "line", "hp": 1.5, "armor": 0, "speed": 3, "damage": 1, "range": 1, "vision": 4, "price": 1, "upgrade_cost": 0, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_same", "damage_per_stack": 0.25, "max_stacks": 2}], "texture": ""},
+    "斥候": {"id": "e1_scout", "era": "E1", "route": "mobile", "hp": 1.75, "armor": 0, "speed": 5, "damage": 1, "range": 1, "vision": 5, "price": 1.5, "upgrade_cost": 0, "attacks": 1, "command_cost": 2, "traits": [{"type": "charge", "min_move": 3, "first_attack_damage": 0.5}], "texture": ""},
+    "投石队": {"id": "e1_slingers", "era": "E1", "route": "firepower", "hp": 1, "armor": 0, "speed": 2, "damage": 1, "range": 3, "vision": 5, "price": 1.5, "upgrade_cost": 0, "attacks": 1, "command_cost": 2, "traits": [{"type": "adjacent_support", "support_unit": "部落侦察", "range": 1}], "texture": ""},
+    "部落侦察": {"id": "e1_tribal_recon", "era": "E1", "route": "support", "hp": 1, "armor": 0, "speed": 6, "damage": 0.5, "range": 1, "vision": 8, "price": 1, "upgrade_cost": 0, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_allies", "vision": 1}, {"type": "mark_target"}], "texture": ""},
+    "方阵": {"id": "e2_phalanx", "era": "E2", "route": "line", "hp": 5.5, "armor": 0.75, "speed": 2, "damage": 2.25, "range": 1, "vision": 5, "price": 3, "upgrade_cost": 2.25, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_same", "armor_per_stack": 0.75, "max_stacks": 2}, {"type": "target_route_bonus", "target_route": "mobile", "damage": 1.5}], "texture": ""},
+    "骑兵": {"id": "e2_cavalry", "era": "E2", "route": "mobile", "hp": 5.5, "armor": 0.25, "speed": 5, "damage": 3, "range": 1, "vision": 6, "price": 5, "upgrade_cost": 4, "attacks": 1, "command_cost": 2, "traits": [{"type": "charge", "straight_line": true, "min_move": 4, "first_attack_damage": 1.5}], "texture": ""},
+    "弓弩/投石车": {"id": "e2_ranged_siege", "era": "E2", "route": "firepower", "hp": 3.5, "armor": 0, "speed": 2, "damage": 3.5, "range": 5, "min_range": 2, "vision": 7, "price": 4.5, "upgrade_cost": 3.5, "attacks": 1, "command_cost": 2, "traits": [{"type": "adjacent_support", "support_unit": "方阵", "range": 1}], "texture": ""},
+    "轻骑侦察": {"id": "e2_mounted_recon", "era": "E2", "route": "support", "hp": 3.5, "armor": 0.25, "speed": 8, "damage": 2, "range": 2, "vision": 10, "price": 3.5, "upgrade_cost": 2.8, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_support", "support_unit": "骑兵", "vision": 2}, {"type": "mark_target"}], "texture": ""},
+    "火枪连": {"id": "e3_musket_company", "era": "E3", "route": "line", "hp": 6.5, "armor": 0.5, "speed": 3, "damage": 4.5, "range": 4, "vision": 6, "price": 4, "upgrade_cost": 1.9, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_same", "damage_per_stack": 0.5, "armor_per_stack": 0.5, "max_stacks": 2}], "texture": ""},
+    "龙骑兵": {"id": "e3_dragoon", "era": "E3", "route": "mobile", "hp": 10, "armor": 1, "speed": 6, "damage": 6, "range": 2, "vision": 7, "price": 10, "upgrade_cost": 6.5, "attacks": 1, "command_cost": 2, "traits": [{"type": "flank_or_isolated", "damage": 3}], "texture": ""},
+    "野战炮": {"id": "e3_field_gun", "era": "E3", "route": "firepower", "hp": 9, "armor": 1, "speed": 2, "damage": 12, "range": 7, "min_range": 2, "vision": 9, "price": 12, "upgrade_cost": 9, "attacks": 1, "command_cost": 2, "traits": [{"type": "move_attack_limit", "max_move_before_attack": 1}], "texture": ""},
+    "工兵/观测队": {"id": "e3_engineer_observer", "era": "E3", "route": "support", "hp": 6, "armor": 0.5, "speed": 4, "damage": 3, "range": 2, "vision": 11, "price": 6, "upgrade_cost": 3.5, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_route", "route": "firepower", "range": 2}, {"type": "mark_target"}, {"type": "repair"}, {"type": "demolition"}], "texture": ""},
+    "士兵": {"id": "e4_infantry", "era": "E4", "route": "line", "hp": 7.5, "armor": 0, "speed": 3, "damage": 5, "range": 2, "vision": 5, "price": 5, "upgrade_cost": 2.2, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_same", "damage_per_stack": 1, "max_stacks": 2}], "texture": "res://assets/images/士兵.png"},
+    "主战坦克": {"id": "e4_mbt", "era": "E4", "route": "mobile", "hp": 40, "armor": 8, "speed": 4, "damage": 20, "range": 3, "vision": 5, "price": 35, "upgrade_cost": 28, "attacks": 1, "command_cost": 2, "armored": true, "texture": "res://assets/images/坦克.png"},
+    "自行火炮": {"id": "e4_sp_artillery", "era": "E4", "route": "firepower", "hp": 15, "armor": 5, "speed": 3, "damage": 25, "range": 6, "vision": 9, "price": 25, "upgrade_cost": 16.5, "attacks": 1, "command_cost": 2, "armored": true, "traits": [{"type": "adjacent_support", "support_unit": "吉普", "range": 2}], "texture": "res://assets/images/野战炮.png"},
+    "吉普": {"id": "e4_jeep", "era": "E4", "route": "support", "hp": 15, "armor": 0, "speed": 8, "damage": 10, "range": 3, "vision": 11, "price": 15, "upgrade_cost": 10.8, "attacks": 1, "command_cost": 1, "traits": [{"type": "adjacent_allies", "vision": 2}, {"type": "mark_target"}], "texture": "res://assets/images/军用吉普.png"},
+    "网络化步兵": {"id": "e5_networked_infantry", "era": "E5", "route": "line", "hp": 11.5, "armor": 2, "speed": 4, "damage": 7.5, "range": 3, "vision": 8, "price": 8, "upgrade_cost": 4.5, "attacks": 1, "command_cost": 1, "traits": [{"type": "shared_vision"}, {"type": "marked_target", "range": 1}], "texture": ""},
+    "无人战车": {"id": "e5_unmanned_tank", "era": "E5", "route": "mobile", "hp": 48, "armor": 10, "speed": 5, "damage": 24, "range": 4, "vision": 7, "price": 45, "upgrade_cost": 17.5, "attacks": 1, "command_cost": 2, "armored": true, "traits": [{"type": "adjacent_support", "support_unit": "无人机/电子战", "armor_per_stack": 1, "max_stacks": 2}], "texture": ""},
+    "精确火箭": {"id": "e5_precision_rocket", "era": "E5", "route": "firepower", "hp": 25, "armor": 2, "speed": 3, "damage": 36, "range": 14, "min_range": 3, "vision": 13, "price": 55, "upgrade_cost": 37.5, "attacks": 1, "command_cost": 2, "reload": 1, "traits": [{"type": "shared_vision_targeting"}], "texture": ""},
+    "无人机/电子战": {"id": "e5_drone_ew", "era": "E5", "route": "support", "hp": 10, "armor": 0, "speed": 12, "damage": 0, "range": 0, "vision": 15, "price": 16, "upgrade_cost": 5.5, "attacks": 0, "command_cost": 1, "is_air": true, "traits": [{"type": "shared_intelligence", "radius": 6}], "texture": ""}
+  },
+  "unit_aliases": {"坦克": "主战坦克", "军用吉普": "吉普", "野战炮_E4": "自行火炮", "侦察无人机": "无人机/电子战"},
+  "side_units": {
+    "装甲车": {"id": "e4_legacy_apc", "era": "E4", "route": "side", "core": false, "hp": 30, "armor": 5, "speed": 5, "damage": 7.5, "range": 3, "vision": 8, "price": 30, "attacks": 3, "command_cost": 2, "can_target_air": true, "texture": "res://assets/images/装甲车.png"},
+    "火箭炮": {"id": "e4_legacy_rocket_artillery", "era": "E4", "route": "side", "core": false, "hp": 50, "armor": 0, "speed": 2, "damage": 35, "range": 15, "vision": 17, "price": 90, "attacks": 1, "command_cost": 2, "texture": "res://assets/images/火箭炮.png"},
+    "战斗机": {"id": "e4_legacy_fighter", "era": "E4", "route": "side", "core": false, "hp": 25, "armor": 5, "speed": 10, "damage": 27.5, "range": 3, "vision": 13, "price": 40, "attacks": 1, "command_cost": 2, "is_air": true, "can_target_air": true, "texture": "res://assets/images/战斗机.png"},
+    "轰炸机": {"id": "e4_legacy_bomber", "era": "E4", "route": "side", "core": false, "hp": 80, "armor": 15, "speed": 5, "damage": 60, "range": 1.5, "vision": 7, "price": 75, "attacks": 1, "command_cost": 2, "is_air": true, "blast": 1.5, "reload": 1, "texture": "res://assets/images/轰炸机.png"},
+    "防空车": {"id": "e4_legacy_anti_air", "era": "E4", "route": "side", "core": false, "hp": 25, "armor": 5, "speed": 5, "damage": 15, "range": 4, "air_damage": 40, "air_range": 14, "vision": 9, "price": 50, "attacks": 1, "command_cost": 2, "can_target_air": true, "texture": "res://assets/images/防空车.png"},
+    "自杀无人机": {"id": "e4_legacy_suicide_drone", "era": "E4", "route": "side", "core": false, "hp": 10, "armor": 0, "speed": 8, "damage": 20, "range": 1, "vision": 9, "price": 10, "attacks": 1, "command_cost": 1, "is_air": true, "self_destruct": true, "texture": "res://assets/images/自杀无人机.png"},
+    "侦察机": {"id": "e4_legacy_recon_aircraft", "era": "E4", "route": "side", "core": false, "hp": 12.5, "armor": 0, "speed": 12, "damage": 0, "range": 0, "vision": 11, "price": 25, "attacks": 0, "command_cost": 1, "is_air": true, "texture": "res://assets/images/侦察机.png"}
+  },
+  "side_equipment": {
+    "火箭炮": [{"id": "legacy_rocket_aa_radar", "name": "对空雷达", "era": "E4", "tier": 4, "cost": 15, "research_cost": 50, "research_time": 3, "range": 1, "can_target_air": true}]
+  },
+  "unit_routes": {
+    "line": ["战团", "方阵", "火枪连", "士兵", "网络化步兵"],
+    "mobile": ["斥候", "骑兵", "龙骑兵", "主战坦克", "无人战车"],
+    "firepower": ["投石队", "弓弩/投石车", "野战炮", "自行火炮", "精确火箭"],
+    "support": ["部落侦察", "轻骑侦察", "工兵/观测队", "吉普", "无人机/电子战"]
+  },
+  "equipment": {
+    "战团": [
+      {"id": "e1_warband_stone_axe", "name": "石斧", "era": "E1", "cost": 0.5, "research_cost": 3, "research_time": 1, "dmg": 0.5, "effects": {"vs_building_damage": 1}},
+      {"id": "e1_warband_hide_shield", "name": "兽皮盾", "era": "E1", "cost": 0.5, "research_cost": 3, "research_time": 1, "armor": 0.5, "speed": -1}
+    ],
+    "斥候": [
+      {"id": "e1_scout_bone_spear", "name": "骨矛", "era": "E1", "cost": 0.5, "research_cost": 3, "research_time": 1, "effects": {"charge_damage": 0.75}},
+      {"id": "e1_scout_light_pack", "name": "轻装行囊", "era": "E1", "cost": 0.5, "research_cost": 3, "research_time": 1, "speed": 2, "vision": 1, "hp": -0.25}
+    ],
+    "投石队": [
+      {"id": "e1_slingers_woven_sling", "name": "编织投索", "era": "E1", "cost": 0.5, "research_cost": 3, "research_time": 1, "dmg": 0.25, "range": 1},
+      {"id": "e1_slingers_heavy_stones", "name": "重石袋", "era": "E1", "cost": 1, "research_cost": 4, "research_time": 1, "dmg": 0.5, "speed": -1, "effects": {"vs_building_damage": 2}}
+    ],
+    "部落侦察": [
+      {"id": "e1_recon_signal_horn", "name": "信号号角", "era": "E1", "cost": 0.5, "research_cost": 3, "research_time": 1, "effects": {"mark_duration": 2}},
+      {"id": "e1_recon_camouflage", "name": "伪装", "era": "E1", "cost": 0.5, "research_cost": 3, "research_time": 1, "effects": {"concealed_when_stationary": true, "reveal_distance": 2}}
+    ],
+    "方阵": [
+      {"id": "e2_phalanx_long_spear", "name": "长枪阵", "era": "E2", "cost": 1.5, "research_cost": 6, "research_time": 1, "range": 1, "effects": {"vs_mobile_damage": 1.5}},
+      {"id": "e2_phalanx_tower_shield", "name": "塔盾阵", "era": "E2", "cost": 1.5, "research_cost": 6, "research_time": 1, "armor": 1, "dmg": -0.5, "speed": -1}
+    ],
+    "骑兵": [
+      {"id": "e2_cavalry_light_saddle", "name": "轻骑鞍具", "era": "E2", "cost": 1.5, "research_cost": 6, "research_time": 1, "speed": 2, "vision": 2, "hp": -1},
+      {"id": "e2_cavalry_barding", "name": "具装甲胄", "era": "E2", "cost": 2.5, "research_cost": 8, "research_time": 2, "armor": 1.5, "hp": 2, "speed": -2}
+    ],
+    "弓弩/投石车": [
+      {"id": "e2_ranged_longbow", "name": "长弓", "era": "E2", "cost": 1.5, "research_cost": 6, "research_time": 1, "dmg": 1, "range": 2, "speed": -1},
+      {"id": "e2_ranged_counterweight", "name": "配重机构", "era": "E2", "cost": 2.5, "research_cost": 8, "research_time": 2, "blast": 1.5, "reload": 1, "effects": {"vs_building_damage": 4}}
+    ],
+    "轻骑侦察": [
+      {"id": "e2_recon_signal_flags", "name": "信号旗", "era": "E2", "cost": 1, "research_cost": 5, "research_time": 1, "effects": {"marked_target_firepower_range": 1}},
+      {"id": "e2_recon_raider", "name": "袭扰装备", "era": "E2", "cost": 1.5, "research_cost": 6, "research_time": 1, "dmg": 1.5, "speed": 2, "vision": -2}
+    ],
+    "火枪连": [
+      {"id": "e3_musket_rifled", "name": "线膛枪", "era": "E3", "cost": 2, "research_cost": 10, "research_time": 2, "dmg": 2, "range": 2, "speed": -1},
+      {"id": "e3_musket_bayonet", "name": "刺刀工事包", "era": "E3", "cost": 2, "research_cost": 8, "research_time": 1, "armor": 1, "effects": {"range_one_vs_mobile_damage": 2}}
+    ],
+    "龙骑兵": [
+      {"id": "e3_dragoon_repeater", "name": "连发卡宾枪", "era": "E3", "cost": 3, "research_cost": 12, "research_time": 2, "attacks": 1, "effects": {"attacks_set": 2, "damage_per_attack": 6}},
+      {"id": "e3_dragoon_cuirass", "name": "胸甲", "era": "E3", "cost": 3, "research_cost": 12, "research_time": 2, "armor": 2, "hp": 3, "speed": -2}
+    ],
+    "野战炮": [
+      {"id": "e3_field_gun_grapeshot", "name": "霰弹", "era": "E3", "cost": 2, "research_cost": 10, "research_time": 2, "dmg": -3, "range": -3, "blast": 2, "effects": {"vs_line_damage": 4}},
+      {"id": "e3_field_gun_solid_shot", "name": "实心弹", "era": "E3", "cost": 4, "research_cost": 14, "research_time": 2, "dmg": 6, "effects": {"vs_building_damage": 4}}
+    ],
+    "工兵/观测队": [
+      {"id": "e3_engineer_optics", "name": "光学观测镜", "era": "E3", "cost": 2, "research_cost": 10, "research_time": 2, "vision": 4, "effects": {"marked_target_artillery_range": 2}},
+      {"id": "e3_engineer_demolition", "name": "爆破工具", "era": "E3", "cost": 2, "research_cost": 10, "research_time": 2, "effects": {"range_one_vs_building_damage": 10, "disable_mark": true}}
+    ],
+    "士兵": [
+      {"id": "e4_infantry_marksman", "name": "射手步枪", "era": "E4", "tier": 4, "cost": 2.5, "research_cost": 15, "research_time": 1, "dmg": 2.5, "range": 4, "speed": -1, "can_target_air": true},
+      {"id": "e4_infantry_antimateriel", "name": "反器械枪", "era": "E4", "tier": 4, "cost": 7.5, "research_cost": 25, "research_time": 2, "dmg": 20, "range": 2, "can_target_air": true}
+    ],
+    "主战坦克": [
+      {"id": "e4_mbt_he_cannon", "name": "高爆炮", "era": "E4", "tier": 4, "cost": 5, "research_cost": 25, "research_time": 2, "dmg": -10, "blast": 2},
+      {"id": "e4_mbt_ap_cannon", "name": "穿甲炮", "era": "E4", "tier": 4, "cost": 10, "research_cost": 50, "research_time": 3, "dmg": 15, "range": 1}
+    ],
+    "自行火炮": [
+      {"id": "e4_sp_artillery_lightweight", "name": "轻量化", "era": "E4", "tier": 4, "cost": 0, "research_cost": 25, "research_time": 2, "dmg": -5, "hp": -5, "speed": 2},
+      {"id": "e4_sp_artillery_supergun", "name": "巨炮", "era": "E4", "tier": 4, "cost": 30, "research_cost": 50, "research_time": 3, "dmg": 35, "range": 4, "hp": 10, "speed": -1}
+    ],
+    "吉普": [
+      {"id": "e4_jeep_heavy_armor", "name": "重甲吉普", "era": "E4", "tier": 4, "cost": 5, "research_cost": 15, "research_time": 1, "armor": 5, "dmg": 2.5, "hp": 2.5, "speed": -2},
+      {"id": "e4_jeep_rocket_boost", "name": "火箭助推", "era": "E4", "tier": 4, "cost": 5, "research_cost": 25, "research_time": 2, "speed": 5, "hp": 5}
+    ],
+    "网络化步兵": [
+      {"id": "e5_infantry_smart_at", "name": "智能反坦克弹", "era": "E5", "tier": 5, "cost": 6, "research_cost": 40, "research_time": 3, "reload": 1, "effects": {"vs_armored_damage": 24}},
+      {"id": "e5_infantry_adaptive_camo", "name": "自适应迷彩", "era": "E5", "tier": 5, "cost": 4, "research_cost": 30, "research_time": 2, "effects": {"stationary_armor": 3, "stationary_vision": 2, "conceal_beyond": 3}}
+    ],
+    "无人战车": [
+      {"id": "e5_unmanned_tank_aps", "name": "主动防御系统", "era": "E5", "tier": 5, "cost": 10, "research_cost": 45, "research_time": 3, "effects": {"first_effective_damage_reduction_per_turn": 15}},
+      {"id": "e5_unmanned_tank_railgun", "name": "电磁炮", "era": "E5", "tier": 5, "cost": 12, "research_cost": 50, "research_time": 3, "dmg": 16, "range": 2, "reload": 1}
+    ],
+    "精确火箭": [
+      {"id": "e5_precision_rocket_bunker", "name": "钻地弹", "era": "E5", "tier": 5, "cost": 15, "research_cost": 50, "research_time": 3, "effects": {"vs_building_damage": 20, "ignore_building_armor": 8}},
+      {"id": "e5_precision_rocket_loitering", "name": "巡飞子弹药", "era": "E5", "tier": 5, "cost": 12, "research_cost": 45, "research_time": 3, "dmg": -8, "blast": 3, "reload": 1, "effects": {"vs_line_damage": 10}}
+    ],
+    "无人机/电子战": [
+      {"id": "e5_drone_warhead", "name": "聚能战斗部", "era": "E5", "tier": 5, "cost": 5, "research_cost": 35, "research_time": 2, "dmg": 20, "range": 1, "self_destruct": true, "effects": {"attacks_set": 1}},
+      {"id": "e5_drone_jammer", "name": "干扰吊舱", "era": "E5", "tier": 5, "cost": 5, "research_cost": 35, "research_time": 2, "effects": {"radius": 6, "enemy_vision": -3, "disable_shared_vision": true, "disable_mark": true}}
+    ]
   },
   "buildings": {
     "大本营": {
-      "texture": "res://assets/images/大本营 T1.png",
+      "hp": 15, "armor": 0, "gold": 3, "vision": 7, "heal": 2, "texture": "res://assets/images/大本营 T1.png",
       "tiers": [
-        {"hp": 15, "armor": 0, "gold": 4.5, "vision": 7, "upgrade_cost": 10, "upgrade_time": 3},
-        {"hp": 30, "armor": 0.5, "gold": 7.5, "vision": 8, "upgrade_cost": 30, "upgrade_time": 5},
-        {"hp": 50, "armor": 1, "gold": 12, "vision": 9}
+        {"era": "E1", "hp": 15, "armor": 0, "gold": 3, "vision": 7, "heal": 2, "upgrade_cost": 15, "upgrade_time": 2, "texture": "res://assets/images/大本营 T1.png"},
+        {"era": "E2", "hp": 26, "armor": 1, "gold": 5.5, "vision": 8, "heal": 3.5, "upgrade_cost": 27, "upgrade_time": 2, "texture": ""},
+        {"era": "E3", "hp": 45, "armor": 3, "gold": 9, "vision": 9, "heal": 6, "upgrade_cost": 48, "upgrade_time": 3, "texture": ""},
+        {"era": "E4", "hp": 75, "armor": 5, "gold": 16, "vision": 10, "heal": 10, "upgrade_cost": 78, "upgrade_time": 3, "texture": ""},
+        {"era": "E5", "hp": 112.5, "armor": 8, "gold": 25, "vision": 12, "heal": 15, "texture": ""}
       ]
     },
-    "据点": {"hp": 20, "armor": 0, "gold": 4.5, "vision": 5, "texture": "res://assets/images/据点.jpg"},
-    "资源采集器": {"hp": 15, "armor": 0, "gold": 3, "cost": 8, "vision": 3, "texture": "res://assets/images/资源采集器.png"}
+    "据点": {
+      "hp": 20, "armor": 0, "gold": 1, "vision": 5, "command_capacity": 1, "texture": "res://assets/images/据点.jpg",
+      "eras": {
+        "E1": {"base": {"hp": 20, "armor": 0, "gold": 1, "command_capacity": 1}},
+        "E2": {"base": {"hp": 34, "armor": 0.5, "gold": 1, "command_capacity": 1}, "combat": {"hp": 51, "armor": 1.5, "gold": 1, "command_capacity": 2, "upgrade_cost": 10, "upgrade_time": 1}, "economic": {"hp": 34, "armor": 0.5, "gold": 3, "command_capacity": 0, "upgrade_cost": 12, "upgrade_time": 2}},
+        "E3": {"base": {"hp": 60, "armor": 1.5, "gold": 3, "command_capacity": 1}, "combat": {"hp": 90, "armor": 3, "gold": 2, "command_capacity": 2, "upgrade_cost": 18, "upgrade_time": 1}, "economic": {"hp": 60, "armor": 1, "gold": 4, "command_capacity": 0, "upgrade_cost": 22, "upgrade_time": 2}},
+        "E4": {"base": {"hp": 100, "armor": 3, "gold": 4, "command_capacity": 1}, "combat": {"hp": 150, "armor": 5, "gold": 3, "command_capacity": 2, "upgrade_cost": 30, "upgrade_time": 1}, "economic": {"hp": 100, "armor": 2, "gold": 7, "command_capacity": 0, "upgrade_cost": 38, "upgrade_time": 2}},
+        "E5": {"base": {"hp": 150, "armor": 5, "gold": 6, "command_capacity": 1}, "combat": {"hp": 225, "armor": 8, "gold": 4, "command_capacity": 2, "upgrade_cost": 45, "upgrade_time": 1}, "economic": {"hp": 150, "armor": 3, "gold": 10, "command_capacity": 0, "upgrade_cost": 58, "upgrade_time": 2}}
+      }
+    },
+    "资源采集器": {
+      "hp": 15, "armor": 0, "gold": 4.5, "cost": 12, "build_time": 2, "vision": 3, "texture": "res://assets/images/资源采集器.png",
+      "eras": {
+        "E1": {"hp": 15, "armor": 0, "cost": 12, "build_time": 2, "logistics_multiplier": 1.0, "first_five_income": [4.5, 3.6, 2.88, 2.3, 1.84]},
+        "E2": {"hp": 26, "armor": 0.5, "cost": 12, "build_time": 2, "logistics_multiplier": 1.1, "first_five_income": [4.95, 3.96, 3.17, 2.53, 2.03]},
+        "E3": {"hp": 45, "armor": 1.5, "cost": 12, "build_time": 2, "logistics_multiplier": 1.2, "first_five_income": [5.4, 4.32, 3.46, 2.76, 2.21]},
+        "E4": {"hp": 75, "armor": 3, "cost": 12, "build_time": 2, "logistics_multiplier": 1.3, "first_five_income": [5.85, 4.68, 3.74, 3.0, 2.4]},
+        "E5": {"hp": 112.5, "armor": 5, "cost": 12, "build_time": 2, "logistics_multiplier": 1.4, "first_five_income": [6.3, 5.04, 4.03, 3.23, 2.58]}
+      }
+    }
   },
   "production": {
     "大本营": {
-      "T1": ["士兵", "军用吉普", "装甲车"],
-      "T2": ["坦克", "野战炮", "自杀无人机", "侦察机"],
-      "T3": ["火箭炮", "战斗机", "轰炸机", "防空车"]
-    }
+      "T1": ["战团", "斥候", "投石队", "部落侦察"], "T2": ["方阵", "骑兵", "弓弩/投石车", "轻骑侦察"], "T3": ["火枪连", "龙骑兵", "野战炮", "工兵/观测队"], "T4": ["士兵", "主战坦克", "自行火炮", "吉普"], "T5": ["网络化步兵", "无人战车", "精确火箭", "无人机/电子战"],
+      "E1": ["战团", "斥候", "投石队", "部落侦察"], "E2": ["方阵", "骑兵", "弓弩/投石车", "轻骑侦察"], "E3": ["火枪连", "龙骑兵", "野战炮", "工兵/观测队"], "E4": ["士兵", "主战坦克", "自行火炮", "吉普"], "E5": ["网络化步兵", "无人战车", "精确火箭", "无人机/电子战"]
+    },
+    "据点": {"E1": ["战团"], "E2": ["方阵", "战团"], "E3": ["火枪连", "方阵"], "E4": ["士兵", "火枪连"], "E5": ["网络化步兵", "士兵"]},
+    "战斗据点": {"E1": [], "E2": ["方阵", "骑兵"], "E3": ["火枪连", "龙骑兵"], "E4": ["士兵", "主战坦克"], "E5": ["网络化步兵", "无人战车"]},
+    "经济据点": {"E1": [], "E2": ["战团"], "E3": ["方阵"], "E4": ["火枪连"], "E5": ["士兵"]}
+  },
+  "command": {
+    "base_capacity": {"E1": 22, "E2": 24, "E3": 26, "E4": 28, "E5": 30},
+    "route_cost": {"line": 1, "mobile": 2, "firepower": 2, "support": 1},
+    "building_bonus": {"大本营": 0, "据点": 1, "战斗据点": 2, "经济据点": 0}
+  },
+  "economy": {
+    "collector_base_income": 4.5,
+    "collector_decay": 0.8,
+    "logistics_multiplier": {"E1": 1.0, "E2": 1.1, "E3": 1.2, "E4": 1.3, "E5": 1.4},
+    "outpost_income_decay": [1.0, 0.75, 0.55, 0.4],
+    "capture_recovery": [0.0, 0.5, 1.0]
   },
   "audio": {
     "bgm": "res://assets/audio/bgm.mp3",

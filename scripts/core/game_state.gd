@@ -9,6 +9,66 @@ const PLAYER_COLORS = [
 	Color(1.0, 0.82, 0.22)
 ]
 
+const RULESET_VERSION = 5
+const ERA_NAMES = ["", "E1 部落战争", "E2 冷兵器战争", "E3 火药战争", "E4 机械化战争", "E5 信息化战争"]
+const ERA_UNLOCK_TURNS = [0, 1, 14, 28, 43, 59]
+const GRAND_WAR_TURN = 75
+const ERA_COMMAND_CAP = [0, 22, 24, 26, 28, 30]
+const HQ_STATS = [
+	{},
+	{"hp": 15.0, "armor": 0.0, "gold": 3.0, "vision": 7, "heal": 2.0, "upgrade_cost": 15.0, "upgrade_time": 2},
+	{"hp": 26.0, "armor": 1.0, "gold": 5.5, "vision": 8, "heal": 3.5, "upgrade_cost": 27.0, "upgrade_time": 2},
+	{"hp": 45.0, "armor": 3.0, "gold": 9.0, "vision": 9, "heal": 6.0, "upgrade_cost": 48.0, "upgrade_time": 3},
+	{"hp": 75.0, "armor": 5.0, "gold": 16.0, "vision": 10, "heal": 10.0, "upgrade_cost": 78.0, "upgrade_time": 3},
+	{"hp": 112.5, "armor": 8.0, "gold": 25.0, "vision": 12, "heal": 15.0}
+]
+const OUTPOST_STATS = [
+	{},
+	{"base": {"hp": 20.0, "armor": 0.0, "gold": 1.0}},
+	{"base": {"hp": 34.0, "armor": 0.5, "gold": 1.0}, "combat": {"hp": 51.0, "armor": 1.5, "gold": 1.0, "cost": 10.0, "time": 1}, "economic": {"hp": 34.0, "armor": 0.5, "gold": 3.0, "cost": 12.0, "time": 2}},
+	{"base": {"hp": 60.0, "armor": 1.5, "gold": 3.0}, "combat": {"hp": 90.0, "armor": 3.0, "gold": 2.0, "cost": 18.0, "time": 1}, "economic": {"hp": 60.0, "armor": 1.0, "gold": 4.0, "cost": 22.0, "time": 2}},
+	{"base": {"hp": 100.0, "armor": 3.0, "gold": 4.0}, "combat": {"hp": 150.0, "armor": 5.0, "gold": 3.0, "cost": 30.0, "time": 1}, "economic": {"hp": 100.0, "armor": 2.0, "gold": 7.0, "cost": 38.0, "time": 2}},
+	{"base": {"hp": 150.0, "armor": 5.0, "gold": 6.0}, "combat": {"hp": 225.0, "armor": 8.0, "gold": 4.0, "cost": 45.0, "time": 1}, "economic": {"hp": 150.0, "armor": 3.0, "gold": 10.0, "cost": 58.0, "time": 2}}
+]
+const LOGISTICS_MULTIPLIER = [0.0, 1.0, 1.1, 1.2, 1.3, 1.4]
+const OUTPOST_INCOME_DECAY = [1.0, 0.75, 0.55, 0.40]
+
+const UNIT_ROUTES = {
+	"frontline": ["战团", "方阵", "火枪连", "士兵", "网络化步兵"],
+	"mobile": ["斥候", "骑兵", "龙骑兵", "主战坦克", "无人战车"],
+	"firepower": ["投石队", "弓弩/投石车", "野战炮", "自行火炮", "精确火箭"],
+	"support": ["部落侦察", "轻骑侦察", "工兵/观测队", "吉普", "无人机/电子战"]
+}
+const UNIT_UPGRADE_COSTS = {
+	"方阵": 2.25, "火枪连": 1.9, "士兵": 2.2, "网络化步兵": 4.5,
+	"骑兵": 4.0, "龙骑兵": 6.5, "主战坦克": 28.0, "无人战车": 17.5,
+	"弓弩/投石车": 3.5, "野战炮": 9.0, "自行火炮": 16.5, "精确火箭": 37.5,
+	"轻骑侦察": 2.8, "工兵/观测队": 3.5, "吉普": 10.8, "无人机/电子战": 5.5
+}
+const UNIT_DEFS = {
+	"战团": {"era": 1, "role": "frontline", "hp": 1.5, "armor": 0.0, "damage": 1.0, "speed": 3, "range": 1.0, "vision": 4, "price": 1.0, "attacks": 1},
+	"斥候": {"era": 1, "role": "mobile", "hp": 1.75, "armor": 0.0, "damage": 1.0, "speed": 5, "range": 1.0, "vision": 5, "price": 1.5, "attacks": 1, "charge_distance": 3.0, "charge_bonus": 0.5},
+	"投石队": {"era": 1, "role": "firepower", "hp": 1.0, "armor": 0.0, "damage": 1.0, "speed": 2, "range": 3.0, "vision": 5, "price": 1.5, "attacks": 1},
+	"部落侦察": {"era": 1, "role": "support", "hp": 1.0, "armor": 0.0, "damage": 0.5, "speed": 6, "range": 1.0, "vision": 8, "price": 1.0, "attacks": 1, "can_mark": true},
+	"方阵": {"era": 2, "role": "frontline", "hp": 5.5, "armor": 0.75, "damage": 2.25, "speed": 2, "range": 1.0, "vision": 5, "price": 3.0, "attacks": 1, "target_mods": {"mobile": 1.5}},
+	"骑兵": {"era": 2, "role": "mobile", "hp": 5.5, "armor": 0.25, "damage": 3.0, "speed": 5, "range": 1.0, "vision": 6, "price": 5.0, "attacks": 1, "charge_distance": 4.0, "charge_bonus": 1.5, "charge_straight": true},
+	"弓弩/投石车": {"era": 2, "role": "firepower", "hp": 3.5, "armor": 0.0, "damage": 3.5, "speed": 2, "range": 5.0, "min_range": 2.0, "vision": 7, "price": 4.5, "attacks": 1},
+	"轻骑侦察": {"era": 2, "role": "support", "hp": 3.5, "armor": 0.25, "damage": 2.0, "speed": 8, "range": 2.0, "vision": 10, "price": 3.5, "attacks": 1, "can_mark": true},
+	"火枪连": {"era": 3, "role": "frontline", "hp": 6.5, "armor": 0.5, "damage": 4.5, "speed": 3, "range": 4.0, "vision": 6, "price": 4.0, "attacks": 1},
+	"龙骑兵": {"era": 3, "role": "mobile", "hp": 10.0, "armor": 1.0, "damage": 6.0, "speed": 6, "range": 2.0, "vision": 7, "price": 10.0, "attacks": 1, "flank_bonus": 3.0},
+	"野战炮": {"era": 3, "role": "firepower", "hp": 9.0, "armor": 1.0, "damage": 12.0, "speed": 2, "range": 7.0, "min_range": 2.0, "vision": 9, "price": 12.0, "attacks": 1, "setup_move_limit": 1.0},
+	"工兵/观测队": {"era": 3, "role": "support", "hp": 6.0, "armor": 0.5, "damage": 3.0, "speed": 4, "range": 2.0, "vision": 11, "price": 6.0, "attacks": 1, "can_mark": true, "can_repair": true},
+	"士兵": {"era": 4, "role": "frontline", "hp": 7.5, "armor": 0.0, "damage": 5.0, "speed": 3, "range": 2.0, "vision": 5, "price": 5.0, "attacks": 1},
+	"主战坦克": {"era": 4, "role": "mobile", "hp": 40.0, "armor": 8.0, "damage": 20.0, "speed": 4, "range": 3.0, "vision": 5, "price": 35.0, "attacks": 1, "tags": ["armored"]},
+	"自行火炮": {"era": 4, "role": "firepower", "hp": 15.0, "armor": 5.0, "damage": 25.0, "speed": 3, "range": 6.0, "vision": 9, "price": 25.0, "attacks": 1, "tags": ["armored"]},
+	"吉普": {"era": 4, "role": "support", "hp": 15.0, "armor": 0.0, "damage": 10.0, "speed": 8, "range": 3.0, "vision": 11, "price": 15.0, "attacks": 1, "can_mark": true},
+	"网络化步兵": {"era": 5, "role": "frontline", "hp": 11.5, "armor": 2.0, "damage": 7.5, "speed": 4, "range": 3.0, "vision": 8, "price": 8.0, "attacks": 1, "shared_vision": true},
+	"无人战车": {"era": 5, "role": "mobile", "hp": 48.0, "armor": 10.0, "damage": 24.0, "speed": 5, "range": 4.0, "vision": 7, "price": 45.0, "attacks": 1, "tags": ["armored"], "shared_vision": true},
+	"精确火箭": {"era": 5, "role": "firepower", "hp": 25.0, "armor": 2.0, "damage": 36.0, "speed": 3, "range": 14.0, "min_range": 3.0, "vision": 13, "price": 55.0, "attacks": 1, "reload": 1, "shared_vision": true},
+	"无人机/电子战": {"era": 5, "role": "support", "hp": 10.0, "armor": 0.0, "damage": 0.0, "speed": 12, "range": 0.0, "vision": 15, "price": 16.0, "attacks": 0, "shared_vision": true, "is_drone": true}
+}
+const LEGACY_UNIT_ALIASES = {"坦克": "主战坦克", "军用吉普": "吉普"}
+
 var db
 var width = 60
 var height = 30
@@ -23,15 +83,104 @@ var buildings: Array[Dictionary] = []
 var game_over = false
 var winner = -1
 var last_event = ""
+var research_notifications: Array[Dictionary] = []
 var player_count = 2
 var fog_enabled = true
 
 func setup(database, map_width = 60, map_height = 30, count = 2) -> void:
 	db = database
+	_install_e1_e5_runtime_data()
 	width = map_width
 	height = map_height
 	player_count = clampi(int(count), 2, 4)
 	new_game()
+
+func _install_e1_e5_runtime_data() -> void:
+	# The vertical slice is intentionally self-contained here so old data files,
+	# clients and saves can still be loaded by the existing database facade.
+	if db == null:
+		return
+	if db.units.has("战团") and db.units.has("无人战车"):
+		return
+	var old_units: Dictionary = db.units.duplicate(true)
+	for unit_type in UNIT_DEFS:
+		var data: Dictionary = Dictionary(UNIT_DEFS[unit_type]).duplicate(true)
+		var texture_source = str(unit_type)
+		if unit_type == "主战坦克":
+			texture_source = "坦克"
+		elif unit_type == "吉普":
+			texture_source = "军用吉普"
+		elif unit_type == "自行火炮":
+			texture_source = "野战炮"
+		if old_units.has(texture_source):
+			data["texture"] = str(old_units[texture_source].get("texture", ""))
+		else:
+			data["texture"] = ""
+		db.units[unit_type] = data
+	for old_name in LEGACY_UNIT_ALIASES:
+		var canonical = str(LEGACY_UNIT_ALIASES[old_name])
+		var alias_data: Dictionary = Dictionary(db.units[canonical]).duplicate(true)
+		if old_units.has(old_name):
+			alias_data["texture"] = old_units[old_name].get("texture", "")
+		db.units[old_name] = alias_data
+	db.unit_order.clear()
+	for role in ["frontline", "mobile", "firepower", "support"]:
+		for unit_type in UNIT_ROUTES[role]:
+			db.unit_order.append(str(unit_type))
+	db.production["大本营"] = {}
+	for era in range(1, 6):
+		var era_units: Array = []
+		for role in UNIT_ROUTES:
+			era_units.append(UNIT_ROUTES[role][era - 1])
+		db.production["大本营"]["T%d" % era] = era_units
+	var hq_data: Dictionary = Dictionary(db.buildings.get("大本营", {})).duplicate(true)
+	hq_data["tiers"] = []
+	for era in range(1, 6):
+		hq_data["tiers"].append(Dictionary(HQ_STATS[era]).duplicate(true))
+	db.buildings["大本营"] = hq_data
+	db.techs = {
+		"T1": {"name": ERA_NAMES[1], "cost": 0.0},
+		"T2": {"name": ERA_NAMES[2], "cost": 10.0},
+		"T3": {"name": ERA_NAMES[3], "cost": 18.0},
+		"T4": {"name": ERA_NAMES[4], "cost": 32.0},
+		"T5": {"name": ERA_NAMES[5], "cost": 52.0}
+	}
+	var starlink: Dictionary = Dictionary(db.strategic_techs.get("SpaceX 星链计划", {})).duplicate(true)
+	starlink.merge({
+		"tier": 5,
+		"cost": 85.0,
+		"research_time": 3,
+		"desc": "全图探索、共享视野与周期卫星扫描。",
+		"prerequisites": ["e5_electronic_warfare", "e5_smart_logistics"]
+	}, true)
+	db.strategic_techs["SpaceX 星链计划"] = starlink
+	_install_runtime_equipment()
+
+func _install_runtime_equipment() -> void:
+	var entries = {
+		"部落侦察": [{"name": "信号号角", "tier": 1, "research_cost": 3.0, "research_time": 1, "cost": 0.5}, {"name": "伪装", "tier": 1, "research_cost": 3.0, "research_time": 1, "cost": 0.5, "conceal_distance": 2}],
+		"斥候": [{"name": "骨矛", "tier": 1, "research_cost": 3.0, "research_time": 1, "cost": 0.5, "charge_bonus": 0.75}, {"name": "轻装行囊", "tier": 1, "research_cost": 3.0, "research_time": 1, "cost": 0.5, "speed": 2, "vision": 1, "hp": -0.25}],
+		"方阵": [{"name": "长枪阵", "tier": 2, "research_cost": 6.0, "research_time": 1, "cost": 1.5, "range": 1, "target_mods": {"mobile": 1.5}}, {"name": "塔盾阵", "tier": 2, "research_cost": 6.0, "research_time": 1, "cost": 1.5, "armor": 1.0, "dmg": -0.5, "speed": -1}],
+		"骑兵": [{"name": "轻骑鞍具", "tier": 2, "research_cost": 6.0, "research_time": 1, "cost": 1.5, "speed": 2, "vision": 2, "hp": -1.0}, {"name": "具装甲胄", "tier": 2, "research_cost": 8.0, "research_time": 2, "cost": 2.5, "armor": 1.5, "hp": 2.0, "speed": -2}],
+		"弓弩/投石车": [{"name": "长弓", "tier": 2, "research_cost": 6.0, "research_time": 1, "cost": 1.5, "dmg": 1.0, "range": 2, "speed": -1}, {"name": "配重机构", "tier": 2, "research_cost": 8.0, "research_time": 2, "cost": 2.5, "building_bonus": 4.0, "blast": 1.5, "reload": 1}],
+		"火枪连": [{"name": "线膛枪", "tier": 3, "research_cost": 10.0, "research_time": 2, "cost": 2.0, "dmg": 2.0, "range": 2, "speed": -1}, {"name": "刺刀工事包", "tier": 3, "research_cost": 8.0, "research_time": 1, "cost": 2.0, "armor": 1.0, "close_mobile_bonus": 2.0}],
+		"龙骑兵": [{"name": "连发卡宾枪", "tier": 3, "research_cost": 12.0, "research_time": 2, "cost": 3.0, "attacks": 2}, {"name": "胸甲", "tier": 3, "research_cost": 12.0, "research_time": 2, "cost": 3.0, "armor": 2.0, "hp": 3.0, "speed": -2}],
+		"野战炮": [{"name": "霰弹", "tier": 3, "research_cost": 10.0, "research_time": 2, "cost": 2.0, "dmg": -3.0, "range": -3, "blast": 2.0, "target_mods": {"frontline": 4.0}}, {"name": "实心弹", "tier": 3, "research_cost": 14.0, "research_time": 2, "cost": 4.0, "dmg": 6.0, "building_bonus": 4.0}],
+		"工兵/观测队": [{"name": "光学观测镜", "tier": 3, "research_cost": 10.0, "research_time": 2, "cost": 2.0, "vision": 4}, {"name": "爆破工具", "tier": 3, "research_cost": 10.0, "research_time": 2, "cost": 2.0, "close_building_bonus": 10.0, "disable_mark": true}],
+		"士兵": [{"name": "射手步枪", "tier": 4, "research_cost": 15.0, "research_time": 1, "cost": 2.5, "dmg": 2.5, "range": 4, "speed": -1, "can_target_air": true}, {"name": "反器械枪", "tier": 4, "research_cost": 25.0, "research_time": 2, "cost": 7.5, "dmg": 20.0, "range": 2, "can_target_air": true}],
+		"主战坦克": [{"name": "高爆炮", "tier": 4, "research_cost": 25.0, "research_time": 2, "cost": 5.0, "dmg": -10.0, "blast": 2.0}, {"name": "穿甲炮", "tier": 4, "research_cost": 50.0, "research_time": 3, "cost": 10.0, "dmg": 15.0, "range": 1}],
+		"自行火炮": [{"name": "轻量化", "tier": 4, "research_cost": 25.0, "research_time": 2, "cost": 0.0, "dmg": -5.0, "hp": -5.0, "speed": 2}, {"name": "巨炮", "tier": 4, "research_cost": 50.0, "research_time": 3, "cost": 30.0, "dmg": 35.0, "range": 4, "hp": 10.0, "speed": -1}],
+		"吉普": [{"name": "重甲吉普", "tier": 4, "research_cost": 15.0, "research_time": 1, "cost": 5.0, "armor": 5.0, "dmg": 2.5, "hp": 2.5, "speed": -2}, {"name": "火箭助推", "tier": 4, "research_cost": 25.0, "research_time": 2, "cost": 5.0, "speed": 5, "hp": 5.0}],
+		"网络化步兵": [{"name": "智能反坦克弹", "tier": 5, "research_cost": 40.0, "research_time": 3, "cost": 6.0, "target_mods": {"armored": 24.0}, "reload": 1}, {"name": "自适应迷彩", "tier": 5, "research_cost": 30.0, "research_time": 2, "cost": 4.0, "stationary_armor": 3.0, "vision": 2, "conceal_distance": 3}],
+		"无人战车": [{"name": "主动防御系统", "tier": 5, "research_cost": 45.0, "research_time": 3, "cost": 10.0, "active_defense": 15.0}, {"name": "电磁炮", "tier": 5, "research_cost": 50.0, "research_time": 3, "cost": 12.0, "dmg": 16.0, "range": 2, "reload": 1}],
+		"精确火箭": [{"name": "钻地弹", "tier": 5, "research_cost": 50.0, "research_time": 3, "cost": 15.0, "building_bonus": 20.0, "building_armor_ignore": 8.0}, {"name": "巡飞子弹药", "tier": 5, "research_cost": 45.0, "research_time": 3, "cost": 12.0, "dmg": -8.0, "blast": 3.0, "target_mods": {"frontline": 10.0}, "reload_add": 1}],
+		"无人机/电子战": [{"name": "聚能战斗部", "tier": 5, "research_cost": 35.0, "research_time": 2, "cost": 5.0, "set_damage": 20.0, "set_range": 1.0, "self_destruct": true}, {"name": "干扰吊舱", "tier": 5, "research_cost": 35.0, "research_time": 2, "cost": 5.0, "jam_radius": 6, "jam_vision": 3}]
+	}
+	for unit_type in entries:
+		db.equipment[unit_type] = entries[unit_type]
+	# Old public names remain valid for UI actions and old saves.
+	db.equipment["坦克"] = db.equipment["主战坦克"]
+	db.equipment["军用吉普"] = db.equipment["吉普"]
 
 func new_game() -> void:
 	turn = 1
@@ -40,6 +189,7 @@ func new_game() -> void:
 	next_building_id = 1
 	game_over = false
 	winner = -1
+	research_notifications.clear()
 	players = []
 	for pid in range(player_count):
 		players.append({
@@ -47,7 +197,9 @@ func new_game() -> void:
 			"name": PLAYER_NAMES[pid],
 			"gold": 12.0,
 			"tier": 1,
+			"era": 1,
 			"researched": ["T1"],
+			"technology": [],
 			"researching": [],
 			"equipment": [],
 			"strategic": [],
@@ -55,6 +207,9 @@ func new_game() -> void:
 			"explored": {},
 			"last_seen": {},
 			"alive": true,
+			"campaign_advantage": 0,
+			"assault_window": 0,
+			"satellite_scan_turn": -1,
 			"stats": {
 				"turn_data": [],
 				"total_kill_value": 0.0
@@ -66,6 +221,113 @@ func new_game() -> void:
 	_spawn_initial_state()
 	_flatten_around_buildings()
 	update_vision()
+
+func global_era() -> int:
+	for era in range(5, 0, -1):
+		if turn >= ERA_UNLOCK_TURNS[era]:
+			return era
+	return 1
+
+func global_era_name() -> String:
+	return ERA_NAMES[global_era()]
+
+func player_era(pid: int) -> int:
+	if pid < 0 or pid >= players.size():
+		return 1
+	return clampi(maxi(int(players[pid].get("era", 1)), int(players[pid].get("tier", 1))), 1, 5)
+
+func is_total_war() -> bool:
+	return turn >= GRAND_WAR_TURN
+
+func is_assault_window_active(pid: int) -> bool:
+	return pid >= 0 and pid < players.size() and int(players[pid].get("assault_window", 0)) > 0
+
+func unit_role(unit_or_type) -> String:
+	var unit_type = str(unit_or_type.get("type", "")) if unit_or_type is Dictionary else str(unit_or_type)
+	unit_type = str(LEGACY_UNIT_ALIASES.get(unit_type, unit_type))
+	return str(UNIT_DEFS.get(unit_type, {}).get("role", "frontline"))
+
+func unit_era(unit_or_type) -> int:
+	var unit_type = str(unit_or_type.get("type", "")) if unit_or_type is Dictionary else str(unit_or_type)
+	unit_type = str(LEGACY_UNIT_ALIASES.get(unit_type, unit_type))
+	return int(UNIT_DEFS.get(unit_type, {}).get("era", 1))
+
+func command_cost_for(unit_or_type) -> int:
+	return 2 if unit_role(unit_or_type) in ["mobile", "firepower"] else 1
+
+func command_used(pid: int) -> int:
+	var used = 0
+	for unit in units:
+		if int(unit.get("pid", -1)) == pid:
+			used += command_cost_for(unit)
+	return used
+
+func command_capacity(pid: int) -> int:
+	var capacity = ERA_COMMAND_CAP[player_era(pid)]
+	for building in buildings:
+		if int(building.get("pid", -1)) != pid or str(building.get("type", "")) != "据点":
+			continue
+		if str(building.get("outpost_branch", "")) == "economic" and int(building.get("outpost_tier", 0)) > 0:
+			continue
+		capacity += 2 if str(building.get("outpost_branch", "")) == "combat" and int(building.get("outpost_tier", 0)) > 0 else 1
+	return capacity
+
+func command_capacity_remaining(pid: int) -> int:
+	return maxi(0, command_capacity(pid) - command_used(pid))
+
+func _technology_unlocking(target: String) -> String:
+	if db != null and db.has_method("technology_unlocking"):
+		return str(db.technology_unlocking(target))
+	for technology_id in db.technologies.keys():
+		if db.technologies[technology_id].get("unlocks", []).has(target):
+			return str(technology_id)
+	return ""
+
+func _has_technology(pid: int, technology_id: String) -> bool:
+	if technology_id.is_empty():
+		return true
+	if pid < 0 or pid >= players.size():
+		return false
+	var player: Dictionary = players[pid]
+	if player.get("technology", []).has(technology_id) or player.get("researched", []).has(technology_id):
+		return true
+	var technology = _technology_data(technology_id)
+	return not technology.is_empty() and player.get("researched", []).has(str(technology.get("name", technology_id)))
+
+func _target_unlocked(pid: int, target: String) -> bool:
+	return _has_technology(pid, _technology_unlocking(target))
+
+func target_unlocked(pid: int, target: String) -> bool:
+	return _target_unlocked(pid, target)
+
+func technology_prerequisites(tech_id: String) -> Array[String]:
+	var result: Array[String] = []
+	var tech = _technology_data(tech_id)
+	for prerequisite in tech.get("prerequisites", []):
+		result.append(str(prerequisite))
+	return result
+
+func missing_technology_prerequisites(pid: int, tech_id: String) -> Array[String]:
+	var result: Array[String] = []
+	for prerequisite_id in technology_prerequisites(tech_id):
+		if not _has_technology(pid, prerequisite_id):
+			result.append(prerequisite_id)
+	return result
+
+func technology_prerequisites_met(pid: int, tech_id: String) -> bool:
+	return missing_technology_prerequisites(pid, tech_id).is_empty()
+
+func _logistics_multiplier(pid: int) -> float:
+	var multiplier = 1.0
+	for entry in [
+		["e2_road_stations", 1.1],
+		["e3_industrial_logistics", 1.2],
+		["e4_radio_fire_control", 1.3],
+		["e5_smart_logistics", 1.4]
+	]:
+		if _has_technology(pid, str(entry[0])):
+			multiplier = max(multiplier, float(entry[1]))
+	return multiplier
 
 func _generate_terrain() -> void:
 	terrain_grid.clear()
@@ -255,6 +517,8 @@ func _add_unit(unit_type: String, pid: int, pos: Vector2i) -> Dictionary:
 		if pos == Vector2i(-1, -1):
 			return {}
 	var data = db.unit_data(unit_type)
+	if data.is_empty() and LEGACY_UNIT_ALIASES.has(unit_type):
+		data = db.unit_data(str(LEGACY_UNIT_ALIASES[unit_type]))
 	var unit = {
 		"id": next_unit_id,
 		"type": unit_type,
@@ -275,11 +539,23 @@ func _add_unit(unit_type: String, pid: int, pos: Vector2i) -> Dictionary:
 		"air_damage": float(data.get("air_damage", 0.0)),
 		"air_range": float(data.get("air_range", 0.0)),
 		"blast": float(data.get("blast", 0.0)),
+		"min_range": float(data.get("min_range", 0.0)),
+		"vision": int(data.get("vision", 4)),
+		"role": str(data.get("role", unit_role(unit_type))),
+		"era": int(data.get("era", unit_era(unit_type))),
 		"reload": int(data.get("reload", 0)),
 		"rl": 0,
 		"self_destruct": bool(data.get("self_destruct", false)),
 		"applied_equipment": [],
-		"equip": ""
+		"equip": "",
+		"move_origin": pos,
+		"moved_distance": 0.0,
+		"facing": Vector2i(0, 0),
+		"charge_ready": false,
+		"marked_by": {},
+		"status": [],
+		"aps_used": false,
+		"experience": 0.0
 	}
 	next_unit_id += 1
 	units.append(unit)
@@ -292,6 +568,8 @@ func _add_building(building_type: String, pid: int, pos: Vector2i, tier: int) ->
 	var stats = data
 	if data.has("tiers"):
 		stats = data["tiers"][tier]
+	elif building_type == "据点":
+		stats = OUTPOST_STATS[1]["base"]
 	var building = {
 		"id": next_building_id,
 		"type": building_type,
@@ -311,7 +589,11 @@ func _add_building(building_type: String, pid: int, pos: Vector2i, tier: int) ->
 		"upgrading": false,
 		"up_timer": 0,
 		"turns_since_damage": 0,
-		"damaged_this_turn": false
+		"damaged_this_turn": false,
+		"capture_turn": turn if pid >= 0 else -1,
+		"income_recovery": 3 if pid >= 0 else 0,
+		"era": 1,
+		"strategic_point": building_type == "据点"
 	}
 	next_building_id += 1
 	buildings.append(building)
@@ -351,6 +633,113 @@ func get_unit_by_id(id: int) -> Dictionary:
 		if unit["id"] == id:
 			return unit
 	return {}
+
+func _canonical_unit_type(unit_type: String) -> String:
+	return str(LEGACY_UNIT_ALIASES.get(unit_type, unit_type))
+
+func _rules_for_unit(unit: Dictionary) -> Dictionary:
+	var canonical = _canonical_unit_type(str(unit.get("type", "")))
+	return Dictionary(UNIT_DEFS.get(canonical, db.unit_data(str(unit.get("type", "")))))
+
+func _equipment_for_unit(unit: Dictionary) -> Dictionary:
+	var equip_name = str(unit.get("equip", ""))
+	return _normalized_equipment(equipment_data(str(unit.get("type", "")), equip_name)) if not equip_name.is_empty() else {}
+
+func _normalized_equipment(raw_equip: Dictionary) -> Dictionary:
+	if raw_equip.is_empty():
+		return {}
+	var equip: Dictionary = raw_equip.duplicate(true)
+	var effects: Dictionary = equip.get("effects", {})
+	var mappings = {
+		"vs_building_damage": "building_bonus", "charge_damage": "charge_bonus",
+		"mark_duration": "mark_duration", "reveal_distance": "conceal_distance",
+		"conceal_beyond": "conceal_distance", "stationary_armor": "stationary_armor",
+		"stationary_vision": "stationary_vision", "first_effective_damage_reduction_per_turn": "active_defense",
+		"ignore_building_armor": "building_armor_ignore", "radius": "jam_radius",
+		"attacks_set": "attacks", "disable_mark": "disable_mark"
+	}
+	for source_key in mappings:
+		if effects.has(source_key) and not equip.has(mappings[source_key]):
+			equip[mappings[source_key]] = effects[source_key]
+	var target_mods: Dictionary = Dictionary(equip.get("target_mods", {})).duplicate(true)
+	for pair in [["vs_mobile_damage", "mobile"], ["vs_armored_damage", "armored"], ["vs_line_damage", "frontline"]]:
+		if effects.has(pair[0]): target_mods[pair[1]] = float(effects[pair[0]])
+	if not target_mods.is_empty(): equip["target_mods"] = target_mods
+	if bool(effects.get("concealed_when_stationary", false)) and not equip.has("conceal_distance"):
+		equip["conceal_distance"] = int(effects.get("reveal_distance", 2))
+	if bool(effects.get("disable_shared_vision", false)):
+		equip["disable_shared_vision"] = true
+	return equip
+
+func adjacent_friendly_units(unit: Dictionary, type_filter: String = "") -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if unit.is_empty():
+		return result
+	for other in units:
+		if other == unit or int(other.get("pid", -1)) != int(unit.get("pid", -1)):
+			continue
+		var delta: Vector2i = other["pos"] - unit["pos"]
+		if maxi(abs(delta.x), abs(delta.y)) != 1:
+			continue
+		if not type_filter.is_empty() and _canonical_unit_type(str(other.get("type", ""))) != type_filter:
+			continue
+		result.append(other)
+	return result
+
+func effective_unit_stats(unit: Dictionary) -> Dictionary:
+	var stats = {
+		"damage": float(unit.get("damage", 0.0)),
+		"armor": float(unit.get("armor", 0.0)),
+		"range": float(unit.get("range", 0.0)),
+		"vision": int(unit.get("vision", _rules_for_unit(unit).get("vision", 4)))
+	}
+	var unit_type = _canonical_unit_type(str(unit.get("type", "")))
+	var same_count = mini(2, adjacent_friendly_units(unit, unit_type).size())
+	match unit_type:
+		"战团":
+			stats["damage"] += 0.25 * same_count
+		"投石队":
+			if not adjacent_friendly_units(unit, "部落侦察").is_empty(): stats["range"] += 1.0
+		"方阵":
+			stats["armor"] += 0.75 * same_count
+		"弓弩/投石车":
+			if not adjacent_friendly_units(unit, "方阵").is_empty(): stats["range"] += 1.0
+		"火枪连":
+			stats["damage"] += 0.5 * same_count
+			stats["armor"] += 0.5 * same_count
+		"野战炮":
+			if not adjacent_friendly_units(unit, "工兵/观测队").is_empty(): stats["range"] += 2.0
+		"士兵":
+			stats["damage"] += 1.0 * same_count
+		"自行火炮":
+			if not adjacent_friendly_units(unit, "吉普").is_empty(): stats["range"] += 2.0
+		"无人战车":
+			stats["armor"] += float(mini(2, adjacent_friendly_units(unit, "无人机/电子战").size()))
+	var vision_bonus = 0
+	for support in adjacent_friendly_units(unit):
+		var support_type = _canonical_unit_type(str(support.get("type", "")))
+		if support_type == "部落侦察": vision_bonus = max(vision_bonus, 1)
+		elif support_type == "轻骑侦察" and unit_type == "骑兵": vision_bonus = max(vision_bonus, 2)
+		elif support_type == "吉普": vision_bonus = max(vision_bonus, 2)
+	stats["vision"] += vision_bonus
+	var equip = _equipment_for_unit(unit)
+	if float(equip.get("stationary_armor", 0.0)) > 0.0 and not bool(unit.get("moved", false)):
+		stats["armor"] += float(equip.get("stationary_armor", 0.0))
+	if float(equip.get("stationary_vision", 0.0)) > 0.0 and not bool(unit.get("moved", false)):
+		stats["vision"] += int(equip.get("stationary_vision", 0))
+	return stats
+
+func effective_damage(unit: Dictionary) -> float:
+	return float(effective_unit_stats(unit)["damage"])
+
+func effective_armor(unit: Dictionary) -> float:
+	return float(effective_unit_stats(unit)["armor"])
+
+func effective_vision(unit: Dictionary) -> int:
+	var vision = int(effective_unit_stats(unit)["vision"])
+	if _is_jammed(int(unit.get("pid", -1)), unit.get("pos", Vector2i.ZERO)):
+		vision -= 3
+	return maxi(1, vision)
 
 func is_current_players_unit(unit: Dictionary) -> bool:
 	return not unit.is_empty() and int(unit.get("pid", -1)) == current_player and not bool(unit.get("done", false))
@@ -450,6 +839,7 @@ func move_unit_group(unit_ids: Array[int], target: Vector2i) -> int:
 			continue
 		if not building_at(destination).is_empty():
 			continue
+		_record_unit_move(unit, destination)
 		unit["pos"] = destination
 		unit["moved"] = true
 		moved_count += 1
@@ -461,25 +851,49 @@ func attack_targets_for(unit: Dictionary) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	if unit.is_empty() or bool(unit.get("done", false)) or int(unit.get("remaining_attacks", 0)) <= 0 or int(unit.get("rl", 0)) > 0:
 		return result
+	var rules = _rules_for_unit(unit)
+	if float(rules.get("setup_move_limit", INF)) < float(unit.get("moved_distance", 0.0)):
+		return result
 	var origin: Vector2i = unit["pos"]
 	var origin_height = terrain_height(origin)
+	var min_range = float(unit.get("min_range", rules.get("min_range", 0.0)))
 	for other in units:
 		if int(other["pid"]) == int(unit["pid"]):
 			continue
 		if not is_visible(int(unit["pid"]), other["pos"]):
 			continue
+		if not _unit_has_direct_vision(unit, other["pos"]) and not is_target_marked(other, int(unit["pid"])) and not shared_vision_available(int(unit["pid"]), unit["pos"], other["pos"]):
+			continue
 		if bool(other.get("is_air", false)) and not bool(unit.get("can_target_air", false)):
 			continue
-		if _distance(origin, other["pos"]) <= effective_range(unit, origin_height, terrain_height(other["pos"]), bool(other.get("is_air", false))):
+		var distance = _distance(origin, other["pos"])
+		if distance >= min_range and distance <= effective_range(unit, origin_height, terrain_height(other["pos"]), bool(other.get("is_air", false))) + _marked_range_bonus(unit, other):
 			result.append(other["pos"])
 	for building in buildings:
 		if int(building["pid"]) == int(unit["pid"]):
 			continue
 		if not is_explored(int(unit["pid"]), building["pos"]):
 			continue
-		if _distance(origin, building["pos"]) <= effective_range(unit, origin_height, terrain_height(building["pos"])):
+		var distance = _distance(origin, building["pos"])
+		if distance >= min_range and distance <= effective_range(unit, origin_height, terrain_height(building["pos"])) + _marked_range_bonus(unit, building):
 			result.append(building["pos"])
 	return result
+
+func _unit_has_direct_vision(unit: Dictionary, pos: Vector2i) -> bool:
+	var radius = effective_vision(unit) + (0 if bool(unit.get("is_air", false)) else terrain_height(unit["pos"]))
+	return _distance(unit["pos"], pos) <= float(radius)
+
+func shared_vision_available(pid: int, receiver_pos: Vector2i = Vector2i(-1, -1), target_pos: Vector2i = Vector2i(-1, -1)) -> bool:
+	if pid < 0 or pid >= players.size():
+		return false
+	if (receiver_pos.x >= 0 and _is_jammed(pid, receiver_pos)) or (target_pos.x >= 0 and _is_jammed(pid, target_pos)):
+		return false
+	if _has_strategic(pid, "SpaceX 星链计划"):
+		return true
+	for unit in units:
+		if int(unit.get("pid", -1)) == pid and bool(_rules_for_unit(unit).get("shared_vision", false)) and not _is_jammed(pid, unit["pos"]):
+			return true
+	return false
 
 func attack_range_tiles_for(unit: Dictionary) -> Array[Vector2i]:
 	if unit.is_empty():
@@ -505,7 +919,7 @@ func max_possible_range_for(unit: Dictionary, origin: Vector2i) -> float:
 	if unit.is_empty():
 		return 0.0
 	var terrain_bonus = 0 if bool(unit.get("is_air", false)) else terrain_height(origin)
-	return max(float(unit.get("range", 0.0)), float(unit.get("air_range", 0.0))) + float(terrain_bonus)
+	return max(float(effective_unit_stats(unit).get("range", unit.get("range", 0.0))), float(unit.get("air_range", 0.0))) + float(terrain_bonus)
 
 func _attack_range_tiles_from(unit: Dictionary, origin: Vector2i) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
@@ -563,10 +977,23 @@ func move_unit(unit_id: int, target: Vector2i) -> bool:
 		return false
 	if not move_tiles_for(unit).has(target):
 		return false
+	_record_unit_move(unit, target)
 	unit["pos"] = target
 	unit["moved"] = true
 	update_vision()
 	return true
+
+func _record_unit_move(unit: Dictionary, target: Vector2i) -> void:
+	var origin: Vector2i = unit.get("pos", target)
+	var delta = target - origin
+	var distance = _distance(origin, target)
+	unit["move_origin"] = origin
+	unit["moved_distance"] = distance
+	unit["facing"] = Vector2i(signi(delta.x), signi(delta.y))
+	var data = _rules_for_unit(unit)
+	var threshold = float(data.get("charge_distance", 0.0))
+	var straight = delta.x == 0 or delta.y == 0 or abs(delta.x) == abs(delta.y)
+	unit["charge_ready"] = threshold > 0.0 and distance >= threshold and (not bool(data.get("charge_straight", false)) or straight)
 
 func skip_unit(unit_id: int) -> bool:
 	var unit = get_unit_by_id(unit_id)
@@ -577,6 +1004,48 @@ func skip_unit(unit_id: int) -> bool:
 	unit["remaining_attacks"] = 0
 	return true
 
+func can_mark_target(marker: Dictionary, target: Dictionary) -> bool:
+	if marker.is_empty() or target.is_empty() or not is_current_players_unit(marker):
+		return false
+	var rules = _rules_for_unit(marker)
+	var equip = _equipment_for_unit(marker)
+	if not bool(rules.get("can_mark", false)) or bool(equip.get("disable_mark", false)):
+		return false
+	if int(target.get("pid", -1)) == int(marker.get("pid", -1)):
+		return false
+	if _is_jammed(int(marker.get("pid", -1)), marker.get("pos", Vector2i.ZERO)):
+		return false
+	return is_visible(int(marker["pid"]), target["pos"]) and _distance(marker["pos"], target["pos"]) <= float(effective_vision(marker))
+
+func mark_target(marker_id: int, target_id: int, target_is_building: bool = false) -> bool:
+	var marker = get_unit_by_id(marker_id)
+	var target = get_building_by_id(target_id) if target_is_building else get_unit_by_id(target_id)
+	if not can_mark_target(marker, target):
+		return false
+	if not target.has("marked_by") or not (target["marked_by"] is Dictionary):
+		target["marked_by"] = {}
+	var duration = int(_equipment_for_unit(marker).get("mark_duration", 1))
+	target["marked_by"][str(marker["pid"])] = turn + duration
+	marker["moved"] = true
+	marker["done"] = true
+	marker["remaining_attacks"] = 0
+	last_event = "%s 标记了 %s" % [str(marker.get("type", "单位")), str(target.get("type", "目标"))]
+	return true
+
+func is_target_marked(target: Dictionary, pid: int) -> bool:
+	if target.is_empty() or _is_jammed(pid, target.get("pos", Vector2i.ZERO)):
+		return false
+	var marks = target.get("marked_by", {})
+	return marks is Dictionary and int(marks.get(str(pid), -1)) >= turn
+
+func _marked_range_bonus(unit: Dictionary, target: Dictionary) -> float:
+	if not is_target_marked(target, int(unit.get("pid", -1))):
+		return 0.0
+	var unit_type = _canonical_unit_type(str(unit.get("type", "")))
+	if unit_type == "网络化步兵" or unit_role(unit) == "firepower":
+		return 1.0
+	return 0.0
+
 func attack(unit_id: int, target_pos: Vector2i) -> bool:
 	var unit = get_unit_by_id(unit_id)
 	if not is_current_players_unit(unit):
@@ -586,16 +1055,18 @@ func attack(unit_id: int, target_pos: Vector2i) -> bool:
 	var target = occupant_at(target_pos)
 	if target.is_empty():
 		return false
-	_apply_damage(target, max(0.0, _unit_damage_against(unit, target) - float(target.get("armor", 0.0))), int(unit["pid"]))
+	_apply_damage(target, _effective_attack_damage(unit, target), int(unit["pid"]))
 	if float(unit.get("blast", 0.0)) > 0.0:
 		_apply_blast(unit, target_pos)
 	if bool(unit.get("self_destruct", false)):
 		units.erase(unit)
 	else:
+		unit["charge_ready"] = false
 		unit["remaining_attacks"] = int(unit.get("remaining_attacks", 1)) - 1
 		unit["moved"] = true
 		if int(unit.get("reload", 0)) > 0:
-			unit["rl"] = int(unit.get("reload", 0))
+			# Reload is decremented at turn start, so retain one full blocked turn.
+			unit["rl"] = int(unit.get("reload", 0)) + 1
 		if int(unit["remaining_attacks"]) <= 0:
 			unit["done"] = true
 	_check_victory()
@@ -617,6 +1088,25 @@ func _apply_damage(target: Dictionary, damage: float, killer_pid: int = -1) -> v
 	else:
 		buildings.erase(target)
 
+func _effective_attack_damage(attacker: Dictionary, target: Dictionary, allow_active_defense: bool = true) -> float:
+	var raw_damage = _unit_damage_against(attacker, target)
+	var armor = effective_armor(target) if target.has("speed") else float(target.get("armor", 0.0))
+	var equip = _equipment_for_unit(attacker)
+	if not target.has("speed"):
+		if is_total_war() and unit_role(attacker) == "firepower":
+			raw_damage *= 1.25
+		if str(target.get("type", "")) == "大本营" and is_assault_window_active(int(attacker.get("pid", -1))) and unit_role(attacker) == "firepower":
+			armor *= 0.5
+		armor = max(0.0, armor - float(equip.get("building_armor_ignore", 0.0)))
+	var dealt = max(0.0, raw_damage - armor)
+	if allow_active_defense and dealt > 0.0 and target.has("speed"):
+		var target_equip = _equipment_for_unit(target)
+		var reduction = float(target_equip.get("active_defense", 0.0))
+		if reduction > 0.0 and not bool(target.get("aps_used", false)):
+			dealt = max(0.0, dealt - reduction)
+			target["aps_used"] = true
+	return dealt
+
 func _capture_defeated_outpost(outpost: Dictionary, new_pid: int) -> void:
 	# Outposts change hands instead of being destroyed. A defeated T2 outpost
 	# first falls back to its original T1 form, matching the HTML rules.
@@ -624,7 +1114,8 @@ func _capture_defeated_outpost(outpost: Dictionary, new_pid: int) -> void:
 	outpost["up_timer"] = 0
 	outpost["outpost_tier"] = 0
 	outpost["outpost_branch"] = ""
-	var stats = db.building_data("据点")
+	var era = player_era(new_pid)
+	var stats: Dictionary = OUTPOST_STATS[era]["base"]
 	outpost["tier"] = 0
 	outpost["max_hp"] = float(stats.get("hp", 20.0))
 	outpost["armor"] = float(stats.get("armor", 0.0))
@@ -632,6 +1123,9 @@ func _capture_defeated_outpost(outpost: Dictionary, new_pid: int) -> void:
 	outpost["pid"] = new_pid
 	outpost["captured"] = true
 	outpost["hp"] = float(outpost["max_hp"]) * 0.5
+	outpost["era"] = era
+	outpost["capture_turn"] = turn
+	outpost["income_recovery"] = 0
 	outpost["turns_since_damage"] = 0
 	# Preserve the hit marker so the newly captured outpost cannot heal on its
 	# first owner turn immediately after being defeated.
@@ -648,7 +1142,7 @@ func _apply_blast(attacker: Dictionary, center: Vector2i) -> void:
 		if _distance(center, unit["pos"]) <= radius:
 			victims.append(unit)
 	for victim in victims:
-		_apply_damage(victim, max(0.0, _unit_damage_against(attacker, victim) - float(victim.get("armor", 0.0))), int(attacker["pid"]))
+		_apply_damage(victim, _effective_attack_damage(attacker, victim), int(attacker["pid"]))
 	var damaged_buildings: Array[Dictionary] = []
 	for building in buildings:
 		if int(building.get("pid", -1)) == int(attacker["pid"]):
@@ -658,7 +1152,7 @@ func _apply_blast(attacker: Dictionary, center: Vector2i) -> void:
 		if _distance(center, building["pos"]) <= radius:
 			damaged_buildings.append(building)
 	for building in damaged_buildings:
-		_apply_damage(building, max(0.0, float(attacker.get("damage", 0.0)) - float(building.get("armor", 0.0))), int(attacker["pid"]))
+		_apply_damage(building, _effective_attack_damage(attacker, building), int(attacker["pid"]))
 
 func auto_attack_remaining_units(pid: int) -> int:
 	if pid != current_player or game_over:
@@ -696,8 +1190,7 @@ func _best_auto_attack_target(unit: Dictionary) -> Vector2i:
 		var target_pid = int(target.get("pid", -1))
 		if target_pid < 0 or target_pid == int(unit.get("pid", -1)):
 			continue
-		var raw_damage = _unit_damage_against(unit, target)
-		var dealt_damage = max(0.0, raw_damage - float(target.get("armor", 0.0)))
+		var dealt_damage = _effective_attack_damage(unit, target, false)
 		if dealt_damage <= 0.0:
 			continue
 		var hp = float(target.get("hp", 0.0))
@@ -733,6 +1226,7 @@ func end_turn() -> int:
 	var wrapped = (current_player <= was and was != current_player) or (was == players.size() - 1 and current_player == 0)
 	if wrapped:
 		turn += 1
+		_resolve_campaign_round()
 		for pid in range(players.size()):
 			if not bool(players[pid].get("alive", true)):
 				continue
@@ -755,6 +1249,10 @@ func _start_player_turn(pid: int) -> void:
 			unit["moved"] = false
 			unit["done"] = false
 			unit["remaining_attacks"] = int(unit.get("attacks", 1))
+			unit["move_origin"] = unit["pos"]
+			unit["moved_distance"] = 0.0
+			unit["charge_ready"] = false
+			unit["aps_used"] = false
 			if int(unit.get("rl", 0)) > 0:
 				unit["rl"] = int(unit.get("rl", 0)) - 1
 	for building in buildings:
@@ -767,8 +1265,59 @@ func _building_turn_start(building: Dictionary) -> void:
 	else:
 		building["turns_since_damage"] = int(building.get("turns_since_damage", 0)) + 1
 	building["damaged_this_turn"] = false
-	if int(building["turns_since_damage"]) >= 3 and float(building.get("hp", 0.0)) < float(building.get("max_hp", 1.0)):
-		building["hp"] = min(float(building.get("max_hp", 1.0)), float(building.get("hp", 0.0)) + 2.0)
+	if int(building["turns_since_damage"]) < 3 or float(building.get("hp", 0.0)) >= float(building.get("max_hp", 1.0)):
+		return
+	var building_type = str(building.get("type", ""))
+	var owner = int(building.get("pid", -1))
+	if owner >= 0 and not _has_technology(owner, "e1_palisade"):
+		return
+	if is_total_war() and building_type in ["大本营", "据点"]:
+		return
+	if building_type == "大本营" and _hq_healing_blocked(int(building.get("pid", -1))):
+		return
+	var heal = 2.0
+	if building_type == "大本营":
+		heal = float(HQ_STATS[clampi(int(building.get("tier", 0)) + 1, 1, 5)].get("heal", 2.0))
+	elif building_type == "据点":
+		if turn - int(building.get("capture_turn", -99)) < 3:
+			return
+		heal = max(2.0, float(building.get("max_hp", 20.0)) * 0.08)
+	building["hp"] = min(float(building.get("max_hp", 1.0)), float(building.get("hp", 0.0)) + heal)
+
+func _hq_healing_blocked(pid: int) -> bool:
+	for player in players:
+		if int(player.get("id", -1)) != pid and is_assault_window_active(int(player.get("id", -1))):
+			return true
+	return false
+
+func _resolve_campaign_round() -> void:
+	for player in players:
+		player["assault_window"] = maxi(0, int(player.get("assault_window", 0)) - 1)
+	var counts: Dictionary = {}
+	for player in players:
+		counts[int(player.get("id", -1))] = 0
+	for building in buildings:
+		if str(building.get("type", "")) == "据点" and bool(building.get("strategic_point", true)) and int(building.get("pid", -1)) >= 0:
+			var pid = int(building["pid"])
+			counts[pid] = int(counts.get(pid, 0)) + 1
+	var leader = -1
+	var highest = 1
+	var tied = false
+	for pid in counts:
+		var controlled = int(counts[pid])
+		if controlled > highest:
+			highest = controlled
+			leader = int(pid)
+			tied = false
+		elif controlled == highest and controlled >= 2:
+			tied = true
+	if leader < 0 or tied:
+		return
+	players[leader]["campaign_advantage"] = mini(3, int(players[leader].get("campaign_advantage", 0)) + 1)
+	if int(players[leader]["campaign_advantage"]) >= 3:
+		players[leader]["campaign_advantage"] = 0
+		players[leader]["assault_window"] = 2
+		last_event = "%s 发起总攻，窗口持续 2 回合" % players[leader]["name"]
 
 func surrender(pid: int) -> void:
 	if pid < 0 or pid >= players.size() or game_over:
@@ -790,8 +1339,24 @@ func can_produce(building: Dictionary, unit_type: String) -> bool:
 		return false
 	if not db.unit_data(unit_type):
 		return false
+	if turn - int(building.get("capture_turn", -99)) <= 1 and str(building.get("type", "")) == "据点":
+		return false
 	var allowed = available_units_for_player(current_player)
 	if not allowed.has(unit_type):
+		return false
+	var role = unit_role(unit_type)
+	var era = unit_era(unit_type)
+	if str(building.get("type", "")) == "据点":
+		var branch = str(building.get("outpost_branch", ""))
+		if branch == "combat" and int(building.get("outpost_tier", 0)) > 0:
+			if era != player_era(current_player) or role not in ["frontline", "mobile"]:
+				return false
+		elif branch == "economic" and int(building.get("outpost_tier", 0)) > 0:
+			if role != "frontline" or era != maxi(1, player_era(current_player) - 1):
+				return false
+		elif role != "frontline" or era < maxi(1, player_era(current_player) - 1):
+			return false
+	if command_used(current_player) + command_cost_for(unit_type) > command_capacity(current_player):
 		return false
 	var price = float(db.unit_data(unit_type).get("price", 0.0))
 	return float(players[current_player]["gold"]) >= price
@@ -812,24 +1377,138 @@ func produce_unit(building_id: int, unit_type: String) -> bool:
 	update_vision()
 	return true
 
+func next_unit_upgrade(unit: Dictionary) -> String:
+	if unit.is_empty():
+		return ""
+	var canonical = _canonical_unit_type(str(unit.get("type", "")))
+	var role = unit_role(canonical)
+	var route: Array = UNIT_ROUTES.get(role, [])
+	var index = route.find(canonical)
+	return str(route[index + 1]) if index >= 0 and index + 1 < route.size() else ""
+
+func can_upgrade_unit(unit: Dictionary) -> bool:
+	if unit.is_empty() or int(unit.get("pid", -1)) != current_player or bool(unit.get("done", false)):
+		return false
+	var next_type = next_unit_upgrade(unit)
+	if next_type.is_empty() or unit_era(next_type) > player_era(current_player):
+		return false
+	if not _target_unlocked(current_player, next_type):
+		return false
+	if not _friendly_garrison_at(unit, true):
+		return false
+	return float(players[current_player].get("gold", 0.0)) >= float(UNIT_UPGRADE_COSTS.get(next_type, INF))
+
+func upgrade_unit(unit_id: int) -> bool:
+	var unit = get_unit_by_id(unit_id)
+	if not can_upgrade_unit(unit):
+		return false
+	var next_type = next_unit_upgrade(unit)
+	var cost = float(UNIT_UPGRADE_COSTS[next_type])
+	var old_ratio = float(unit.get("hp", 1.0)) / max(0.1, float(unit.get("max_hp", 1.0)))
+	var experience = float(unit.get("experience", 0.0))
+	players[current_player]["gold"] = float(players[current_player]["gold"]) - cost
+	var data: Dictionary = db.unit_data(next_type)
+	unit["type"] = next_type
+	unit["max_hp"] = float(data.get("hp", 1.0))
+	unit["hp"] = max(0.5, float(unit["max_hp"]) * old_ratio)
+	unit["armor"] = float(data.get("armor", 0.0))
+	unit["speed"] = int(data.get("speed", 3))
+	unit["damage"] = float(data.get("damage", 1.0))
+	unit["range"] = float(data.get("range", 1.0))
+	unit["min_range"] = float(data.get("min_range", 0.0))
+	unit["vision"] = int(data.get("vision", 4))
+	unit["attacks"] = int(data.get("attacks", 1))
+	unit["remaining_attacks"] = 0
+	unit["reload"] = int(data.get("reload", 0))
+	unit["rl"] = 0
+	unit["blast"] = float(data.get("blast", 0.0))
+	unit["role"] = str(data.get("role", unit_role(next_type)))
+	unit["era"] = int(data.get("era", unit_era(next_type)))
+	unit["equip"] = ""
+	unit["applied_equipment"] = []
+	unit["experience"] = experience
+	unit["moved"] = true
+	unit["done"] = true
+	unit["charge_ready"] = false
+	last_event = "%s 进化为 %s" % [players[current_player]["name"], next_type]
+	update_vision()
+	return true
+
+func _friendly_garrison_at(unit: Dictionary, require_full: bool = false) -> bool:
+	if not _has_technology(int(unit.get("pid", -1)), "e1_palisade"):
+		return false
+	for building in buildings:
+		if int(building.get("pid", -1)) != int(unit.get("pid", -1)) or _distance(building["pos"], unit["pos"]) > 1.5:
+			continue
+		if str(building.get("type", "")) == "大本营":
+			return true
+		if str(building.get("type", "")) == "据点" and (not require_full or str(building.get("outpost_branch", "")) == "combat"):
+			return true
+	return false
+
+func garrison_unit(unit_id: int) -> bool:
+	var unit = get_unit_by_id(unit_id)
+	if not is_current_players_unit(unit) or not _friendly_garrison_at(unit):
+		return false
+	var ratio = 0.20
+	for building in buildings:
+		if int(building.get("pid", -1)) == current_player and _distance(building["pos"], unit["pos"]) <= 1.5:
+			if str(building.get("type", "")) == "大本营" or str(building.get("outpost_branch", "")) == "combat": ratio = 0.35
+			elif str(building.get("outpost_branch", "")) == "economic": ratio = 0.10
+	unit["hp"] = min(float(unit.get("max_hp", 1.0)), float(unit.get("hp", 0.0)) + float(unit.get("max_hp", 1.0)) * ratio)
+	unit["moved"] = true
+	unit["done"] = true
+	unit["remaining_attacks"] = 0
+	return true
+
+func repair_target(engineer_id: int, target_id: int, target_is_building: bool = false) -> bool:
+	var engineer = get_unit_by_id(engineer_id)
+	var target = get_building_by_id(target_id) if target_is_building else get_unit_by_id(target_id)
+	if not is_current_players_unit(engineer) or target.is_empty() or int(target.get("pid", -1)) != current_player:
+		return false
+	if not bool(_rules_for_unit(engineer).get("can_repair", false)) or str(engineer.get("equip", "")) == "爆破工具":
+		return false
+	if _distance(engineer["pos"], target["pos"]) > 1.5 or float(target.get("hp", 0.0)) >= float(target.get("max_hp", 1.0)):
+		return false
+	target["hp"] = min(float(target.get("max_hp", 1.0)), float(target.get("hp", 0.0)) + float(target.get("max_hp", 1.0)) * 0.20)
+	engineer["moved"] = true
+	engineer["done"] = true
+	engineer["remaining_attacks"] = 0
+	return true
+
+func unit_statuses(unit: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	if bool(unit.get("charge_ready", false)): result.append("冲锋")
+	if int(unit.get("rl", 0)) > 0: result.append("装填 %d" % int(unit["rl"]))
+	for expiry in unit.get("marked_by", {}).values():
+		if int(expiry) >= turn:
+			result.append("已标记")
+			break
+	if int(_equipment_for_unit(unit).get("conceal_distance", 0)) > 0 and not bool(unit.get("moved", false)): result.append("隐蔽")
+	if _is_jammed(int(unit.get("pid", -1)), unit.get("pos", Vector2i.ZERO)): result.append("受干扰")
+	if float(_equipment_for_unit(unit).get("active_defense", 0.0)) > 0.0 and not bool(unit.get("aps_used", false)): result.append("主动防御就绪")
+	return result
+
 func can_build_collector(building: Dictionary, pos: Vector2i) -> bool:
 	if building.is_empty() or building.get("type", "") != "大本营":
 		return false
 	if int(building.get("pid", -1)) != current_player:
+		return false
+	if not _has_technology(current_player, "e1_organized_gathering"):
 		return false
 	var data = db.building_data("资源采集器")
 	if not in_bounds(pos) or not occupant_at(pos).is_empty():
 		return false
 	if _distance(building["pos"], pos) > 5.0:
 		return false
-	return float(players[current_player]["gold"]) >= float(data.get("cost", 8.0))
+	return float(players[current_player]["gold"]) >= float(data.get("cost", 12.0))
 
 func build_collector(building_id: int, pos: Vector2i) -> bool:
 	var building = get_building_by_id(building_id)
 	if not can_build_collector(building, pos):
 		return false
 	var data = db.building_data("资源采集器")
-	players[current_player]["gold"] = float(players[current_player]["gold"]) - float(data.get("cost", 8.0))
+	players[current_player]["gold"] = float(players[current_player]["gold"]) - float(data.get("cost", 12.0))
 	var collector = _add_building("资源采集器", current_player, pos, 0)
 	collector["under_construction"] = true
 	collector["build_timer"] = 2
@@ -845,37 +1524,36 @@ func get_building_by_id(id: int) -> Dictionary:
 	return {}
 
 func available_units_for_player(pid: int) -> Array:
-	var tier = int(players[pid].get("tier", 1))
+	var tier = player_era(pid)
 	var result: Array = []
 	for t in range(1, tier + 1):
 		for unit_type in db.production_for("大本营", "T%d" % t):
-			if not result.has(unit_type):
+			if not result.has(unit_type) and _target_unlocked(pid, str(unit_type)):
 				result.append(unit_type)
 	return result
 
 func can_research_next_tier(pid: int) -> bool:
-	var next_tier = int(players[pid].get("tier", 1)) + 1
-	return db.techs.has("T%d" % next_tier)
+	if pid != current_player:
+		return false
+	for building in buildings:
+		if str(building.get("type", "")) == "大本营" and int(building.get("pid", -1)) == pid:
+			return can_upgrade_hq(building)
+	return false
 
 func research_next_tier(pid: int) -> bool:
-	if pid != current_player or not can_research_next_tier(pid):
+	if pid != current_player:
 		return false
-	var next_tier = int(players[pid].get("tier", 1)) + 1
-	var tech_id = "T%d" % next_tier
-	var cost = float(db.techs[tech_id].get("cost", 0.0))
-	if float(players[pid]["gold"]) < cost:
-		return false
-	players[pid]["gold"] = float(players[pid]["gold"]) - cost
-	players[pid]["tier"] = next_tier
-	players[pid]["researched"].append(tech_id)
-	last_event = "%s 研究完成：%s" % [players[pid]["name"], db.techs[tech_id].get("name", tech_id)]
-	return true
+	for building in buildings:
+		if str(building.get("type", "")) == "大本营" and int(building.get("pid", -1)) == pid:
+			return upgrade_hq(int(building["id"]))
+	return false
 
 func _set_player_tier_from_hq(pid: int, hq_tier: int) -> void:
 	if pid < 0 or pid >= players.size():
 		return
-	var player_tier = clampi(hq_tier + 1, 1, 3)
+	var player_tier = clampi(hq_tier + 1, 1, 5)
 	players[pid]["tier"] = max(int(players[pid].get("tier", 1)), player_tier)
+	players[pid]["era"] = max(int(players[pid].get("era", 1)), player_tier)
 	for tier_id in range(1, int(players[pid]["tier"]) + 1):
 		var tech_id = "T%d" % tier_id
 		if db.techs.has(tech_id) and not players[pid]["researched"].has(tech_id):
@@ -892,19 +1570,31 @@ func can_upgrade_hq(building: Dictionary) -> bool:
 	var data = db.building_data("大本营")
 	if tier >= data.get("tiers", []).size() - 1:
 		return false
-	var cost = float(data["tiers"][tier].get("upgrade_cost", 0.0))
+	var next_era = tier + 2
+	if turn + 1 < ERA_UNLOCK_TURNS[next_era]:
+		return false
+	var cost = hq_upgrade_cost(int(building.get("pid", -1)))
 	return float(players[current_player]["gold"]) >= cost
+
+func hq_upgrade_cost(pid: int) -> float:
+	var era = player_era(pid)
+	if era >= 5:
+		return INF
+	var cost = float(HQ_STATS[era].get("upgrade_cost", 0.0))
+	if global_era() - era >= 2:
+		cost *= 0.8
+	return snapped(cost, 0.01)
 
 func upgrade_hq(building_id: int) -> bool:
 	var building = get_building_by_id(building_id)
 	if not can_upgrade_hq(building):
 		return false
-	var data = db.building_data("大本营")
 	var tier = int(building.get("tier", 0))
-	var cost = float(data["tiers"][tier].get("upgrade_cost", 0.0))
+	var cost = hq_upgrade_cost(current_player)
 	players[current_player]["gold"] = float(players[current_player]["gold"]) - cost
 	building["upgrading"] = true
-	building["up_timer"] = int(data["tiers"][tier].get("upgrade_time", 1))
+	building["up_timer"] = int(HQ_STATS[tier + 1].get("upgrade_time", 1))
+	building["upgrade_target_era"] = tier + 2
 	update_vision()
 	return true
 
@@ -915,20 +1605,23 @@ func can_upgrade_outpost(building: Dictionary, branch: String) -> bool:
 		return false
 	if int(building.get("outpost_tier", 0)) > 0 or bool(building.get("upgrading", false)):
 		return false
-	if int(players[current_player].get("tier", 1)) < 2:
+	if player_era(current_player) < 2:
 		return false
 	if not ["combat", "economic"].has(branch):
 		return false
-	return float(players[current_player]["gold"]) >= 10.0
+	var branch_stats: Dictionary = OUTPOST_STATS[player_era(current_player)].get(branch, {})
+	return not branch_stats.is_empty() and float(players[current_player]["gold"]) >= float(branch_stats.get("cost", INF))
 
 func upgrade_outpost(building_id: int, branch: String) -> bool:
 	var building = get_building_by_id(building_id)
 	if not can_upgrade_outpost(building, branch):
 		return false
-	players[current_player]["gold"] = float(players[current_player]["gold"]) - 10.0
+	var branch_stats: Dictionary = OUTPOST_STATS[player_era(current_player)][branch]
+	players[current_player]["gold"] = float(players[current_player]["gold"]) - float(branch_stats["cost"])
 	building["upgrading"] = true
-	building["up_timer"] = 1 if branch == "combat" else 3
+	building["up_timer"] = int(branch_stats["time"])
 	building["outpost_branch"] = branch
+	building["upgrade_target_era"] = player_era(current_player)
 	return true
 
 func can_research_equipment(pid: int, unit_type: String, equip_name: String) -> bool:
@@ -939,9 +1632,88 @@ func can_research_equipment(pid: int, unit_type: String, equip_name: String) -> 
 		return false
 	if _is_researching(pid, equip_name):
 		return false
-	if int(players[pid].get("tier", 1)) < int(equip.get("tier", 1)):
+	if player_era(pid) < int(equip.get("tier", 1)):
+		return false
+	if not _target_unlocked(pid, _canonical_unit_type(unit_type)):
 		return false
 	return float(players[pid]["gold"]) >= float(equip.get("research_cost", 0.0))
+
+func _era_number(value) -> int:
+	if value is int or value is float:
+		return clampi(int(value), 1, 5)
+	var text = str(value).to_upper()
+	if text.begins_with("E") or text.begins_with("T"):
+		text = text.substr(1)
+	return clampi(int(text) if text.is_valid_int() else 1, 1, 5)
+
+func _technology_data(tech_id: String) -> Dictionary:
+	if db.has_method("technology_data"):
+		return db.technology_data(tech_id)
+	return db.techs.get(tech_id, {})
+
+func technology_research_terms(pid: int, tech_id: String) -> Dictionary:
+	var tech = _technology_data(tech_id)
+	if tech.is_empty():
+		return {}
+	var terms = {
+		"cost": float(tech.get("cost", tech.get("research_cost", 0.0))),
+		"research_time": int(tech.get("research_time", tech.get("turns", 1))),
+		"soft_prerequisite_applied": false
+	}
+	var soft_prerequisite = tech.get("soft_prerequisite", {})
+	if soft_prerequisite is Dictionary:
+		var prerequisite_id = str(soft_prerequisite.get("technology", ""))
+		if not prerequisite_id.is_empty() and _has_technology(pid, prerequisite_id):
+			terms["cost"] = float(soft_prerequisite.get("cost", terms["cost"]))
+			terms["research_time"] = int(soft_prerequisite.get("research_time", terms["research_time"]))
+			terms["soft_prerequisite_applied"] = true
+	return terms
+
+func can_research_technology(pid: int, tech_id: String) -> bool:
+	if pid != current_player or pid < 0 or pid >= players.size():
+		return false
+	var tech = _technology_data(tech_id)
+	if tech.is_empty():
+		return false
+	var name = str(tech.get("name", tech_id))
+	if _is_researching(pid, name):
+		return false
+	if players[pid].get("researched", []).has(tech_id) or players[pid].get("researched", []).has(name):
+		return false
+	if player_era(pid) < _era_number(tech.get("era", tech.get("tier", 1))):
+		return false
+	if not technology_prerequisites_met(pid, tech_id):
+		return false
+	var terms = technology_research_terms(pid, tech_id)
+	return float(players[pid].get("gold", 0.0)) >= float(terms.get("cost", INF))
+
+func research_technology(pid: int, tech_id: String) -> bool:
+	if not can_research_technology(pid, tech_id):
+		return false
+	var tech = _technology_data(tech_id)
+	var name = str(tech.get("name", tech_id))
+	var terms = technology_research_terms(pid, tech_id)
+	players[pid]["gold"] = float(players[pid]["gold"]) - float(terms.get("cost", 0.0))
+	players[pid]["researching"].append({"name": name, "tech_id": tech_id, "kind": "technology", "timer": int(terms.get("research_time", 1))})
+	return true
+
+func can_research_tech(tech_id: String) -> bool:
+	return can_research_technology(current_player, tech_id)
+
+func research_tech(tech_id: String) -> bool:
+	return research_technology(current_player, tech_id)
+
+func can_research_core_tech(tech_id: String) -> bool:
+	return can_research_technology(current_player, tech_id)
+
+func research_core_tech(tech_id: String) -> bool:
+	return research_technology(current_player, tech_id)
+
+func can_upgrade_era(pid: int) -> bool:
+	return can_research_next_tier(pid)
+
+func upgrade_era(pid: int) -> bool:
+	return research_next_tier(pid)
 
 func research_equipment(pid: int, unit_type: String, equip_name: String) -> bool:
 	if not can_research_equipment(pid, unit_type, equip_name):
@@ -963,6 +1735,11 @@ func equipment_data(unit_type: String, equip_name: String) -> Dictionary:
 	for equip in db.equipment_for(unit_type):
 		if str(equip.get("name", "")) == equip_name:
 			return equip
+	var canonical = _canonical_unit_type(unit_type)
+	if canonical != unit_type:
+		for equip in db.equipment_for(canonical):
+			if str(equip.get("name", "")) == equip_name:
+				return equip
 	return {}
 
 func research_entry(pid: int, name: String) -> Dictionary:
@@ -995,11 +1772,28 @@ func _tick_player_research(pid: int) -> void:
 		elif str(entry.get("kind", "")) == "strategic":
 			if not players[pid]["strategic"].has(name):
 				players[pid]["strategic"].append(name)
+		elif str(entry.get("kind", "")) == "technology":
+			var tech_id = str(entry.get("tech_id", name))
+			if not players[pid]["researched"].has(tech_id): players[pid]["researched"].append(tech_id)
+			if not players[pid]["researched"].has(name): players[pid]["researched"].append(name)
+			if not players[pid].get("technology", []).has(tech_id): players[pid]["technology"].append(tech_id)
 		else:
 			if not players[pid]["researched"].has(name):
 				players[pid]["researched"].append(name)
 		last_event = "%s 研究完成：%s" % [players[pid]["name"], name]
+		research_notifications.append({"pid": pid, "name": name})
 	players[pid]["researching"] = remaining
+
+func take_research_notifications(pid: int) -> Array[String]:
+	var names: Array[String] = []
+	var remaining: Array[Dictionary] = []
+	for notice in research_notifications:
+		if int(notice.get("pid", -1)) == pid:
+			names.append(str(notice.get("name", "")))
+		else:
+			remaining.append(notice)
+	research_notifications = remaining
+	return names
 
 func can_equip_unit(unit: Dictionary, equip_name: String) -> bool:
 	if unit.is_empty() or int(unit.get("pid", -1)) != current_player:
@@ -1035,7 +1829,10 @@ func can_research_strategic(pid: int, tech_name: String) -> bool:
 		return false
 	if _is_researching(pid, tech_name):
 		return false
-	if int(players[pid].get("tier", 1)) < int(tech.get("tier", 1)):
+	if player_era(pid) < int(tech.get("tier", 1)):
+		return false
+	var strategic_id = str(tech.get("id", ""))
+	if not strategic_id.is_empty() and not technology_prerequisites_met(pid, strategic_id):
 		return false
 	return float(players[pid]["gold"]) >= float(tech.get("cost", 0.0))
 
@@ -1072,6 +1869,9 @@ func _tick_building_progress(building: Dictionary) -> void:
 	if bool(building.get("upgrading", false)):
 		building["up_timer"] = max(0, int(building.get("up_timer", 0)) - 1)
 		if int(building["up_timer"]) <= 0:
+			if str(building.get("type", "")) == "大本营" and int(building.get("upgrade_target_era", int(building.get("tier", 0)) + 2)) > global_era():
+				building["up_timer"] = 1
+				return
 			building["upgrading"] = false
 			if building.get("type", "") == "大本营":
 				_finish_hq_upgrade(building)
@@ -1098,18 +1898,15 @@ func _finish_hq_upgrade(building: Dictionary) -> void:
 func _finish_outpost_upgrade(building: Dictionary) -> void:
 	var old_max = max(1.0, float(building.get("max_hp", 1.0)))
 	var old_hp = clamp(float(building.get("hp", old_max)), 1.0, old_max)
+	var era = clampi(int(building.get("upgrade_target_era", player_era(int(building.get("pid", -1))))), 2, 5)
+	var branch = str(building.get("outpost_branch", "combat"))
+	var stats: Dictionary = OUTPOST_STATS[era].get(branch, OUTPOST_STATS[era]["base"])
 	building["outpost_tier"] = 1
-	if str(building.get("outpost_branch", "")) == "combat":
-		building["max_hp"] = 30.0
-		building["hp"] = 30.0
-		building["armor"] = 0.5
-		building["gold"] = 6.0
-	else:
-		building["outpost_branch"] = "economic"
-		building["max_hp"] = 20.0
-		building["hp"] = min(20.0, 20.0 * (1.0 + old_hp / old_max) / 2.0)
-		building["armor"] = 0.0
-		building["gold"] = 9.0
+	building["era"] = era
+	building["max_hp"] = float(stats["hp"])
+	building["hp"] = float(stats["hp"]) if branch == "combat" else min(float(stats["hp"]), float(stats["hp"]) * (1.0 + old_hp / old_max) / 2.0)
+	building["armor"] = float(stats["armor"])
+	building["gold"] = float(stats["gold"])
 
 func _next_collector_id(pid: int) -> int:
 	var used: Array[int] = []
@@ -1125,7 +1922,7 @@ func collector_income_for_id(collector_id: int) -> float:
 	return snapped(4.5 * pow(0.8, maxi(0, collector_id)), 0.01)
 
 func next_collector_income(pid: int) -> float:
-	return collector_income_for_id(_next_collector_id(pid))
+	return snapped(collector_income_for_id(_next_collector_id(pid)) * _logistics_multiplier(pid), 0.01)
 
 func _apply_researched_equipment_to_unit(unit: Dictionary) -> void:
 	var pid = int(unit.get("pid", -1))
@@ -1136,6 +1933,7 @@ func _apply_researched_equipment_to_unit(unit: Dictionary) -> void:
 			_apply_equipment_to_unit(unit, equip)
 
 func _apply_equipment_to_unit(unit: Dictionary, equip: Dictionary) -> void:
+	equip = _normalized_equipment(equip)
 	var key = str(equip.get("name", ""))
 	if not unit.has("applied_equipment"):
 		unit["applied_equipment"] = []
@@ -1146,6 +1944,20 @@ func _apply_equipment_to_unit(unit: Dictionary, equip: Dictionary) -> void:
 	unit["range"] = float(unit.get("range", 0.0)) + float(equip.get("range", 0.0))
 	unit["speed"] = int(unit.get("speed", 0)) + int(equip.get("speed", 0))
 	unit["armor"] = float(unit.get("armor", 0.0)) + float(equip.get("armor", 0.0))
+	unit["vision"] = int(unit.get("vision", _rules_for_unit(unit).get("vision", 4))) + int(equip.get("vision", 0))
+	if equip.has("attacks"):
+		unit["attacks"] = int(equip.get("attacks", unit.get("attacks", 1)))
+		unit["remaining_attacks"] = mini(int(unit.get("remaining_attacks", 0)), int(unit["attacks"]))
+	if equip.has("reload"):
+		unit["reload"] = int(equip.get("reload", unit.get("reload", 0)))
+	if equip.has("reload_add"):
+		unit["reload"] = int(unit.get("reload", 0)) + int(equip.get("reload_add", 0))
+	if equip.has("set_damage"):
+		unit["damage"] = float(equip["set_damage"])
+	if equip.has("set_range"):
+		unit["range"] = float(equip["set_range"])
+	if bool(equip.get("self_destruct", false)):
+		unit["self_destruct"] = true
 	if equip.has("hp"):
 		unit["max_hp"] = max(0.5, float(unit.get("max_hp", 1.0)) + float(equip.get("hp", 0.0)))
 		unit["hp"] = min(float(unit["max_hp"]), max(0.5, float(unit.get("hp", 1.0)) + float(equip.get("hp", 0.0))))
@@ -1157,10 +1969,51 @@ func _apply_equipment_to_unit(unit: Dictionary, equip: Dictionary) -> void:
 func _unit_damage_against(unit: Dictionary, target: Dictionary) -> float:
 	if bool(target.get("is_air", false)) and float(unit.get("air_damage", 0.0)) > 0.0:
 		return float(unit["air_damage"])
-	var damage = float(unit.get("damage", 0.0))
+	var damage = effective_damage(unit)
+	var rules = _rules_for_unit(unit)
+	var equip = _equipment_for_unit(unit)
+	var target_role = unit_role(target) if target.has("speed") else "building"
+	var target_tags: Array = []
+	if target.has("speed"):
+		target_tags = Array(_rules_for_unit(target).get("tags", []))
+	var modifiers: Dictionary = Dictionary(rules.get("target_mods", {})).duplicate(true)
+	for key in equip.get("target_mods", {}):
+		modifiers[key] = float(modifiers.get(key, 0.0)) + float(equip["target_mods"][key])
+	damage += float(modifiers.get(target_role, 0.0))
+	for tag in target_tags:
+		damage += float(modifiers.get(str(tag), 0.0))
+	var unit_type = _canonical_unit_type(str(unit.get("type", "")))
+	if unit_type == "斥候" and target_role in ["firepower", "support"]:
+		damage += 0.5
+	if bool(unit.get("charge_ready", false)):
+		damage += float(rules.get("charge_bonus", 0.0)) + float(equip.get("charge_bonus", 0.0))
+	if float(rules.get("flank_bonus", 0.0)) > 0.0 and _is_flanking(unit, target):
+		damage += float(rules.get("flank_bonus", 0.0))
+	if target_role == "mobile" and _distance(unit["pos"], target["pos"]) <= 1.5:
+		damage += float(equip.get("close_mobile_bonus", 0.0))
+	if target_role == "building":
+		damage += float(equip.get("building_bonus", 0.0))
+		if _distance(unit["pos"], target["pos"]) <= 1.5:
+			damage += float(equip.get("close_building_bonus", 0.0))
 	if unit["type"] == "自杀无人机" and players[int(unit["pid"])]["strategic"].has("SpaceX 星链计划"):
 		damage += 1.0
+	if unit_type == "无人机/电子战" and str(unit.get("equip", "")) == "聚能战斗部" and _has_strategic(int(unit.get("pid", -1)), "SpaceX 星链计划"):
+		damage += 5.0
 	return damage
+
+func _is_flanking(attacker: Dictionary, target: Dictionary) -> bool:
+	if not target.has("speed"):
+		return false
+	if adjacent_friendly_units(target).is_empty():
+		return true
+	var facing: Vector2i = target.get("facing", Vector2i.ZERO)
+	if facing == Vector2i.ZERO:
+		return false
+	var toward_attacker = Vector2(attacker["pos"] - target["pos"]).normalized()
+	return toward_attacker.dot(Vector2(facing).normalized()) < -0.35
+
+func _has_strategic(pid: int, tech_name: String) -> bool:
+	return pid >= 0 and pid < players.size() and players[pid].get("strategic", []).has(tech_name)
 
 func _record_kill_value(pid: int, unit_type: String) -> void:
 	if pid < 0 or pid >= players.size():
@@ -1193,9 +2046,23 @@ func _army_value(pid: int) -> float:
 
 func _income_for(pid: int) -> float:
 	var income = 0.0
+	var owned_outposts: Array[Dictionary] = []
 	for building in buildings:
-		if int(building.get("pid", -1)) == pid and not bool(building.get("under_construction", false)):
+		if int(building.get("pid", -1)) != pid or bool(building.get("under_construction", false)):
+			continue
+		if str(building.get("type", "")) == "据点":
+			owned_outposts.append(building)
+		elif str(building.get("type", "")) == "资源采集器":
+			income += collector_income_for_id(int(building.get("collector_id", 0))) * _logistics_multiplier(pid)
+		else:
 			income += float(building.get("gold", 0.0))
+	owned_outposts.sort_custom(func(a: Dictionary, b: Dictionary): return int(a.get("id", 0)) < int(b.get("id", 0)))
+	for index in range(owned_outposts.size()):
+		var outpost = owned_outposts[index]
+		var age = turn - int(outpost.get("capture_turn", -99))
+		var recovery = 0.0 if age <= 1 else (0.5 if age == 2 else 1.0)
+		var decay = OUTPOST_INCOME_DECAY[mini(index, OUTPOST_INCOME_DECAY.size() - 1)]
+		income += float(outpost.get("gold", 0.0)) * recovery * decay
 	return income
 
 func terrain_height(pos: Vector2i) -> int:
@@ -1214,9 +2081,9 @@ func effective_range(unit: Dictionary, from_height: int, to_height: int, target_
 	if target_is_air and float(unit.get("air_range", 0.0)) > 0.0:
 		return float(unit["air_range"])
 	if bool(unit.get("is_air", false)):
-		return max(1.0, float(unit.get("range", 1.0)))
+		return max(1.0, float(effective_unit_stats(unit).get("range", unit.get("range", 1.0))))
 	var mod = clamp(from_height - to_height, -2, 2)
-	return max(1.0, float(unit.get("range", 1.0)) + float(mod))
+	return max(1.0, float(effective_unit_stats(unit).get("range", unit.get("range", 1.0))) + float(mod))
 
 func update_vision() -> void:
 	for player in players:
@@ -1228,23 +2095,31 @@ func update_vision() -> void:
 		if player["strategic"].has("SpaceX 星链计划"):
 			for y in range(height):
 				for x in range(width):
-					_mark_visible(player, Vector2i(x, y))
-		else:
-			for unit in units:
-				if int(unit["pid"]) == int(player["id"]):
-					_mark_radius(player, unit["pos"], int(db.unit_data(unit["type"]).get("vision", 4)) + (0 if bool(unit.get("is_air", false)) else terrain_height(unit["pos"])))
+					var pos = Vector2i(x, y)
+					_mark_explored(player, pos)
+					if turn % 3 == 0 and not _is_jammed(int(player["id"]), pos):
+						_mark_visible(player, pos)
+		for unit in units:
+			if int(unit["pid"]) == int(player["id"]):
+				_mark_radius(player, unit["pos"], effective_vision(unit) + (0 if bool(unit.get("is_air", false)) else terrain_height(unit["pos"])))
+		for building in buildings:
+			if int(building.get("pid", -1)) == int(player["id"]):
+				var vision = 3
+				if building["type"] == "大本营":
+					vision = int(HQ_STATS[clampi(int(building.get("tier", 0)) + 1, 1, 5)].get("vision", 7))
+				elif building["type"] == "据点" and str(building.get("outpost_branch", "")) == "combat" and int(building.get("outpost_tier", 0)) > 0:
+					vision = 6
+				else:
+					vision = int(db.building_data(building["type"]).get("vision", 3))
+				_mark_radius(player, building["pos"], vision)
+		if is_total_war():
 			for building in buildings:
-				if int(building.get("pid", -1)) == int(player["id"]):
-					var vision = 3
-					if building["type"] == "大本营":
-						var data = db.building_data("大本营")
-						vision = int(data["tiers"][int(building.get("tier", 0))].get("vision", 7))
-					elif building["type"] == "据点" and str(building.get("outpost_branch", "")) == "combat" and int(building.get("outpost_tier", 0)) > 0:
-						vision = 6
-					else:
-						vision = int(db.building_data(building["type"]).get("vision", 3))
-					_mark_radius(player, building["pos"], vision)
+				if str(building.get("type", "")) == "大本营":
+					_mark_visible(player, building["pos"])
 		_update_last_seen_for_player(player)
+
+func _mark_explored(player: Dictionary, pos: Vector2i) -> void:
+	player["explored"]["%d,%d" % [pos.x, pos.y]] = true
 
 func _mark_radius(player: Dictionary, origin: Vector2i, radius: int) -> void:
 	for y in range(max(0, origin.y - radius), min(height, origin.y + radius + 1)):
@@ -1263,7 +2138,35 @@ func is_visible(pid: int, pos: Vector2i) -> bool:
 		return true
 	if pid < 0 or pid >= players.size():
 		return true
-	return players[pid].get("visible", {}).has("%d,%d" % [pos.x, pos.y])
+	if not players[pid].get("visible", {}).has("%d,%d" % [pos.x, pos.y]):
+		return false
+	var target = unit_at(pos)
+	if target.is_empty() or int(target.get("pid", -1)) == pid:
+		return true
+	var conceal_distance = int(_equipment_for_unit(target).get("conceal_distance", 0))
+	if conceal_distance <= 0 or bool(target.get("moved", false)):
+		return true
+	for observer in units:
+		if int(observer.get("pid", -1)) != pid:
+			continue
+		var reveal = conceal_distance
+		if unit_role(observer) == "support":
+			reveal += 1
+		if _distance(observer["pos"], pos) <= float(reveal):
+			return true
+	return false
+
+func _is_jammed(pid: int, pos: Vector2i) -> bool:
+	if pid < 0:
+		return false
+	for jammer in units:
+		if int(jammer.get("pid", -1)) < 0 or int(jammer.get("pid", -1)) == pid:
+			continue
+		var equip = _equipment_for_unit(jammer)
+		var radius = float(equip.get("jam_radius", 0.0))
+		if radius > 0.0 and _distance(jammer["pos"], pos) <= radius:
+			return true
+	return false
 
 func is_explored(pid: int, pos: Vector2i) -> bool:
 	if not fog_enabled:
@@ -1308,6 +2211,7 @@ func _update_last_seen_for_player(player: Dictionary) -> void:
 
 func to_dict() -> Dictionary:
 	return {
+		"ruleset_version": RULESET_VERSION,
 		"width": width,
 		"height": height,
 		"turn": turn,
@@ -1322,6 +2226,7 @@ func to_dict() -> Dictionary:
 		"game_over": game_over,
 		"winner": winner,
 		"last_event": last_event,
+		"research_notifications": research_notifications.duplicate(true),
 		"fog_enabled": fog_enabled
 	}
 
@@ -1342,12 +2247,23 @@ func load_from_dict(data: Dictionary) -> void:
 		var unpacked_player = Dictionary(player)
 		if not unpacked_player.has("researching"):
 			unpacked_player["researching"] = []
+		if not unpacked_player.has("technology"):
+			unpacked_player["technology"] = []
 		if not unpacked_player.has("equipment"):
 			unpacked_player["equipment"] = []
 		if not unpacked_player.has("strategic"):
 			unpacked_player["strategic"] = []
 		if not unpacked_player.has("alive"):
 			unpacked_player["alive"] = true
+		if not unpacked_player.has("era"):
+			unpacked_player["era"] = clampi(int(unpacked_player.get("tier", 1)), 1, 5)
+		unpacked_player["tier"] = int(unpacked_player["era"])
+		if not unpacked_player.has("campaign_advantage"):
+			unpacked_player["campaign_advantage"] = 0
+		if not unpacked_player.has("assault_window"):
+			unpacked_player["assault_window"] = 0
+		if not unpacked_player.has("satellite_scan_turn"):
+			unpacked_player["satellite_scan_turn"] = -1
 		players.append(unpacked_player)
 	units = _unpack_entities(data.get("units", []))
 	buildings = _unpack_entities(data.get("buildings", []))
@@ -1356,15 +2272,35 @@ func load_from_dict(data: Dictionary) -> void:
 			unit["equip"] = ""
 		if not unit.has("applied_equipment"):
 			unit["applied_equipment"] = []
+		var rules = _rules_for_unit(unit)
+		if not unit.has("vision"): unit["vision"] = int(rules.get("vision", 4))
+		if not unit.has("role"): unit["role"] = unit_role(unit)
+		if not unit.has("era"): unit["era"] = unit_era(unit)
+		if not unit.has("min_range"): unit["min_range"] = float(rules.get("min_range", 0.0))
+		if not unit.has("move_origin"): unit["move_origin"] = unit["pos"]
+		if not unit.has("moved_distance"): unit["moved_distance"] = 0.0
+		if not unit.has("facing"): unit["facing"] = Vector2i.ZERO
+		if not unit.has("charge_ready"): unit["charge_ready"] = false
+		if not unit.has("marked_by"): unit["marked_by"] = {}
+		if not unit.has("status"): unit["status"] = []
+		if not unit.has("aps_used"): unit["aps_used"] = false
+		if not unit.has("experience"): unit["experience"] = 0.0
 	for building in buildings:
 		if not building.has("turns_since_damage"):
 			building["turns_since_damage"] = 0
 		if not building.has("damaged_this_turn"):
 			building["damaged_this_turn"] = false
+		if not building.has("capture_turn"): building["capture_turn"] = -99 if int(building.get("pid", -1)) >= 0 else -1
+		if not building.has("income_recovery"): building["income_recovery"] = 3
+		if not building.has("era"): building["era"] = clampi(int(building.get("tier", 0)) + 1, 1, 5)
+		if not building.has("strategic_point"): building["strategic_point"] = str(building.get("type", "")) == "据点"
 	_resolve_unit_building_overlaps()
 	game_over = bool(data.get("game_over", false))
 	winner = int(data.get("winner", -1))
 	last_event = str(data.get("last_event", ""))
+	research_notifications = []
+	for notice in data.get("research_notifications", []):
+		research_notifications.append(Dictionary(notice))
 	update_vision()
 
 func _resolve_unit_building_overlaps() -> void:
@@ -1396,9 +2332,10 @@ func _pack_entities(source: Array) -> Array:
 	var result = []
 	for item in source:
 		var packed = Dictionary(item).duplicate(true)
-		if packed.has("pos"):
-			var pos: Vector2i = packed["pos"]
-			packed["pos"] = [pos.x, pos.y]
+		for key in ["pos", "move_origin", "facing"]:
+			if packed.has(key) and packed[key] is Vector2i:
+				var vector: Vector2i = packed[key]
+				packed[key] = [vector.x, vector.y]
 		result.append(packed)
 	return result
 
@@ -1406,9 +2343,10 @@ func _unpack_entities(source: Array) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for item in source:
 		var unpacked = Dictionary(item)
-		if unpacked.has("pos") and unpacked["pos"] is Array:
-			var pos = unpacked["pos"]
-			unpacked["pos"] = Vector2i(int(pos[0]), int(pos[1]))
+		for key in ["pos", "move_origin", "facing"]:
+			if unpacked.has(key) and unpacked[key] is Array:
+				var vector = unpacked[key]
+				unpacked[key] = Vector2i(int(vector[0]), int(vector[1]))
 		result.append(unpacked)
 	return result
 

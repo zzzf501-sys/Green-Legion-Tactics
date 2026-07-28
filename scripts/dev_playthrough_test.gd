@@ -27,15 +27,15 @@ func _initialize() -> void:
 	ok = _expect(main.action_container_panel.visible, "left action panel visible after selecting hq") and ok
 	main._on_tile_hovered(hq["pos"])
 	ok = _expect(main.info_panel.visible and main.info_panel.size.y >= 74.0, "building hover card has enough vertical room") and ok
-	ok = _expect(main.state.produce_unit(int(hq["id"]), "士兵"), "produce soldier") and ok
-	ok = _expect(main.state.units.size() == 1, "soldier spawned") and ok
+	ok = _expect(main.state.produce_unit(int(hq["id"]), "战团"), "produce E1 warband") and ok
+	ok = _expect(main.state.units.size() == 1, "warband spawned") and ok
 
 	main.state.end_turn()
 	main.state.end_turn()
 	var soldier = main.state.units[0]
-	ok = _expect(not bool(soldier.get("done", true)), "soldier refreshed next round") and ok
+	ok = _expect(not bool(soldier.get("done", true)), "warband refreshed next round") and ok
 	var moves: Array[Vector2i] = main.state.move_tiles_for(soldier)
-	ok = _expect(not moves.is_empty(), "soldier has legal moves") and ok
+	ok = _expect(not moves.is_empty(), "warband has legal moves") and ok
 	if not moves.is_empty():
 		ok = _expect(main.state.move_unit(int(soldier["id"]), moves[0]), "soldier moves") and ok
 
@@ -45,7 +45,7 @@ func _initialize() -> void:
 	var enemy_pos = Vector2i(int(soldier["pos"].x) + 1, int(soldier["pos"].y))
 	if not main.state.in_bounds(enemy_pos) or not main.state.occupant_at(enemy_pos).is_empty():
 		enemy_pos = Vector2i(int(soldier["pos"].x) - 1, int(soldier["pos"].y))
-	var enemy = main.state._add_unit("士兵", 1, enemy_pos)
+	var enemy = main.state._add_unit("战团", 1, enemy_pos)
 	enemy["done"] = false
 	main.state.update_vision()
 	ok = _expect(main.state.attack_targets_for(soldier).has(enemy_pos), "enemy is attackable") and ok
@@ -58,7 +58,13 @@ func _initialize() -> void:
 	main.board.camera_offset += Vector2(-120, -80)
 	main.board._clamp_camera()
 	ok = _expect(main.board.camera_offset != before, "camera pan during playthrough works") and ok
-	main.queue_free()
+	main.bgm_player.stop()
+	main.bgm_player.stream = null
+	main.sfx_player.stop()
+	main.sfx_player.stream = null
+	main.free()
+	main = null
+	await process_frame
 	_finish(ok)
 
 func _find_hq(main, pid: int) -> Dictionary:

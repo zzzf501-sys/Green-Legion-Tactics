@@ -16,11 +16,11 @@ func _initialize() -> void:
 	var opening = ai.take_turn(state, 1)
 	ok = _expect(int(opening.get("produced", 0)) >= 2, "AI produces an opening force") and ok
 	ok = _expect(_owned_units(state, 1).size() >= 2, "AI owns its produced units") and ok
-	ok = _expect(_owned_hq(state, 1).get("upgrading", false), "AI starts HQ progression") and ok
+	ok = _expect(not _owned_hq(state, 1).get("upgrading", false), "AI respects the E2 global era gate") and ok
 
 	var total_moved = 0
 	var total_attacked = 0
-	for _round in range(24):
+	for _round in range(40):
 		if state.game_over:
 			break
 		if state.current_player == 1:
@@ -29,7 +29,8 @@ func _initialize() -> void:
 			total_attacked += int(report.get("attacked", 0))
 		state.end_turn()
 	ok = _expect(total_moved > 0, "AI advances units across the map") and ok
-	ok = _expect(int(_owned_hq(state, 1).get("tier", 0)) >= 1, "AI completes at least one HQ upgrade") and ok
+	ok = _expect(int(state.players[1].get("era", state.players[1].get("tier", 1))) >= 2, "AI completes an era upgrade after its gate opens") and ok
+	ok = _expect(not state.players[1].get("technology", []).is_empty(), "AI researches core technologies before expanding its roster") and ok
 	ok = _expect(float(state.players[1].get("gold", 0.0)) >= 0.0, "AI never spends below zero gold") and ok
 	ok = _expect(_valid_unit_positions(state), "AI units remain in bounds without overlap") and ok
 	ok = _expect(total_attacked > 0 or state.game_over, "AI eventually attacks or ends the match") and ok

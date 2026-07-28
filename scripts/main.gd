@@ -11,6 +11,60 @@ const PLAYER_COLORS = [
 	Color(1.0, 0.82, 0.22)
 ]
 
+const ERA_NAMES = {
+	1: "部落战争",
+	2: "冷兵器战争",
+	3: "火药战争",
+	4: "机械化战争",
+	5: "信息化战争"
+}
+const ERA_OPEN_TURNS = {1: 1, 2: 14, 3: 28, 4: 43, 5: 59}
+const GRAND_WAR_TURN = 75
+const ERA_END_TURNS = {1: 13, 2: 27, 3: 42, 4: 58, 5: 74}
+const ERA_COMMAND_CAPACITY = {1: 22, 2: 24, 3: 26, 4: 28, 5: 30}
+const UNIT_EVOLUTION = {
+	"战团": "方阵", "方阵": "火枪连", "火枪连": "士兵", "士兵": "网络化步兵",
+	"斥候": "骑兵", "骑兵": "龙骑兵", "龙骑兵": "主战坦克", "主战坦克": "无人战车",
+	"投石队": "弓弩/投石车", "弓弩/投石车": "野战炮", "野战炮": "自行火炮", "自行火炮": "精确火箭",
+	"部落侦察": "轻骑侦察", "轻骑侦察": "工兵/观测队", "工兵/观测队": "吉普", "吉普": "无人机/电子战",
+	"坦克": "无人战车", "军用吉普": "无人机/电子战"
+}
+const UNIT_ROLES = {
+	"战团": "战线", "方阵": "战线", "火枪连": "战线", "士兵": "战线", "网络化步兵": "战线",
+	"斥候": "机动", "骑兵": "机动", "龙骑兵": "机动", "主战坦克": "机动", "坦克": "机动", "无人战车": "机动",
+	"投石队": "火力", "弓弩/投石车": "火力", "野战炮": "火力", "自行火炮": "火力", "精确火箭": "火力",
+	"部落侦察": "支援", "轻骑侦察": "支援", "工兵/观测队": "支援", "吉普": "支援", "军用吉普": "支援", "无人机/电子战": "支援"
+}
+const ERA_UNIT_ROWS = [
+	[1, "战团", 1.5, 0.0, 1.0, 3, 1, 4, 1.0, "战线", "相邻战团攻击+0.25，最多+0.5"],
+	[1, "斥候", 1.75, 0.0, 1.0, 5, 1, 5, 1.5, "机动", "移动至少3格后首次突袭+0.5"],
+	[1, "投石队", 1.0, 0.0, 1.0, 2, 3, 5, 1.5, "火力", "相邻部落侦察时射程+1"],
+	[1, "部落侦察", 1.0, 0.0, 0.5, 6, 1, 8, 1.0, "支援", "相邻友军视野+1，可标记"],
+	[2, "方阵", 5.5, 0.75, 2.25, 2, 1, 5, 3.0, "战线", "相邻方阵护甲+0.75；对机动+1.5"],
+	[2, "骑兵", 5.5, 0.25, 3.0, 5, 1, 6, 5.0, "机动", "直线移动至少4格后首次冲锋+1.5"],
+	[2, "弓弩/投石车", 3.5, 0.0, 3.5, 2, 5, 7, 4.5, "火力", "最小射程2；相邻方阵射程+1"],
+	[2, "轻骑侦察", 3.5, 0.25, 2.0, 8, 2, 10, 3.5, "支援", "相邻骑兵视野+2，可标记"],
+	[3, "火枪连", 6.5, 0.5, 4.5, 3, 4, 6, 4.0, "战线", "相邻火枪连攻击、护甲各+0.5"],
+	[3, "龙骑兵", 10.0, 1.0, 6.0, 6, 2, 7, 10.0, "机动", "孤立或侧后目标攻击+3"],
+	[3, "野战炮", 9.0, 1.0, 12.0, 2, 7, 9, 12.0, "火力", "最小射程2；移动超过1格不能开火"],
+	[3, "工兵/观测队", 6.0, 0.5, 3.0, 4, 2, 11, 6.0, "支援", "相邻炮兵射程+2，可标记/修复/爆破"],
+	[4, "士兵", 7.5, 0.0, 5.0, 3, 2, 5, 5.0, "战线", "相邻士兵攻击+1"],
+	[4, "主战坦克", 40.0, 8.0, 20.0, 4, 3, 5, 35.0, "机动", "低视野；裸装坦克互射4炮"],
+	[4, "自行火炮", 15.0, 5.0, 25.0, 3, 6, 9, 25.0, "火力", "相邻吉普射程+2"],
+	[4, "吉普", 15.0, 0.0, 10.0, 8, 3, 11, 15.0, "支援", "相邻单位视野+2，可标记"],
+	[5, "网络化步兵", 11.5, 2.0, 7.5, 4, 3, 8, 8.0, "战线", "共享视野；攻击标记目标射程+1"],
+	[5, "无人战车", 48.0, 10.0, 24.0, 5, 4, 7, 45.0, "机动", "每架相邻无人机护甲+1，最多+2"],
+	[5, "精确火箭", 25.0, 2.0, 36.0, 3, 14, 13, 55.0, "火力", "最小射程3；装填1回合；共享视野攻击"],
+	[5, "无人机/电子战", 10.0, 0.0, 0.0, 12, 0, 15, 16.0, "支援", "半径6共享情报；装备决定自杀或干扰"]
+]
+const ERA_TECH_ROWS = [
+	[1, "燧石武器", 3, 1, "解锁投石队及E1武器装备"], [1, "狩猎编组", 3, 1, "解锁斥候与部落侦察"], [1, "有组织采集", 4, 1, "解锁资源采集器"], [1, "木栅工事", 4, 1, "解锁建筑回血与驻扎"],
+	[2, "常备方阵", 6, 1, "解锁方阵及其装备"], [2, "驯马术", 6, 1, "解锁骑兵和轻骑侦察"], [2, "复合弓与配重", 7, 2, "解锁弓弩/投石车"], [2, "道路驿站", 9, 2, "后勤倍率升至1.10"],
+	[3, "标准化火器", 10, 2, "解锁火枪连"], [3, "龙骑战术", 10, 2, "解锁龙骑兵"], [3, "弹道学", 12, 2, "解锁野战炮"], [3, "野战工兵", 10, 2, "解锁工兵、观测、维修和爆破"], [3, "工业化后勤", 14, 2, "后勤倍率升至1.20"],
+	[4, "机械化作战", 18, 2, "解锁士兵"], [4, "装甲战争", 30, 3, "解锁主战坦克"], [4, "自行火力", 24, 2, "解锁自行火炮"], [4, "摩托化侦察", 18, 2, "解锁吉普"], [4, "无线电火控", 22, 2, "后勤倍率升至1.30"],
+	[5, "网络化步兵", 30, 2, "解锁网络化步兵和共享视野"], [5, "自主装甲系统", 40, 3, "解锁无人战车"], [5, "精确制导", 45, 3, "解锁精确火箭"], [5, "无人侦察系统", 32, 2, "解锁无人机/电子战"], [5, "电子战", 35, 2, "解锁干扰与反标记"], [5, "智能后勤", 28, 2, "后勤倍率升至1.40"], [5, "SpaceX 星链计划", 85, 3, "全图探索、共享视野与周期扫描"]
+]
+
 class StatsChart:
 	extends Control
 	var game_state
@@ -70,6 +124,34 @@ class StatsChart:
 			for point in points:
 				draw_circle(point, 3.0, colors[pid])
 
+class TechTreeGraph:
+	extends Control
+	var links: Array[Dictionary] = []
+
+	func set_links(value: Array[Dictionary]) -> void:
+		links = value
+		queue_redraw()
+
+	func _draw() -> void:
+		for link in links:
+			var from_rect: Rect2 = link["from"]
+			var to_rect: Rect2 = link["to"]
+			var color: Color = link.get("color", Color(0.48, 0.62, 0.38, 0.9))
+			var start = Vector2(from_rect.end.x, from_rect.get_center().y)
+			var finish = Vector2(to_rect.position.x, to_rect.get_center().y)
+			if absf(finish.x - start.x) < 16.0:
+				start = Vector2(from_rect.get_center().x, from_rect.end.y)
+				finish = Vector2(to_rect.get_center().x, to_rect.position.y)
+			var mid_x = (start.x + finish.x) * 0.5
+			var points = PackedVector2Array([start, Vector2(mid_x, start.y), Vector2(mid_x, finish.y), finish])
+			draw_polyline(points, color, 2.0, true)
+			var direction = (finish - points[points.size() - 2]).normalized()
+			if direction.length_squared() < 0.1:
+				direction = Vector2.RIGHT
+			var side = Vector2(-direction.y, direction.x)
+			var arrow = PackedVector2Array([finish, finish - direction * 11.0 + side * 5.0, finish - direction * 11.0 - side * 5.0])
+			draw_colored_polygon(arrow, color)
+
 var db
 var state
 var board
@@ -90,6 +172,7 @@ var restart_button: Button
 var main_menu_button: Button
 var surrender_button: Button
 var formations_button: Button
+var tech_tree_button: Button
 var unit_bottom_actions: HBoxContainer
 var game_encyclopedia_button: Button
 var game_settings_button: Button
@@ -117,6 +200,11 @@ var encyclopedia_panel: PanelContainer
 var online_menu_panel: PanelContainer
 var settings_panel: PanelContainer
 var controls_panel: PanelContainer
+var tech_tree_overlay: Control
+var tech_tree_graph: TechTreeGraph
+var research_notice_panel: PanelContainer
+var research_notice_label: Label
+var research_notice_serial = 0
 var settings_game_actions: VBoxContainer
 var settings_back_button: Button
 var menu_buttons: VBoxContainer
@@ -127,6 +215,7 @@ var bgm_volume_percent = 65
 var sfx_volume_percent = 80
 var selected_resolution = Vector2i(1280, 720)
 var action_panel_width = 232
+var show_legacy_equipment = false
 var fullscreen_enabled = false
 var local_fog_enabled = true
 var build_mode = ""
@@ -164,6 +253,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		_set_fullscreen(not fullscreen_enabled)
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE and game_started:
+		if tech_tree_overlay != null and tech_tree_overlay.visible:
+			_close_tech_tree()
+			return
 		_clear_selection()
 		_refresh_ui()
 
@@ -246,7 +338,8 @@ func _create_ui() -> void:
 	hud_top_panel.add_child(top_bar)
 
 	status_label = Label.new()
-	status_label.custom_minimum_size = Vector2(430, 24)
+	status_label.custom_minimum_size = Vector2(1020, 24)
+	status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	top_bar.add_child(status_label)
 
 	game_encyclopedia_button = Button.new()
@@ -284,6 +377,12 @@ func _create_ui() -> void:
 	formations_button.text = "编队"
 	formations_button.pressed.connect(_toggle_formation_menu)
 	hud_bottom_panel.add_child(formations_button)
+
+	tech_tree_button = Button.new()
+	tech_tree_button.text = "科技树"
+	tech_tree_button.tooltip_text = "打开科技树并研究科技"
+	tech_tree_button.pressed.connect(_open_tech_tree)
+	hud_bottom_panel.add_child(tech_tree_button)
 
 	unit_bottom_actions = HBoxContainer.new()
 	unit_bottom_actions.add_theme_constant_override("separation", 6)
@@ -344,6 +443,8 @@ func _create_ui() -> void:
 
 	_create_game_over_panel()
 	_create_controls_panel()
+	_create_tech_tree_overlay()
+	_create_research_notice()
 
 func _create_game_over_panel() -> void:
 	game_over_panel = PanelContainer.new()
@@ -363,6 +464,306 @@ func _create_game_over_panel() -> void:
 	add_child(game_over_panel)
 
 	_layout_game_ui()
+
+func _create_tech_tree_overlay() -> void:
+	tech_tree_overlay = Control.new()
+	tech_tree_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tech_tree_overlay.visible = false
+	tech_tree_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(tech_tree_overlay)
+
+	var shade = ColorRect.new()
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.018, 0.025, 0.94)
+	tech_tree_overlay.add_child(shade)
+
+	var frame = PanelContainer.new()
+	frame.anchor_left = 0.025
+	frame.anchor_top = 0.045
+	frame.anchor_right = 0.975
+	frame.anchor_bottom = 0.96
+	var frame_style = StyleBoxFlat.new()
+	frame_style.bg_color = Color(0.035, 0.045, 0.055, 0.98)
+	frame_style.border_color = Color(0.36, 0.48, 0.30, 0.95)
+	frame_style.set_border_width_all(2)
+	frame_style.set_corner_radius_all(5)
+	frame_style.content_margin_left = 12
+	frame_style.content_margin_right = 12
+	frame_style.content_margin_top = 8
+	frame_style.content_margin_bottom = 12
+	tech_tree_overlay.add_child(frame)
+
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 8)
+	frame.add_child(layout)
+
+	var header = HBoxContainer.new()
+	header.custom_minimum_size = Vector2(0, 42)
+	layout.add_child(header)
+	var title = Label.new()
+	title.text = "科技树"
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", Color(0.90, 0.80, 0.44))
+	header.add_child(title)
+	var hint = Label.new()
+	hint.text = "   大本营升级开放对应时代研究 · 绿色已完成 · 金色研究中 · 灰色未满足时代或前置"
+	hint.modulate = Color(0.68, 0.72, 0.70)
+	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(hint)
+	var close = Button.new()
+	close.text = "×"
+	close.tooltip_text = "关闭科技树"
+	close.custom_minimum_size = Vector2(44, 38)
+	close.add_theme_font_size_override("font_size", 24)
+	close.pressed.connect(_close_tech_tree)
+	header.add_child(close)
+
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(scroll)
+	tech_tree_graph = TechTreeGraph.new()
+	tech_tree_graph.custom_minimum_size = Vector2(1510, 1630)
+	scroll.add_child(tech_tree_graph)
+
+func _create_research_notice() -> void:
+	research_notice_panel = PanelContainer.new()
+	research_notice_panel.anchor_left = 0.5
+	research_notice_panel.anchor_right = 0.5
+	research_notice_panel.offset_left = -250
+	research_notice_panel.offset_right = 250
+	research_notice_panel.offset_top = 42
+	research_notice_panel.offset_bottom = 104
+	research_notice_panel.visible = false
+	research_notice_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.055, 0.12, 0.065, 0.97)
+	style.border_color = Color(0.48, 0.78, 0.34, 0.98)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(5)
+	research_notice_panel.add_theme_stylebox_override("panel", style)
+	add_child(research_notice_panel)
+	research_notice_label = Label.new()
+	research_notice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	research_notice_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	research_notice_label.add_theme_font_size_override("font_size", 19)
+	research_notice_label.add_theme_color_override("font_color", Color(0.90, 0.96, 0.72))
+	research_notice_panel.add_child(research_notice_label)
+
+func _show_pending_research_notifications() -> void:
+	if state == null or not state.has_method("take_research_notifications"):
+		return
+	var pid = _local_view_player()
+	var completed: Array[String] = state.take_research_notifications(pid)
+	if completed.is_empty():
+		return
+	research_notice_serial += 1
+	var serial = research_notice_serial
+	research_notice_label.text = "科技研究完成：%s" % "、".join(completed)
+	research_notice_panel.visible = true
+	get_tree().create_timer(4.0).timeout.connect(func():
+		if research_notice_serial == serial and research_notice_panel != null:
+			research_notice_panel.visible = false
+	)
+
+func _open_tech_tree() -> void:
+	if not game_started or tech_tree_overlay == null:
+		return
+	if encyclopedia_panel != null:
+		encyclopedia_panel.visible = false
+	if settings_panel != null:
+		settings_panel.visible = false
+	_rebuild_tech_tree()
+	tech_tree_overlay.visible = true
+
+func _close_tech_tree() -> void:
+	if tech_tree_overlay != null:
+		tech_tree_overlay.visible = false
+	_hide_hover_info()
+
+func _rebuild_tech_tree() -> void:
+	if tech_tree_graph == null:
+		return
+	for child in tech_tree_graph.get_children():
+		child.queue_free()
+	var techs = _core_tech_dictionary()
+	var node_rects: Dictionary = {}
+	var links: Array[Dictionary] = []
+	var column_x = {1: 55.0, 2: 345.0, 3: 635.0, 4: 925.0, 5: 1215.0}
+	var route_y = {"line": 95.0, "mobile": 375.0, "firepower": 655.0, "support": 935.0, "development": 1215.0}
+	var route_titles = {"line": "战线", "mobile": "机动", "firepower": "火力", "support": "支援", "development": "建设与后勤"}
+	for era in range(1, 6):
+		var era_label = Label.new()
+		era_label.text = "E%d  %s" % [era, ERA_NAMES[era]]
+		era_label.position = Vector2(column_x[era], 34)
+		era_label.size = Vector2(220, 36)
+		era_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		era_label.add_theme_font_size_override("font_size", 20)
+		era_label.add_theme_color_override("font_color", Color(0.86, 0.76, 0.38))
+		tech_tree_graph.add_child(era_label)
+	for route in route_y.keys():
+		var route_label = Label.new()
+		route_label.text = route_titles[route]
+		route_label.position = Vector2(4, route_y[route] - 28)
+		route_label.size = Vector2(180, 24)
+		route_label.add_theme_color_override("font_color", Color(0.58, 0.68, 0.62))
+		tech_tree_graph.add_child(route_label)
+
+	var slot_counts: Dictionary = {}
+	for raw_id in techs.keys():
+		var tech_id = str(raw_id)
+		var tech: Dictionary = techs[raw_id]
+		if bool(tech.get("strategic", false)):
+			continue
+		var era = _era_number(tech.get("era", 1))
+		var routes: Array = tech.get("routes", [])
+		var route = str(routes[0]) if not routes.is_empty() else "development"
+		if not route_y.has(route):
+			route = "development"
+		var slot_key = "%d|%s" % [era, route]
+		var slot = int(slot_counts.get(slot_key, 0))
+		slot_counts[slot_key] = slot + 1
+		var rect = Rect2(Vector2(column_x[era], route_y[route] + slot * 70.0), Vector2(220, 58))
+		node_rects[tech_id] = rect
+		_add_core_tech_graph_node(tech_id, tech, rect)
+
+	for raw_id in techs.keys():
+		var tech_id = str(raw_id)
+		if not node_rects.has(tech_id):
+			continue
+		for prerequisite in techs[raw_id].get("prerequisites", []):
+			var prerequisite_id = str(prerequisite)
+			if node_rects.has(prerequisite_id):
+				links.append(_tech_tree_link(node_rects[prerequisite_id], node_rects[tech_id], _player_has_technology(prerequisite_id)))
+
+	for route in ["line", "mobile", "firepower", "support"]:
+		var units: Array = db.units_for_route(route) if db.has_method("units_for_route") else []
+		for era in range(1, mini(6, units.size() + 1)):
+			var unit_type = str(units[era - 1])
+			var unlock_id = db.technology_unlocking(unit_type) if db.has_method("technology_unlocking") else ""
+			var equips = db.equipment_for(unit_type)
+			for index in range(mini(2, equips.size())):
+				var equip: Dictionary = equips[index]
+				var equip_id = "equip|%s|%s" % [unit_type, str(equip.get("name", ""))]
+				var rect = Rect2(Vector2(column_x[era] + index * 112.0, route_y[route] + 150.0), Vector2(106, 50))
+				node_rects[equip_id] = rect
+				_add_equipment_graph_node(unit_type, equip, rect)
+				if node_rects.has(unlock_id):
+					links.append(_tech_tree_link(node_rects[unlock_id], rect, _player_has_technology(unlock_id)))
+
+	var strategic_y = 1495.0
+	var strategic_title = Label.new()
+	strategic_title.text = "战略科技"
+	strategic_title.position = Vector2(4, strategic_y - 28)
+	strategic_title.add_theme_color_override("font_color", Color(0.58, 0.68, 0.62))
+	tech_tree_graph.add_child(strategic_title)
+	var strategic_index = 0
+	for tech_name in db.strategic_techs.keys():
+		var tech: Dictionary = db.strategic_techs[tech_name]
+		var era = _era_number(tech.get("era", tech.get("tier", 5)))
+		var strategic_id = str(tech.get("id", "strategic|%s" % tech_name))
+		var rect = Rect2(Vector2(column_x[era], strategic_y + strategic_index * 66.0), Vector2(220, 58))
+		node_rects[strategic_id] = rect
+		_add_strategic_graph_node(str(tech_name), tech, rect)
+		for prerequisite in tech.get("prerequisites", []):
+			var prerequisite_id = str(prerequisite)
+			if node_rects.has(prerequisite_id):
+				links.append(_tech_tree_link(node_rects[prerequisite_id], rect, _player_has_technology(prerequisite_id)))
+		strategic_index += 1
+	tech_tree_graph.set_links(links)
+
+func _tech_tree_link(from_rect: Rect2, to_rect: Rect2, active: bool) -> Dictionary:
+	return {"from": from_rect, "to": to_rect, "color": Color(0.42, 0.72, 0.34, 0.95) if active else Color(0.28, 0.31, 0.34, 0.82)}
+
+func _tech_tree_node_button(text: String, rect: Rect2, state_name: String) -> Button:
+	var button = Button.new()
+	button.text = text
+	button.position = rect.position
+	button.size = rect.size
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.add_theme_font_size_override("font_size", 13)
+	var style = StyleBoxFlat.new()
+	style.set_corner_radius_all(4)
+	style.set_border_width_all(2)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	if state_name == "done":
+		style.bg_color = Color(0.07, 0.22, 0.10, 0.98)
+		style.border_color = Color(0.30, 0.72, 0.34)
+	elif state_name == "researching":
+		style.bg_color = Color(0.26, 0.20, 0.05, 0.98)
+		style.border_color = Color(0.88, 0.68, 0.20)
+	elif state_name == "available":
+		style.bg_color = Color(0.08, 0.18, 0.22, 0.98)
+		style.border_color = Color(0.30, 0.68, 0.78)
+	else:
+		style.bg_color = Color(0.09, 0.10, 0.12, 0.98)
+		style.border_color = Color(0.28, 0.30, 0.34)
+	button.add_theme_stylebox_override("normal", style)
+	var hover = style.duplicate()
+	hover.bg_color = style.bg_color.lightened(0.12)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("disabled", style)
+	tech_tree_graph.add_child(button)
+	return button
+
+func _add_core_tech_graph_node(tech_id: String, tech: Dictionary, rect: Rect2) -> void:
+	var name = str(tech.get("name", tech_id))
+	var terms = _technology_research_terms_for_ui(tech_id, tech)
+	var active = state.research_entry(state.current_player, name)
+	var state_name = "locked"
+	var text = "%s\n%.1f金 · %d回合" % [name, float(terms.get("cost", 0.0)), int(terms.get("research_time", 1))]
+	if _player_has_technology(tech_id):
+		state_name = "done"
+		text = "✓ %s\n已完成" % name
+	elif not active.is_empty():
+		state_name = "researching"
+		text = "%s\n研究中 · 剩%d回合" % [name, int(active.get("timer", 0))]
+	elif state.can_research_technology(state.current_player, tech_id) and _can_control_current_turn():
+		state_name = "available"
+	var button = _tech_tree_node_button(text, rect, state_name)
+	_bind_action_hover(button, _tech_info_text(tech_id, tech, terms))
+	button.disabled = state_name != "available"
+	if state_name == "available":
+		button.pressed.connect(func(): _on_core_tech_pressed(tech_id, tech))
+
+func _add_equipment_graph_node(unit_type: String, equip: Dictionary, rect: Rect2) -> void:
+	var name = str(equip.get("name", ""))
+	var key = state.equipment_key(unit_type, name)
+	var active = state.research_entry(state.current_player, name)
+	var state_name = "locked"
+	var text = "%s\n%.1f金 · %d回合" % [name, float(equip.get("research_cost", 0.0)), int(equip.get("research_time", 1))]
+	if state.players[state.current_player]["equipment"].has(key):
+		state_name = "done"
+		text = "✓ %s\n已完成" % name
+	elif not active.is_empty():
+		state_name = "researching"
+		text = "%s\n研究中 · 剩%d" % [name, int(active.get("timer", 0))]
+	elif state.can_research_equipment(state.current_player, unit_type, name) and _can_control_current_turn():
+		state_name = "available"
+	var button = _tech_tree_node_button(text, rect, state_name)
+	_bind_action_hover(button, "%s装备\n%s" % [unit_type, _equipment_info_text(unit_type, equip)])
+	button.disabled = state_name != "available"
+	if state_name == "available":
+		button.pressed.connect(func(): _on_equipment_pressed(unit_type, name))
+
+func _add_strategic_graph_node(tech_name: String, tech: Dictionary, rect: Rect2) -> void:
+	var active = state.research_entry(state.current_player, tech_name)
+	var state_name = "locked"
+	var text = "%s\n%.1f金 · %d回合" % [tech_name, float(tech.get("cost", 0.0)), int(tech.get("research_time", 1))]
+	if state.players[state.current_player]["strategic"].has(tech_name):
+		state_name = "done"
+		text = "✓ %s\n已完成" % tech_name
+	elif not active.is_empty():
+		state_name = "researching"
+		text = "%s\n研究中 · 剩%d" % [tech_name, int(active.get("timer", 0))]
+	elif state.can_research_strategic(state.current_player, tech_name) and _can_control_current_turn():
+		state_name = "available"
+	var button = _tech_tree_node_button(text, rect, state_name)
+	_bind_action_hover(button, _strategic_info_text(tech_name, tech))
+	button.disabled = state_name != "available"
+	if state_name == "available":
+		button.pressed.connect(func(): _on_strategic_pressed(tech_name))
 
 func _create_menu_ui() -> void:
 	menu_layer = Control.new()
@@ -750,10 +1151,11 @@ func _create_encyclopedia_panel() -> void:
 	nav_title.text = "章节导航"
 	encyclopedia_nav.add_child(nav_title)
 	var chapters = [
-		["ch0", "CH.0 游戏规则"],
-		["ch1", "CH.1 兵种大全"],
+		["ch0", "CH.0 五时代规则"],
+		["ch1", "CH.1 E1-E5 兵种"],
 		["ch2", "CH.2 建筑大全"],
-		["ch3", "CH.3 科技树"]
+		["ch3", "CH.3 科技与装备"],
+		["ch4", "CH.4 状态与容量"]
 	]
 	for item in chapters:
 		var chapter_id = str(item[0])
@@ -770,6 +1172,18 @@ func _create_encyclopedia_panel() -> void:
 	encyclopedia_content.selection_enabled = true
 	encyclopedia_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	encyclopedia_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var encyclopedia_font := SystemFont.new()
+	encyclopedia_font.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Arial"])
+	encyclopedia_font.font_weight = 400
+	encyclopedia_content.add_theme_font_override("normal_font", encyclopedia_font)
+	encyclopedia_content.add_theme_font_override("bold_font", encyclopedia_font)
+	var content_background := StyleBoxFlat.new()
+	content_background.bg_color = Color(0.0, 0.0, 0.0, 1.0)
+	content_background.content_margin_left = 16
+	content_background.content_margin_right = 16
+	content_background.content_margin_top = 12
+	content_background.content_margin_bottom = 12
+	encyclopedia_content.add_theme_stylebox_override("normal", content_background)
 	body.add_child(encyclopedia_content)
 	_render_encyclopedia_chapter("ch1")
 
@@ -778,14 +1192,16 @@ func _render_encyclopedia_chapter(chapter_id: String) -> void:
 		return
 	encyclopedia_content.clear()
 	if chapter_id == "ch0":
-		encyclopedia_content.parse_bbcode(_encyclopedia_rules_bbcode())
+		encyclopedia_content.parse_bbcode(_era_rules_bbcode())
 		_add_terrain_images_to_encyclopedia()
 	elif chapter_id == "ch1":
-		_render_encyclopedia_units_content()
+		_render_era_units_content()
 	elif chapter_id == "ch2":
 		_render_encyclopedia_buildings_content()
+	elif chapter_id == "ch3":
+		encyclopedia_content.parse_bbcode(_era_tech_bbcode())
 	else:
-		encyclopedia_content.parse_bbcode(_encyclopedia_tech_bbcode())
+		encyclopedia_content.parse_bbcode(_era_status_bbcode())
 
 func _set_game_visible(visible: bool) -> void:
 	if board != null:
@@ -799,6 +1215,10 @@ func _set_game_visible(visible: bool) -> void:
 		settings_panel.visible = false
 	if not visible and controls_panel != null:
 		controls_panel.visible = false
+	if not visible and tech_tree_overlay != null:
+		tech_tree_overlay.visible = false
+	if not visible and research_notice_panel != null:
+		research_notice_panel.visible = false
 	for node in [online_url_input, online_room_input, online_status_label]:
 		if node != null:
 			node.visible = false
@@ -1008,7 +1428,7 @@ func _on_tile_hovered(pos: Vector2i) -> void:
 		show_card = true
 		var origin = state.get_building_by_id(build_origin_id)
 		if state.can_build_collector(origin, pos):
-			lines.append("可建造资源采集器：8 金 / 2 回合")
+			lines.append("可建造资源采集器：12 金 / 2 回合")
 		else:
 			lines.append("资源采集器需建在大本营 5 格内空地")
 	var unit: Dictionary = state.unit_at(pos)
@@ -1016,10 +1436,20 @@ func _on_tile_hovered(pos: Vector2i) -> void:
 		show_card = true
 		lines.append("单位：%s / %s" % [unit["type"], _player_name(int(unit["pid"]))])
 		lines.append("HP：%.1f / %.1f" % [unit["hp"], unit["max_hp"]])
-		lines.append("护甲：%.1f  伤害：%.1f  射程：%.1f  移速：%d" % [unit["armor"], unit["damage"], unit["range"], unit["speed"]])
+		var unit_type = str(unit.get("type", ""))
+		var unit_data = db.unit_data(unit_type)
+		var effective_stats = _effective_stats_ui(unit)
+		lines.append("%s / %s  指挥 %d" % [_era_label(_unit_era(unit_type, unit_data)), _unit_role(unit_type, unit_data), _unit_command_cost(unit_type, unit_data)])
+		lines.append("护甲：%.1f  伤害：%.1f  射程：%.1f  移速：%d  视野：%d" % [effective_stats.get("armor", 0.0), effective_stats.get("damage", 0.0), effective_stats.get("range", 0.0), int(effective_stats.get("speed", unit.get("speed", 0))), int(effective_stats.get("vision", unit.get("vision", unit_data.get("vision", 0))))])
 		var equip_name = str(unit.get("equip", ""))
 		if not equip_name.is_empty():
 			lines.append("装备：%s" % equip_name)
+		var status_parts = _status_texts(unit)
+		if not status_parts.is_empty():
+			lines.append("状态：%s" % "、".join(status_parts))
+		var bonus_text = _bonus_source_text(unit)
+		if not bonus_text.is_empty():
+			lines.append("生效加成：%s" % bonus_text)
 		if int(unit["pid"]) != viewer and int(unit["pid"]) >= 0:
 			var threat = state.hover_threat_tiles_for_unit(unit)
 			var radius = float(unit.get("speed", 0)) + state.max_possible_range_for(unit, unit["pos"])
@@ -1043,6 +1473,9 @@ func _on_tile_hovered(pos: Vector2i) -> void:
 			elif building["type"] == "据点" and int(building.get("outpost_tier", 0)) > 0:
 				extra = "  %s" % _outpost_branch_label(str(building.get("outpost_branch", "")))
 			lines.append("HP：%.1f / %.1f  护甲：%.1f  收入：%.1f%s" % [building["hp"], building["max_hp"], building["armor"], building["gold"], extra])
+			var building_statuses = _status_texts(building)
+			if not building_statuses.is_empty():
+				lines.append("状态：%s" % "、".join(building_statuses))
 		else:
 			var seen_turn = int(display.get("turn", state.turn))
 			lines.append("上次侦察：回合 %d" % seen_turn)
@@ -1058,7 +1491,7 @@ func _show_hover_info(lines) -> void:
 	info_label.text = "\n".join(lines)
 	var viewport_size = get_viewport().get_visible_rect().size
 	var card_width = min(380.0, max(280.0, viewport_size.x - 24.0))
-	var card_height = clamp(30.0 + lines.size() * 22.0, 74.0, 154.0)
+	var card_height = clamp(30.0 + lines.size() * 22.0, 74.0, 242.0)
 	info_panel.size = Vector2(card_width, card_height)
 	var mouse = get_viewport().get_mouse_position()
 	var desired = mouse + Vector2(18.0, 18.0)
@@ -1282,6 +1715,7 @@ func _after_turn_state_changed(center_camera: bool) -> void:
 	if center_camera and board != null:
 		board.center_on_current_player()
 	_refresh_ui()
+	_show_pending_research_notifications()
 	if board != null:
 		board.queue_redraw()
 
@@ -1297,6 +1731,286 @@ func _local_view_player() -> int:
 		return 0
 	return state.current_player
 
+func _object_property(source, property_name: String, fallback = null):
+	if source == null:
+		return fallback
+	for property in source.get_property_list():
+		if str(property.get("name", "")) == property_name:
+			var value = source.get(property_name)
+			return fallback if value == null else value
+	return fallback
+
+func _era_number(value, fallback: int = 1) -> int:
+	if value is String:
+		var text = str(value).strip_edges().to_upper()
+		if text.begins_with("E") or text.begins_with("T"):
+			return clampi(int(text.substr(1)), 1, 5)
+	return clampi(int(value) if value != null else fallback, 1, 5)
+
+func _player_era(pid: int) -> int:
+	if pid < 0 or pid >= state.players.size():
+		return 1
+	if state.has_method("player_era"):
+		return _era_number(state.call("player_era", pid), 1)
+	var player: Dictionary = state.players[pid]
+	var resolved_era := 1
+	for key in ["era", "current_era", "age", "tier"]:
+		if player.has(key):
+			resolved_era = maxi(resolved_era, _era_number(player.get(key, 1)))
+	return resolved_era
+
+func _global_open_era() -> int:
+	for method_name in ["global_era", "global_open_era", "get_global_open_era", "current_global_era"]:
+		if state.has_method(method_name):
+			return _era_number(state.call(method_name), 1)
+	for property_name in ["global_open_era", "open_era", "global_era"]:
+		var value = _object_property(state, property_name, null)
+		if value != null:
+			return _era_number(value, 1)
+	var round_number = int(_object_property(state, "turn", 1))
+	if round_number >= 45:
+		return 5
+	if round_number >= 31:
+		return 4
+	if round_number >= 19:
+		return 3
+	if round_number >= 9:
+		return 2
+	return 1
+
+func _era_label(era: int) -> String:
+	var safe_era = clampi(era, 1, 5)
+	return "E%d %s" % [safe_era, str(ERA_NAMES.get(safe_era, "未知时代"))]
+
+func _next_global_era_text() -> String:
+	var era = _global_open_era()
+	if era >= 5:
+		var war_remaining = maxi(0, GRAND_WAR_TURN - int(state.turn))
+		return "总体战已开始" if war_remaining == 0 else "距总体战还剩 %d 个完整回合" % war_remaining
+	var next_era = era + 1
+	var remaining = maxi(0, int(ERA_OPEN_TURNS[next_era]) - int(state.turn))
+	return "距 E%d %s开放还剩 %d 个完整回合" % [next_era, str(ERA_NAMES.get(next_era, "")), remaining]
+
+func _unit_era(unit_type: String, data: Dictionary = {}) -> int:
+	for key in ["era", "age", "tier"]:
+		if data.has(key):
+			return _era_number(data.get(key, 1))
+	for row in ERA_UNIT_ROWS:
+		if str(row[1]) == unit_type:
+			return int(row[0])
+	for tech_id in db.techs.keys():
+		var tech: Dictionary = db.techs.get(tech_id, {})
+		if tech.get("unlocks", []).has(unit_type):
+			return _era_number(str(tech_id), 1)
+	return 1
+
+func _unit_role(unit_type: String, data: Dictionary = {}) -> String:
+	for key in ["role", "combat_role", "route"]:
+		if data.has(key):
+			var role = str(data.get(key, ""))
+			return {"frontline": "战线", "line": "战线", "mobile": "机动", "firepower": "火力", "support": "支援"}.get(role, role)
+	return str(UNIT_ROLES.get(unit_type, "战线"))
+
+func _unit_command_cost(unit_type: String, data: Dictionary = {}) -> int:
+	if state != null and state.has_method("command_cost_for"):
+		return int(state.call("command_cost_for", unit_type))
+	if db != null and db.has_method("command_cost_for_unit"):
+		return int(db.call("command_cost_for_unit", unit_type))
+	for key in ["command_cost", "command", "capacity_cost"]:
+		if data.has(key):
+			return maxi(0, int(data.get(key, 1)))
+	return 2 if ["机动", "火力"].has(_unit_role(unit_type, data)) else 1
+
+func _command_used(pid: int) -> int:
+	for method_name in ["command_used", "get_command_used", "command_usage_for"]:
+		if state.has_method(method_name):
+			return int(state.call(method_name, pid))
+	if pid >= 0 and pid < state.players.size():
+		var player: Dictionary = state.players[pid]
+		for key in ["command_used", "command_usage", "capacity_used"]:
+			if player.has(key):
+				return int(player.get(key, 0))
+	var used = 0
+	for unit in state.units:
+		if int(unit.get("pid", -1)) == pid:
+			var unit_type = str(unit.get("type", ""))
+			used += _unit_command_cost(unit_type, db.unit_data(unit_type))
+	return used
+
+func _command_capacity(pid: int) -> int:
+	for method_name in ["command_capacity", "get_command_capacity", "command_capacity_for"]:
+		if state.has_method(method_name):
+			return int(state.call(method_name, pid))
+	if pid >= 0 and pid < state.players.size():
+		var player: Dictionary = state.players[pid]
+		for key in ["command_capacity", "command_cap", "capacity"]:
+			if player.has(key):
+				return int(player.get(key, 0))
+	var capacity = int(ERA_COMMAND_CAPACITY.get(_player_era(pid), 12))
+	for building in state.buildings:
+		if int(building.get("pid", -1)) != pid or str(building.get("type", "")) != "据点":
+			continue
+		if str(building.get("outpost_branch", "")) == "economic":
+			continue
+		capacity += 2 if str(building.get("outpost_branch", "")) == "combat" else 1
+	return capacity
+
+func _campaign_advantage(pid: int) -> int:
+	if pid >= 0 and pid < state.players.size():
+		var player: Dictionary = state.players[pid]
+		for key in ["campaign_advantage", "advantage", "campaign_points"]:
+			if player.has(key):
+				return clampi(int(player.get(key, 0)), 0, 3)
+	var values = _object_property(state, "campaign_advantage", null)
+	if values is Array and pid >= 0 and pid < values.size():
+		return clampi(int(values[pid]), 0, 3)
+	if values is Dictionary:
+		return clampi(int(values.get(pid, values.get(str(pid), 0))), 0, 3)
+	return 0
+
+func _campaign_window_text(pid: int) -> String:
+	if pid >= 0 and pid < state.players.size():
+		var player: Dictionary = state.players[pid]
+		for key in ["assault_window", "offensive_window", "campaign_window"]:
+			if int(player.get(key, 0)) > 0:
+				return " 总攻%d" % int(player.get(key, 0))
+	if state.has_method("is_total_war") and bool(state.call("is_total_war")):
+		return " 总体战"
+	return ""
+
+func _status_texts(entity: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	if entity.has("remaining_attacks") and state != null and state.has_method("unit_statuses"):
+		for status_name in state.call("unit_statuses", entity):
+			result.append(str(status_name))
+	var raw_statuses = entity.get("statuses", entity.get("status", []))
+	if raw_statuses is Dictionary:
+		for key in raw_statuses.keys():
+			var value = raw_statuses[key]
+			result.append("%s%s" % [str(key), "(%s)" % str(value) if value != true else ""])
+	elif raw_statuses is Array:
+		for value in raw_statuses:
+			if value is Dictionary:
+				result.append("%s%s" % [str(value.get("name", value.get("id", "状态"))), "(%d)" % int(value.get("turns", value.get("timer", 0))) if int(value.get("turns", value.get("timer", 0))) > 0 else ""])
+			else:
+				result.append(str(value))
+	elif not str(raw_statuses).is_empty():
+		result.append(str(raw_statuses))
+	if int(entity.get("rl", entity.get("reload_remaining", 0))) > 0:
+		result.append("装填(%d)" % int(entity.get("rl", entity.get("reload_remaining", 0))))
+	if bool(entity.get("under_construction", false)):
+		result.append("建造中(%d)" % int(entity.get("build_timer", 0)))
+	if bool(entity.get("upgrading", false)):
+		result.append("升级中(%d)" % int(entity.get("up_timer", 0)))
+	if bool(entity.get("garrisoned", false)):
+		result.append("驻扎")
+	if bool(entity.get("jammed", false)):
+		result.append("干扰")
+	if bool(entity.get("marked", false)):
+		result.append("标记")
+	if bool(entity.get("done", false)) and not result.has("已行动"):
+		result.append("已行动")
+	return result
+
+func _effective_stats_ui(unit: Dictionary) -> Dictionary:
+	if state != null and state.has_method("effective_unit_stats"):
+		var value = state.call("effective_unit_stats", unit)
+		if value is Dictionary:
+			return value
+	return {
+		"armor": unit.get("effective_armor", unit.get("armor", 0.0)),
+		"damage": unit.get("effective_damage", unit.get("damage", 0.0)),
+		"range": unit.get("effective_range", unit.get("range", 0.0)),
+		"speed": unit.get("effective_speed", unit.get("speed", 0)),
+		"vision": unit.get("effective_vision", unit.get("vision", 0))
+	}
+
+func _bonus_source_text(entity: Dictionary) -> String:
+	var parts: Array[String] = []
+	for key in ["active_bonuses", "adjacency_bonuses", "stat_sources", "bonuses"]:
+		var raw = entity.get(key, null)
+		if raw is Dictionary:
+			for source in raw.keys():
+				parts.append("%s:%s" % [str(source), str(raw[source])])
+		elif raw is Array:
+			for source in raw:
+				parts.append(str(source.get("name", source.get("source", "加成"))) if source is Dictionary else str(source))
+	if entity.has("remaining_attacks") and state != null and state.has_method("adjacent_friendly_units"):
+		var adjacent_types: Array[String] = []
+		for friend in state.call("adjacent_friendly_units", entity):
+			var friend_type = str(friend.get("type", "友军"))
+			if not adjacent_types.has(friend_type):
+				adjacent_types.append(friend_type)
+		if not adjacent_types.is_empty():
+			parts.append("相邻:" + "/".join(adjacent_types))
+		var effective = _effective_stats_ui(entity)
+		var deltas: Array[String] = []
+		for key in ["damage", "armor", "range", "vision"]:
+			var base = float(entity.get(key, db.unit_data(str(entity.get("type", ""))).get(key, 0.0)))
+			var actual = float(effective.get(key, base))
+			if not is_equal_approx(base, actual):
+				deltas.append("%s%+.1f" % [{"damage": "攻", "armor": "甲", "range": "射", "vision": "视"}[key], actual - base])
+		if not deltas.is_empty():
+			parts.append("实际修正:" + " ".join(deltas))
+	return "、".join(parts)
+
+func _call_state_entity_method(method_name: String, entity: Dictionary, target: String = ""):
+	if not state.has_method(method_name):
+		return null
+	var method_args: Array = []
+	for method in state.get_method_list():
+		if str(method.get("name", "")) == method_name:
+			method_args = method.get("args", [])
+			break
+	var args: Array = []
+	if method_args.size() >= 1:
+		var first_name = str(method_args[0].get("name", "")).to_lower()
+		args.append(int(entity.get("id", -1)) if first_name.contains("id") else entity)
+	if method_args.size() >= 2:
+		args.append(target)
+	return state.callv(method_name, args)
+
+func _call_state_research_method(method_name: String, tech_id: String, tech: Dictionary):
+	if not state.has_method(method_name):
+		return null
+	var method_args: Array = []
+	for method in state.get_method_list():
+		if str(method.get("name", "")) == method_name:
+			method_args = method.get("args", [])
+			break
+	var args: Array = []
+	for argument in method_args:
+		var arg_name = str(argument.get("name", "")).to_lower()
+		if arg_name.contains("pid") or arg_name.contains("player"):
+			args.append(state.current_player)
+		elif arg_name.contains("data") or arg_name.contains("tech") and arg_name.contains("dict"):
+			args.append(tech)
+		else:
+			args.append(tech_id)
+	return state.callv(method_name, args)
+
+func _next_unit_type(unit: Dictionary) -> String:
+	if state != null and state.has_method("next_unit_upgrade"):
+		return str(state.call("next_unit_upgrade", unit))
+	if db != null and db.has_method("next_unit_in_route"):
+		return str(db.call("next_unit_in_route", str(unit.get("type", ""))))
+	for key in ["evolution_to", "evolve_to", "next_unit", "next_type"]:
+		if unit.has(key) and not str(unit.get(key, "")).is_empty():
+			return str(unit.get(key, ""))
+	var data = db.unit_data(str(unit.get("type", "")))
+	for key in ["evolution_to", "evolve_to", "next_unit", "next_type"]:
+		if data.has(key) and not str(data.get(key, "")).is_empty():
+			return str(data.get(key, ""))
+	return str(UNIT_EVOLUTION.get(str(unit.get("type", "")), ""))
+
+func _can_evolve_unit_ui(unit: Dictionary, next_type: String) -> bool:
+	if next_type.is_empty() or _player_era(int(unit.get("pid", -1))) < _unit_era(next_type, db.unit_data(next_type)):
+		return false
+	for method_name in ["can_evolve_unit", "can_upgrade_unit", "can_promote_unit"]:
+		if state.has_method(method_name):
+			return bool(_call_state_entity_method(method_name, unit, next_type))
+	return false
+
 func _refresh_ui() -> void:
 	if state.game_over:
 		status_label.text = "游戏结束：%s 胜利" % _player_name(state.winner)
@@ -1308,13 +2022,32 @@ func _refresh_ui() -> void:
 		online_text = "   联机房间 %s   你是%s" % [online_room_id, _player_name(online_player_id)]
 	elif vs_ai:
 		online_text = "   人机对战%s" % ("   电脑思考中" if ai_thinking else "")
-	status_label.text = "%s玩家%d   回合 %d   🪙 %.2f (+%.2f/回合)%s" % [_player_color_prefix(state.current_player), state.current_player + 1, state.turn, float(player["gold"]), _current_income(state.current_player), online_text]
+	var era = _player_era(state.current_player)
+	var global_era = _global_open_era()
+	var command_used = _command_used(state.current_player)
+	var command_cap = _command_capacity(state.current_player)
+	var advantage = _campaign_advantage(state.current_player)
+	var campaign_window = _campaign_window_text(state.current_player)
+	var era_countdown = _next_global_era_text()
+	status_label.text = "%s玩家%d  完整回合 %d  金币 %.2f (+%.2f)  %s  %s  指挥 %d/%d  优势 %d/3%s" % [
+		_player_color_prefix(state.current_player), state.current_player + 1, state.turn,
+		float(player.get("gold", 0.0)), _current_income(state.current_player), _era_label(era), era_countdown,
+		command_used, command_cap, advantage, campaign_window + online_text
+	]
+	status_label.tooltip_text = "%s\n%s；完整回合%d起进入总体战" % [era_countdown, "总攻窗口可用" if advantage >= 3 else "控制战略点积累战役优势", GRAND_WAR_TURN]
 	if surrender_button != null:
 		surrender_button.disabled = not _can_control_current_turn()
 	if end_turn_button != null:
 		end_turn_button.disabled = not _can_control_current_turn()
 	if undo_button != null:
 		undo_button.disabled = undo_history.is_empty() or not _can_control_current_turn()
+	if tech_tree_button != null:
+		tech_tree_button.disabled = not _can_control_current_turn()
+	if tech_tree_overlay != null and tech_tree_overlay.visible:
+		if _can_control_current_turn():
+			_rebuild_tech_tree()
+		else:
+			_close_tech_tree()
 	_refresh_unit_bottom_actions()
 	_refresh_action_panel()
 
@@ -1335,6 +2068,10 @@ func _player_color_prefix(pid: int) -> String:
 	return "黄方 "
 
 func _next_hq_upgrade_cost(building: Dictionary) -> float:
+	if state.has_method("hq_upgrade_cost"):
+		return float(state.call("hq_upgrade_cost", int(building.get("pid", state.current_player))))
+	if state.has_method("next_hq_upgrade_cost"):
+		return float(_call_state_entity_method("next_hq_upgrade_cost", building))
 	var tier = int(building.get("tier", 0))
 	var hq = db.building_data("大本营")
 	var tiers = hq.get("tiers", [])
@@ -1371,7 +2108,7 @@ func _make_action_button(text: String) -> Button:
 	return btn
 
 func _bind_action_hover(control: Control, text: String) -> void:
-	control.tooltip_text = text
+	control.tooltip_text = ""
 	control.mouse_entered.connect(func():
 		_show_hover_info(text.split("\n"))
 	)
@@ -1392,6 +2129,16 @@ func _refresh_unit_bottom_actions() -> void:
 	unit_bottom_actions.visible = true
 	var unit_type = str(unit.get("type", ""))
 	var current_equip = str(unit.get("equip", ""))
+	var summary = Label.new()
+	var unit_statuses = _status_texts(unit)
+	summary.text = "%s %s  指挥%d%s" % [
+		_era_label(_unit_era(unit_type, db.unit_data(unit_type))),
+		_unit_role(unit_type, db.unit_data(unit_type)),
+		_unit_command_cost(unit_type, db.unit_data(unit_type)),
+		"  状态：" + "、".join(unit_statuses) if not unit_statuses.is_empty() else ""
+	]
+	summary.tooltip_text = _unit_info_text(unit_type)
+	unit_bottom_actions.add_child(summary)
 	if not current_equip.is_empty():
 		var equipped = Label.new()
 		equipped.text = "装备：%s" % current_equip
@@ -1418,6 +2165,17 @@ func _refresh_unit_bottom_actions() -> void:
 				var captured_equip_name = equip_name
 				equip_button.pressed.connect(func(): _on_equip_unit_pressed(captured_unit_id, captured_equip_name))
 				unit_bottom_actions.add_child(equip_button)
+	var next_type = _next_unit_type(unit)
+	if not next_type.is_empty():
+		var evolve = Button.new()
+		var evolve_cost = float(db.unit_data(next_type).get("upgrade_cost", db.unit_data(next_type).get("evolution_cost", 0.0)))
+		evolve.text = "进化为%s%s" % [next_type, "  %.1f金" % evolve_cost if evolve_cost > 0.0 else ""]
+		evolve.tooltip_text = "需位于己方大本营或战斗据点驻扎范围；消耗本回合行动并保留生命比例。"
+		evolve.disabled = not _can_evolve_unit_ui(unit, next_type)
+		var captured_evolve_id = int(unit.get("id", -1))
+		var captured_next_type = next_type
+		evolve.pressed.connect(func(): _on_evolve_unit_pressed(captured_evolve_id, captured_next_type))
+		unit_bottom_actions.add_child(evolve)
 	var skip = Button.new()
 	skip.text = "待机"
 	skip.tooltip_text = "结束该单位本回合的行动"
@@ -1471,12 +2229,16 @@ func _refresh_action_panel() -> void:
 		if building.is_empty():
 			return
 		var building_label = Label.new()
-		building_label.text = "%s\nHP %.1f / %.1f  护甲 %.1f\n收入 %.1f / 回合" % [
+		building_label.text = "%s  %s\nHP %.1f / %.1f  护甲 %.1f\n收入 %.1f / 回合  指挥 %d/%d  优势 %d/3" % [
 			building["type"],
+			_era_label(_player_era(state.current_player)),
 			float(building["hp"]),
 			float(building["max_hp"]),
 			float(building.get("armor", 0.0)),
-			float(building.get("gold", 0.0))
+			float(building.get("gold", 0.0)),
+			_command_used(state.current_player),
+			_command_capacity(state.current_player),
+			_campaign_advantage(state.current_player)
 		]
 		if bool(building.get("under_construction", false)):
 			building_label.text += "\n建造中：%d 回合" % int(building.get("build_timer", 0))
@@ -1487,8 +2249,6 @@ func _refresh_action_panel() -> void:
 		action_panel.add_child(building_label)
 		if building["type"] == "大本营":
 			_add_hq_upgrade_button(building)
-			_add_equipment_buttons()
-			_add_strategic_buttons()
 			_add_production_buttons(building)
 			_add_collector_button(building)
 		elif building["type"] == "据点":
@@ -1530,17 +2290,23 @@ func _add_unit_equip_buttons(unit: Dictionary) -> void:
 		action_panel.add_child(btn)
 
 func _add_production_buttons(building: Dictionary) -> void:
-	var units = state.available_units_for_player(state.current_player)
+	var units: Array = []
+	if state.has_method("available_units_for_player"):
+		units = state.available_units_for_player(state.current_player)
+	var player_era = _player_era(state.current_player)
 	var sep = Label.new()
-	sep.text = "\n生产单位"
+	sep.text = "\n生产单位（已解锁至 E%d）" % player_era
 	action_panel.add_child(sep)
 	for unit_type in units:
 		var data = db.unit_data(unit_type)
+		if _unit_era(str(unit_type), data) > player_era:
+			continue
 		var captured_building_id = int(building["id"])
 		var captured_unit_type = str(unit_type)
-		var btn = _make_action_button("%s  🪙 %.1f" % [unit_type, float(data.get("price", 0.0))])
+		var command_cost = _unit_command_cost(captured_unit_type, data)
+		var btn = _make_action_button("E%d %s  %.1f金  指挥%d" % [_unit_era(captured_unit_type, data), unit_type, float(data.get("price", 0.0)), command_cost])
 		_bind_action_hover(btn, _unit_info_text(captured_unit_type))
-		btn.disabled = not state.can_produce(building, unit_type)
+		btn.disabled = not state.can_produce(building, unit_type) or _command_used(state.current_player) + command_cost > _command_capacity(state.current_player)
 		btn.pressed.connect(func(): _on_produce_pressed(captured_building_id, captured_unit_type))
 		action_panel.add_child(btn)
 
@@ -1550,59 +2316,262 @@ func _add_hq_upgrade_button(building: Dictionary) -> void:
 		label.text = "大本营升级中：%d 回合" % int(building.get("up_timer", 0))
 		action_panel.add_child(label)
 		return
-	var btn = _make_action_button("⬆ T%d  🪙 %.1f" % [int(building.get("tier", 0)) + 2, _next_hq_upgrade_cost(building)])
-	btn.disabled = not state.can_upgrade_hq(building)
-	if int(building.get("tier", 0)) >= 2:
-		btn.text = "大本营已满级"
+	var current_era = _player_era(state.current_player)
+	var next_era = mini(5, current_era + 1)
+	var btn = _make_action_button("升级至 E%d %s  %.1f金" % [next_era, ERA_NAMES.get(next_era, ""), _next_hq_upgrade_cost(building)])
+	var can_queue_by_round = current_era >= 5 or int(state.turn) >= int(ERA_OPEN_TURNS.get(next_era, 999)) - 1
+	btn.disabled = not state.can_upgrade_hq(building) or not can_queue_by_round
+	if current_era >= 5:
+		btn.text = "大本营已达 E5"
+	elif _global_open_era() < next_era:
+		btn.tooltip_text = "%s；可提前1回合排队，不能提前完成。" % _next_global_era_text()
 	_bind_action_hover(btn, _building_action_info_text("hq-upgrade"))
 	btn.pressed.connect(func(): _on_hq_upgrade_pressed(int(building["id"])))
 	action_panel.add_child(btn)
 
+func _core_tech_dictionary() -> Dictionary:
+	for property_name in ["core_techs", "technologies", "military_techs"]:
+		var value = _object_property(db, property_name, null)
+		if value is Dictionary and not value.is_empty():
+			return value
+	var result: Dictionary = {}
+	for key in db.techs.keys():
+		if not str(key).to_upper().begins_with("T"):
+			result[str(key)] = db.techs[key]
+	return result
+
+func _can_research_core_tech_fallback(tech_id: String, tech: Dictionary) -> bool:
+	var player: Dictionary = state.players[state.current_player]
+	var display_name = str(tech.get("name", tech_id))
+	if player.get("researched", []).has(tech_id) or player.get("researched", []).has(display_name):
+		return false
+	if _is_researching_fallback(str(tech.get("name", tech_id))):
+		return false
+	if _era_number(tech.get("era", tech.get("tier", 1))) > _player_era(state.current_player):
+		return false
+	for prerequisite_id in tech.get("prerequisites", []):
+		if not _player_has_technology(str(prerequisite_id)):
+			return false
+	return float(player.get("gold", 0.0)) >= float(_technology_research_terms_for_ui(tech_id, tech).get("cost", INF))
+
+func _is_researching_fallback(name: String) -> bool:
+	for entry in state.players[state.current_player].get("researching", []):
+		if str(entry.get("name", "")) == name:
+			return true
+	return false
+
+func _player_has_technology(tech_id: String) -> bool:
+	if tech_id.is_empty():
+		return true
+	var player: Dictionary = state.players[state.current_player]
+	if player.get("technology", []).has(tech_id) or player.get("researched", []).has(tech_id):
+		return true
+	var tech = _core_tech_dictionary().get(tech_id, {})
+	return not tech.is_empty() and player.get("researched", []).has(str(tech.get("name", tech_id)))
+
+func _technology_missing_prerequisites(tech_id: String, tech: Dictionary = {}) -> Array[String]:
+	if state.has_method("missing_technology_prerequisites"):
+		return state.missing_technology_prerequisites(state.current_player, tech_id)
+	var data = tech if not tech.is_empty() else _core_tech_dictionary().get(tech_id, {})
+	var result: Array[String] = []
+	for prerequisite_id in data.get("prerequisites", []):
+		if not _player_has_technology(str(prerequisite_id)):
+			result.append(str(prerequisite_id))
+	return result
+
+func _technology_name(tech_id: String) -> String:
+	var tech = _core_tech_dictionary().get(tech_id, {})
+	return str(tech.get("name", tech_id))
+
+func _prerequisite_names(tech_id: String, tech: Dictionary = {}) -> String:
+	var names: Array[String] = []
+	for prerequisite_id in _technology_missing_prerequisites(tech_id, tech):
+		names.append(_technology_name(prerequisite_id))
+	return "、".join(names)
+
+func _technology_research_terms_for_ui(tech_id: String, tech: Dictionary) -> Dictionary:
+	if state.has_method("technology_research_terms"):
+		return state.technology_research_terms(state.current_player, tech_id)
+	var terms = {
+		"cost": float(tech.get("cost", tech.get("research_cost", 0.0))),
+		"research_time": int(tech.get("research_time", tech.get("turns", 1))),
+		"soft_prerequisite_applied": false
+	}
+	var soft_prerequisite = tech.get("soft_prerequisite", {})
+	if soft_prerequisite is Dictionary:
+		var prerequisite_id = str(soft_prerequisite.get("technology", ""))
+		var researched = state.players[state.current_player].get("researched", [])
+		var technology = state.players[state.current_player].get("technology", [])
+		if researched.has(prerequisite_id) or technology.has(prerequisite_id):
+			terms["cost"] = float(soft_prerequisite.get("cost", terms["cost"]))
+			terms["research_time"] = int(soft_prerequisite.get("research_time", terms["research_time"]))
+			terms["soft_prerequisite_applied"] = true
+	return terms
+
+func _start_core_tech_fallback(tech_id: String, tech: Dictionary) -> bool:
+	if not _can_research_core_tech_fallback(tech_id, tech):
+		return false
+	var player: Dictionary = state.players[state.current_player]
+	var terms = _technology_research_terms_for_ui(tech_id, tech)
+	var cost = float(terms.get("cost", 0.0))
+	player["gold"] = float(player.get("gold", 0.0)) - cost
+	player["researching"].append({
+		"id": tech_id,
+		"name": str(tech.get("name", tech_id)),
+		"kind": "technology",
+		"timer": int(terms.get("research_time", 1))
+	})
+	return true
+
+func _add_core_tech_buttons() -> void:
+	var current_era = _player_era(state.current_player)
+	var techs = _core_tech_dictionary()
+	var sep = Label.new()
+	sep.text = "\n科技树（硬前置 · 并行研究）"
+	action_panel.add_child(sep)
+	if techs.is_empty():
+		return
+	var route_titles = {"line": "战线路线", "mobile": "机动路线", "firepower": "火力路线", "support": "支援路线"}
+	for route in ["line", "mobile", "firepower", "support"]:
+		var route_label = Label.new()
+		route_label.text = "\n%s" % route_titles[route]
+		action_panel.add_child(route_label)
+		for tech_id in _technology_ids_for_route(route, current_era):
+			_add_technology_tree_node(tech_id, techs[tech_id])
+		var route_units: Array = db.units_for_route(route) if db.has_method("units_for_route") else []
+		if current_era - 1 < route_units.size():
+			var current_unit = str(route_units[current_era - 1])
+			_add_equipment_branch_for_unit(current_unit, current_era)
+	var development = Label.new()
+	development.text = "\n建设与后勤路线"
+	action_panel.add_child(development)
+	for tech_id in _technology_ids_for_route("development", current_era):
+		_add_technology_tree_node(tech_id, techs[tech_id])
+
+func _technology_ids_for_route(route: String, max_era: int) -> Array[String]:
+	var result: Array[String] = []
+	for raw_id in _core_tech_dictionary().keys():
+		var tech_id = str(raw_id)
+		var tech: Dictionary = _core_tech_dictionary()[raw_id]
+		if bool(tech.get("strategic", false)) or _era_number(tech.get("era", 1)) > max_era:
+			continue
+		var routes: Array = tech.get("routes", [])
+		if routes.has(route):
+			result.append(tech_id)
+	result.sort_custom(func(a: String, b: String):
+		var era_a = _era_number(_core_tech_dictionary()[a].get("era", 1))
+		var era_b = _era_number(_core_tech_dictionary()[b].get("era", 1))
+		return era_a < era_b if era_a != era_b else a < b
+	)
+	return result
+
+func _add_technology_tree_node(tech_id: String, tech: Dictionary) -> void:
+	var display_name = str(tech.get("name", tech_id))
+	var era = _era_number(tech.get("era", tech.get("tier", 1)))
+	if _player_has_technology(tech_id):
+		var completed = Label.new()
+		completed.text = "  ✓ E%d %s" % [era, display_name]
+		completed.modulate = Color(0.55, 0.82, 0.58)
+		action_panel.add_child(completed)
+		return
+	var active = state.research_entry(state.current_player, display_name) if state.has_method("research_entry") else {}
+	if not active.is_empty():
+		var progress = Label.new()
+		progress.text = "  ↓ E%d %s（剩%d回合）" % [era, display_name, int(active.get("timer", active.get("turns", 0)))]
+		progress.modulate = Color(0.90, 0.75, 0.30)
+		action_panel.add_child(progress)
+		return
+	var captured_id = tech_id
+	var captured_tech = tech
+	var terms = _technology_research_terms_for_ui(captured_id, captured_tech)
+	var missing = _prerequisite_names(captured_id, captured_tech)
+	var prefix = "  ↓ " if missing.is_empty() else "  × "
+	var btn = _make_action_button("%sE%d %s  %.1f金/%d回合" % [prefix, era, display_name, float(terms.get("cost", 0.0)), int(terms.get("research_time", 1))])
+	var hover = _tech_info_text(captured_id, captured_tech, terms)
+	if not missing.is_empty():
+		hover += "\n硬性前置：%s" % missing
+	_bind_action_hover(btn, hover)
+	var can_research = false
+	var found_research_method = false
+	for method_name in ["can_research_tech", "can_research_core_tech", "can_start_research"]:
+		if state.has_method(method_name):
+			found_research_method = true
+			can_research = bool(_call_state_research_method(method_name, captured_id, captured_tech))
+			break
+	if not found_research_method:
+		can_research = _can_research_core_tech_fallback(captured_id, captured_tech)
+	btn.disabled = not can_research
+	btn.pressed.connect(func(): _on_core_tech_pressed(captured_id, captured_tech))
+	action_panel.add_child(btn)
+
+func _add_equipment_branch_for_unit(unit_type: String, era: int) -> void:
+	var equips = db.equipment_for(unit_type)
+	if equips.is_empty():
+		return
+	if not state.target_unlocked(state.current_player, unit_type):
+		var locked = Label.new()
+		locked.text = "      └─ %s装备（先解锁单位）" % unit_type
+		locked.modulate = Color(0.45, 0.45, 0.52)
+		action_panel.add_child(locked)
+		return
+	var pending: Array[Dictionary] = []
+	for equip in equips:
+		if _era_number(equip.get("era", equip.get("tier", 1))) != era:
+			continue
+		var key = state.equipment_key(unit_type, str(equip.get("name", "")))
+		if not state.players[state.current_player]["equipment"].has(key):
+			pending.append(equip)
+	for index in range(pending.size()):
+		_add_equipment_tree_node(unit_type, pending[index], "      └→ " if index == pending.size() - 1 else "      ├→ ")
+
+func _add_equipment_tree_node(unit_type: String, equip: Dictionary, prefix: String) -> void:
+	var name = str(equip.get("name", ""))
+	var active = state.research_entry(state.current_player, name)
+	if not active.is_empty():
+		var label = Label.new()
+		label.text = "%s%s（剩%d回合）" % [prefix, name, int(active.get("timer", 0))]
+		label.modulate = Color(0.90, 0.75, 0.30)
+		action_panel.add_child(label)
+		return
+	var captured_unit_type = unit_type
+	var captured_name = name
+	var btn = _make_action_button("%s%s  %.1f金/%d回合" % [prefix, name, float(equip.get("research_cost", 0.0)), int(equip.get("research_time", 1))])
+	_bind_action_hover(btn, _equipment_info_text(captured_unit_type, equip))
+	btn.disabled = not state.can_research_equipment(state.current_player, captured_unit_type, captured_name)
+	btn.pressed.connect(func(): _on_equipment_pressed(captured_unit_type, captured_name))
+	action_panel.add_child(btn)
+
 func _add_equipment_buttons() -> void:
-	var current_tier = int(state.players[state.current_player].get("tier", 1))
+	var current_tier = _player_era(state.current_player)
 	var visible_equipment: Array[Dictionary] = []
 	for unit_type in db.equipment.keys():
+		if db.unit_aliases.has(str(unit_type)):
+			continue
 		for equip in db.equipment_for(unit_type):
-			if int(equip.get("tier", 1)) <= current_tier:
-				visible_equipment.append({"unit_type": str(unit_type), "equip": equip})
+			if _era_number(equip.get("era", equip.get("tier", 1))) < current_tier:
+				var key = state.equipment_key(str(unit_type), str(equip.get("name", "")))
+				if not state.players[state.current_player]["equipment"].has(key):
+					visible_equipment.append({"unit_type": str(unit_type), "equip": equip})
 	if visible_equipment.is_empty():
 		return
-	var sep = Label.new()
-	sep.text = "\n装备研究"
-	action_panel.add_child(sep)
-	var any = false
+	var toggle = _make_action_button("▸ 旧时代可选装备（%d）" % visible_equipment.size())
+	toggle.pressed.connect(func():
+		show_legacy_equipment = not show_legacy_equipment
+		_refresh_action_panel()
+	)
+	action_panel.add_child(toggle)
+	if not show_legacy_equipment:
+		return
 	for visible_entry in visible_equipment:
 		var unit_type = str(visible_entry["unit_type"])
 		var equip: Dictionary = visible_entry["equip"]
-		var name = str(equip.get("name", ""))
-		var key = state.equipment_key(str(unit_type), name)
-		if state.players[state.current_player]["equipment"].has(key):
-			continue
-		var active_research = state.research_entry(state.current_player, name)
-		if not active_research.is_empty():
-			var label = Label.new()
-			label.text = "%s：%s 研究中：%d 回合" % [unit_type, name, int(active_research.get("timer", 0))]
-			action_panel.add_child(label)
-			any = true
-			continue
-		any = true
-		var captured_unit_type = str(unit_type)
-		var captured_name = name
-		var btn = _make_action_button("%s：%s  🪙 %.1f" % [unit_type, name, float(equip.get("research_cost", 0.0))])
-		_bind_action_hover(btn, _equipment_info_text(captured_unit_type, equip))
-		btn.disabled = not state.can_research_equipment(state.current_player, str(unit_type), name)
-		btn.pressed.connect(func(): _on_equipment_pressed(captured_unit_type, captured_name))
-		action_panel.add_child(btn)
-	if not any:
-		var done = Label.new()
-		done.text = "装备研究已完成"
-		action_panel.add_child(done)
+		_add_equipment_tree_node(unit_type, equip, "  └→ ")
 
 func _add_strategic_buttons() -> void:
-	var current_tier = int(state.players[state.current_player].get("tier", 1))
+	var current_tier = _player_era(state.current_player)
 	var visible_techs: Array[String] = []
 	for tech_name in db.strategic_techs.keys():
-		if int(db.strategic_techs[tech_name].get("tier", 1)) <= current_tier:
+		if _era_number(db.strategic_techs[tech_name].get("era", db.strategic_techs[tech_name].get("tier", 1))) <= current_tier:
 			visible_techs.append(str(tech_name))
 	if visible_techs.is_empty():
 		return
@@ -1634,13 +2603,15 @@ func _add_strategic_buttons() -> void:
 		action_panel.add_child(done)
 
 func _add_collector_button(building: Dictionary) -> void:
+	if state.has_method("target_unlocked") and not state.target_unlocked(state.current_player, "资源采集器"):
+		return
 	var sep = Label.new()
 	sep.text = "\n建筑"
 	action_panel.add_child(sep)
 	var data = db.building_data("资源采集器")
-	var btn = _make_action_button("⛏ 资源采集器  🪙 %.1f" % float(data.get("cost", 8.0)))
+	var btn = _make_action_button("⛏ 资源采集器  🪙 %.1f" % float(data.get("cost", 12.0)))
 	_bind_action_hover(btn, _building_action_info_text("collector"))
-	btn.disabled = float(state.players[state.current_player]["gold"]) < float(data.get("cost", 8.0))
+	btn.disabled = float(state.players[state.current_player]["gold"]) < float(data.get("cost", 12.0))
 	btn.pressed.connect(func(): _on_build_collector_pressed(int(building["id"])))
 	action_panel.add_child(btn)
 
@@ -1663,9 +2634,9 @@ func _add_outpost_buttons(building: Dictionary) -> void:
 		done.text = "已升级：%s" % _outpost_branch_label(str(building.get("outpost_branch", "")))
 		action_panel.add_child(done)
 		return
-	if int(state.players[state.current_player].get("tier", 1)) < 2:
+	if _player_era(state.current_player) < 2:
 		var locked = Label.new()
-		locked.text = "需要大本营升级到 T2 后才能升级据点。"
+		locked.text = "需要大本营升级到 E2 后才能分化据点。"
 		action_panel.add_child(locked)
 		return
 	var combat = _make_action_button("⚔ 战斗型据点  🪙 10.0")
@@ -1694,12 +2665,15 @@ func _on_produce_pressed(building_id: int, unit_type: String) -> void:
 func _on_build_collector_pressed(building_id: int) -> void:
 	if not _can_control_current_turn():
 		return
+	if state.has_method("target_unlocked") and not state.target_unlocked(state.current_player, "资源采集器"):
+		_show_hover_info(["资源采集器尚未解锁", "需要先完成核心科技：有组织采集"])
+		return
 	_clear_selection()
 	build_mode = "资源采集器"
 	build_origin_id = building_id
 	var origin = state.get_building_by_id(building_id)
 	var income = state.next_collector_income(state.current_player)
-	info_label.text = "建造资源采集器：点击大本营 5 格内空地。\n费用 8 金，2 回合完工；当前采集器完工后每回合 +%.2f 金。" % income
+	info_label.text = "建造资源采集器：点击大本营 5 格内空地。\n费用 12 金，2 回合完工；当前采集器完工后每回合 +%.2f 金。" % income
 	board.set_build_tiles(state.collector_build_tiles(origin), Color(0.15, 0.72, 1.0), income)
 	_refresh_ui()
 
@@ -1738,6 +2712,26 @@ func _on_hq_upgrade_pressed(building_id: int) -> void:
 	_refresh_ui()
 	board.queue_redraw()
 
+func _on_core_tech_pressed(tech_id: String, tech: Dictionary) -> void:
+	if not _can_control_current_turn():
+		return
+	_push_undo_state()
+	var started = false
+	var found_research_method = false
+	for method_name in ["research_tech", "research_core_tech", "start_research"]:
+		if state.has_method(method_name):
+			found_research_method = true
+			started = bool(_call_state_research_method(method_name, tech_id, tech))
+			break
+	if not found_research_method:
+		started = _start_core_tech_fallback(tech_id, tech)
+	if started:
+		_play_sfx("upgrade")
+		_notify_online("research-core-tech")
+	else:
+		_pop_failed_undo()
+	_refresh_ui()
+
 func _on_equipment_pressed(unit_type: String, equip_name: String) -> void:
 	if not _can_control_current_turn():
 		return
@@ -1756,6 +2750,27 @@ func _on_equip_unit_pressed(unit_id: int, equip_name: String) -> void:
 	if state.equip_unit(unit_id, equip_name):
 		_play_sfx("upgrade")
 		_notify_online("equip")
+	else:
+		_pop_failed_undo()
+	_refresh_ui()
+	board.queue_redraw()
+
+func _on_evolve_unit_pressed(unit_id: int, next_type: String) -> void:
+	if not _can_control_current_turn():
+		return
+	var unit = state.get_unit_by_id(unit_id)
+	if unit.is_empty():
+		return
+	_push_undo_state()
+	var evolved = false
+	for method_name in ["evolve_unit", "upgrade_unit", "promote_unit"]:
+		if state.has_method(method_name):
+			evolved = bool(_call_state_entity_method(method_name, unit, next_type))
+			break
+	if evolved:
+		_play_sfx("upgrade")
+		_notify_online("evolve-unit")
+		_clear_selection()
 	else:
 		_pop_failed_undo()
 	_refresh_ui()
@@ -2106,6 +3121,7 @@ func _unit_info_text(unit_type: String) -> String:
 		tags.append("范围 %.1f" % float(data.get("blast", 0.0)))
 	var lines = [
 		unit_type,
+		"%s  %s  指挥 %d" % [_era_label(_unit_era(unit_type, data)), _unit_role(unit_type, data), _unit_command_cost(unit_type, data)],
 		"价格 %.1f  HP %.1f  护甲 %.1f" % [float(data.get("price", 0.0)), float(data.get("hp", 0.0)), float(data.get("armor", 0.0))],
 		"伤害 %.1f  射程 %.1f  移速 %d  攻击次数 %d" % [float(data.get("damage", 0.0)), float(data.get("range", 0.0)), int(data.get("speed", 0)), int(data.get("attacks", 0))],
 		"视野 %d" % int(data.get("vision", 0))
@@ -2120,7 +3136,7 @@ func _equipment_info_text(unit_type: String, equip: Dictionary) -> String:
 	var data = db.unit_data(unit_type)
 	var lines = [
 		"%s：%s" % [unit_type, str(equip.get("name", ""))],
-		"研究 %.1f 金  需求 T%d" % [float(equip.get("research_cost", 0.0)), int(equip.get("tier", 1))]
+		"研究 %.1f 金  需求 E%d" % [float(equip.get("research_cost", 0.0)), _era_number(equip.get("era", equip.get("tier", 1)))]
 	]
 	_add_delta_line(lines, "价格", data.get("price", 0.0), equip.get("cost", null))
 	_add_delta_line(lines, "HP", data.get("hp", 0.0), equip.get("hp", null))
@@ -2142,41 +3158,68 @@ func _add_delta_line(lines: Array, label: String, base_value, delta_value) -> vo
 	lines.append("%s：%.1f → %.1f" % [label, base, base + delta])
 
 func _strategic_info_text(tech_name: String, tech: Dictionary) -> String:
-	return "%s\n研究 %.1f 金  需求 T%d\n%s" % [
+	var text = "%s\n研究 %.1f 金  需求 E%d\n%s" % [
 		tech_name,
 		float(tech.get("cost", 0.0)),
-		int(tech.get("tier", 1)),
+		_era_number(tech.get("era", tech.get("tier", 1))),
 		str(tech.get("desc", ""))
 	]
+	var tech_id = str(tech.get("id", ""))
+	var missing = _prerequisite_names(tech_id) if not tech_id.is_empty() else ""
+	if not missing.is_empty():
+		text += "\n硬性前置：%s" % missing
+	return text
 
-func _tech_info_text(tech_id: String, tech: Dictionary) -> String:
+func _tech_info_text(tech_id: String, tech: Dictionary, terms: Dictionary = {}) -> String:
 	var unlocks = []
 	for unit_type in tech.get("unlocks", []):
 		unlocks.append(str(unit_type))
-	return "%s %s\n研究 %.1f 金\n解锁：%s" % [
-		tech_id,
-		str(tech.get("name", tech_id)),
-		float(tech.get("cost", 0.0)),
-		"、".join(unlocks)
+	var resolved_terms = terms if not terms.is_empty() else _technology_research_terms_for_ui(tech_id, tech)
+	var lines = [
+		"%s  E%d" % [str(tech.get("name", tech_id)), _era_number(tech.get("era", tech.get("tier", 1)))],
+		"研究 %.1f 金 / %d 回合" % [float(resolved_terms.get("cost", tech.get("cost", 0.0))), int(resolved_terms.get("research_time", tech.get("research_time", 1)))],
+		"解锁：%s" % ("、".join(unlocks) if not unlocks.is_empty() else "无直接解锁")
 	]
+	var prerequisites: Array[String] = []
+	for prerequisite_id in tech.get("prerequisites", []):
+		prerequisites.append(_technology_name(str(prerequisite_id)))
+	if not prerequisites.is_empty():
+		lines.append("硬性前置：%s" % "、".join(prerequisites))
+	var description = str(tech.get("desc", tech.get("effect", ""))).strip_edges()
+	if not description.is_empty():
+		lines.append(description)
+	var effects = tech.get("effects", {})
+	if effects is Dictionary:
+		for effect_name in effects.keys():
+			if str(effect_name) == "logistics_multiplier":
+				lines.append("资源采集器收入倍率：×%.2f（只取最高倍率）" % float(effects[effect_name]))
+			else:
+				lines.append("%s：%s" % [str(effect_name), str(effects[effect_name])])
+	if bool(resolved_terms.get("soft_prerequisite_applied", false)):
+		lines.append("已应用前置科技优惠")
+	return "\n".join(lines)
 
 func _building_action_info_text(kind: String) -> String:
 	if kind == "collector":
-		return "资源采集器\n建造 8 金 / 2 回合\n点击大本营 5 格内空地建造。\n完工后按编号产金：4.5 × 0.8^编号。"
+		return "资源采集器\n建造 12 金 / 2 回合\n点击大本营 5 格内空地建造。\n完工后按编号产金：4.5 × 0.8^编号。"
 	if kind == "outpost-combat":
-		return "战斗型据点\n升级 10 金 / 1 回合\nHP 30，护甲 0.5，每回合 +6，驻扎范围 3。"
+		var combat_era := maxi(2, _player_era(state.current_player))
+		var combat: Dictionary = db.building_data("据点").get("eras", {}).get("E%d" % combat_era, {}).get("combat", {})
+		return "战斗据点\n升级 %.1f 金 / %d 回合\nHP %.1f，护甲 %.1f，每回合 +%.1f。\n当前时代战线/机动；编制+2；驻扎恢复35%%。" % [float(combat.get("upgrade_cost", 0.0)), int(combat.get("upgrade_time", 1)), float(combat.get("hp", 0.0)), float(combat.get("armor", 0.0)), float(combat.get("gold", 0.0))]
 	if kind == "outpost-economic":
-		return "经济型据点\n升级 10 金 / 3 回合\nHP 20，护甲 0，每回合 +9，驻扎范围 2。"
+		var economic_era := maxi(2, _player_era(state.current_player))
+		var economic: Dictionary = db.building_data("据点").get("eras", {}).get("E%d" % economic_era, {}).get("economic", {})
+		return "经济据点\n升级 %.1f 金 / %d 回合\nHP %.1f，护甲 %.1f，每回合 +%.1f。\n上一时代战线；编制+0；驻扎恢复10%%。" % [float(economic.get("upgrade_cost", 0.0)), int(economic.get("upgrade_time", 1)), float(economic.get("hp", 0.0)), float(economic.get("armor", 0.0)), float(economic.get("gold", 0.0))]
 	if kind == "hq-upgrade":
 		return "大本营升级\n提升大本营 HP、护甲、收入、视野；升级倒计时完成后解锁下一时代兵种和科技条件。"
 	return ""
 
 func _outpost_branch_label(branch: String) -> String:
 	if branch == "combat":
-		return "T2 战斗型据点"
+		return "%s 战斗据点" % _era_label(_player_era(state.current_player))
 	if branch == "economic":
-		return "T2 经济型据点"
-	return "T1 据点"
+		return "%s 经济据点" % _era_label(_player_era(state.current_player))
+	return "%s 基础据点" % _era_label(_player_era(state.current_player))
 
 func _encyclopedia_text() -> String:
 	var lines = ["绿色军团战术百科", ""]
@@ -2202,6 +3245,109 @@ func _encyclopedia_text() -> String:
 			float(terrain.get("move_cost", 1.0))
 		])
 	return "\n".join(lines)
+
+func _era_rules_bbcode() -> String:
+	var lines = [
+		"[font_size=26][color=#f0e6c0]E1-E5 五时代规则[/color][/font_size]",
+		"[color=#8a8a9a]从部落战争进化到信息化战争；未来时代不会提前出现在生产栏。[/color]", "",
+		"[b]全局开放与玩家升级[/b]",
+		"时代按完整回合开放：E1 1-13，E2 14-27，E3 28-42，E4 43-58，E5 59-74；75回合起总体战。玩家仍需支付大本营升级费用，最多可提前1回合排队，但不能提前完成。落后全局2个时代时，下一次时代升级费用降低20%。", "",
+		"[table=4][cell][b]时代[/b][/cell][cell][b]名称[/b][/cell][cell][b]开放回合[/b][/cell][cell][b]战争逻辑[/b][/cell]",
+		"[cell]E1[/cell][cell]部落战争[/cell][cell]1[/cell][cell]数量、探索、地形[/cell]",
+		"[cell]E2[/cell][cell]冷兵器战争[/cell][cell]9[/cell][cell]方阵、冲锋、掩护[/cell]",
+		"[cell]E3[/cell][cell]火药战争[/cell][cell]19[/cell][cell]列阵、侧击、炮兵观测[/cell]",
+		"[cell]E4[/cell][cell]机械化战争[/cell][cell]31[/cell][cell]装甲阈值、机动穿插[/cell]",
+		"[cell]E5[/cell][cell]信息化战争[/cell][cell]45[/cell][cell]共享视野、无人作战、精确打击[/cell][/table]", "",
+		"[b]战斗与相邻加成[/b]",
+		"[code]有效伤害 = max(0, 攻击力 + 目标类型修正 - 目标护甲)[/code]",
+		"允许伤害为0。相邻指周围八格。战团、方阵、火枪连和士兵的同类阵型加成，以及无人战车获得的无人机支援，最多叠加2层；投石队、弓弩/投石车、野战炮、自行火炮及侦察视野支援只判定是否存在，不随相同支援单位数量叠加。实际攻击、护甲、射程修正及来源显示在单位悬停卡。高地射程修正限制在-2至+2。", "",
+		"[b]单位进化[/b]",
+		"旧单位不会自动消失。单位位于己方大本营或战斗据点驻扎范围时，可沿战线、机动、火力、支援路线进化；进化消耗本回合行动，保留生命比例与经验。旧装备仅在存在兼容装备时转换。", "",
+		"[b]生产与指挥容量[/b]",
+		"战线/支援单位占1点，机动/火力单位占2点。基础容量E1至E5依次为12/14/16/18/20；基础据点+1，战斗据点+2，经济据点不增加。达到上限不能生产，但仍可进化。", "",
+		"[b]战役优势与终局[/b]",
+		"每个完整回合结束时，控制至少2个战略点且领先的一方获得1点战役优势，最多3点。达到3点触发2回合总攻窗口：目标大本营停止回血，己方火力攻击其时忽略一半护甲。第75回合起所有大本营永久暴露并停止回血，火力攻击建筑+25%。", "",
+		"[b]战争迷雾与操作[/b]",
+		"敌方单位只有当前可见时才能查看和攻击；已探索建筑保留最后已知位置但不显示实时HP。单位可先移动后攻击，新造单位当回合不能行动；结束回合时仍有合法目标的单位自动攻击。"
+	]
+	return "\n".join(lines)
+
+func _render_era_units_content() -> void:
+	encyclopedia_content.append_text("[font_size=26][color=#f0e6c0]E1-E5 核心兵种[/color][/font_size]\n")
+	encyclopedia_content.append_text("[color=#9a9aa8]四条路线各时代连续进化；基础形态与两套装备变体均已收录。[/color]\n\n")
+	var current_era = 0
+	for row in ERA_UNIT_ROWS:
+		var era = int(row[0])
+		var unit_type = str(row[1])
+		if era != current_era:
+			current_era = era
+			encyclopedia_content.append_text("\n[color=#caba6a][font_size=22]%s[/font_size][/color]\n" % _era_label(era))
+		var data = db.unit_data(unit_type)
+		_add_encyclopedia_image(db.texture_path_for_unit(unit_type), unit_type)
+		var hp = float(data.get("hp", row[2]))
+		var armor = float(data.get("armor", row[3]))
+		var damage = float(data.get("damage", row[4]))
+		var speed = int(data.get("speed", row[5]))
+		var attack_range = float(data.get("range", row[6]))
+		var vision = int(data.get("vision", row[7]))
+		var price = float(data.get("price", row[8]))
+		var role = str(data.get("role", row[9]))
+		encyclopedia_content.append_text("[color=#f2c14e][font_size=20]%s[/font_size][/color]  %s / 指挥%d\n" % [unit_type, role, _unit_command_cost(unit_type, data)])
+		encyclopedia_content.append_text("HP %.2f  甲 %.2f  攻 %.2f  移 %d  射 %.1f  视 %d  新造 %.1f金\n" % [hp, armor, damage, speed, attack_range, vision, price])
+		encyclopedia_content.append_text("[color=#a8b8a8]%s[/color]\n" % str(data.get("trait", row[10])))
+		var equips = db.equipment_for(unit_type)
+		if not equips.is_empty():
+			for equip in equips:
+				var equip_name := str(equip.get("name", ""))
+				_add_encyclopedia_image(db.texture_path_for_equipment(equip), "%s：%s" % [unit_type, equip_name])
+				_append_equipment_encyclopedia_stats(unit_type, equip)
+	encyclopedia_content.append_text("\n[b]进化路线[/b]\n战线：战团 → 方阵 → 火枪连 → 士兵 → 网络化步兵\n机动：斥候 → 骑兵 → 龙骑兵 → 主战坦克 → 无人战车\n火力：投石队 → 弓弩/投石车 → 野战炮 → 自行火炮 → 精确火箭\n支援：部落侦察 → 轻骑侦察 → 工兵/观测队 → 吉普 → 无人机/电子战\n")
+
+func _era_tech_bbcode() -> String:
+	var lines = ["[font_size=26][color=#f0e6c0]科技与装备[/color][/font_size]", "大本营升级完成后开放对应时代的科技、装备研究和单位生产；全局时代开放只允许排队升级大本营，不会直接提升玩家时代。科技、装备与战略项目允许并行研究；同一项目不能重复研究。", "科技采用硬前置树：战线、机动、火力、支援沿上一时代对应路线连续进化；先完成单位解锁科技，才会开放该单位的两条装备分支。旧时代未完成的核心前置仍可补研。建设后勤路线为：有组织采集 → 道路驿站 → 工业化后勤 → 无线电火控 → 智能后勤。装备研究只解锁安装资格，每个单位仍需支付安装费，且只有1个互斥主装备槽。", ""]
+	var current_era = 0
+	for row in ERA_TECH_ROWS:
+		var era = int(row[0])
+		if era != current_era:
+			current_era = era
+			lines.append("[color=#caba6a][font_size=20]%s[/font_size][/color]" % _era_label(era))
+		lines.append("[b]%s[/b]  %d金 / %d回合  %s" % [str(row[1]), int(row[2]), int(row[3]), str(row[4])])
+	lines.append("")
+	lines.append("[b]装备路线速查[/b]")
+	lines.append("E1：石斧/兽皮盾；骨矛/轻装行囊；编织投索/重石袋；信号号角/伪装")
+	lines.append("E2：长枪阵/塔盾阵；轻骑鞍具/具装甲胄；长弓/配重机构；信号旗/袭扰装备")
+	lines.append("E3：线膛枪/刺刀工事包；连发卡宾枪/胸甲；霰弹/实心弹；光学观测镜/爆破工具")
+	lines.append("E4：射手步枪/反器械枪；高爆炮/穿甲炮；轻量化/巨炮；重甲吉普/火箭助推")
+	lines.append("E5：智能反坦克弹/自适应迷彩；主动防御系统/电磁炮；钻地弹/巡飞子弹药；聚能战斗部/干扰吊舱")
+	return "\n".join(lines)
+
+func _era_status_bbcode() -> String:
+	return "\n".join([
+		"[font_size=26][color=#f0e6c0]状态、容量与信息[/color][/font_size]", "",
+		"[table=3][cell][b]状态[/b][/cell][cell][b]规则[/b][/cell][cell][b]UI信息[/b][/cell]",
+		"[cell]标记[/cell][cell]目标进入共享攻击信息，相关火力获得射程加成[/cell][cell]名称、剩余回合、来源[/cell]",
+		"[cell]冲锋[/cell][cell]连续移动达到要求后，仅强化第一次攻击[/cell][cell]触发距离与加成[/cell]",
+		"[cell]侧击[/cell][cell]目标孤立或攻击者位于后侧时触发[/cell][cell]攻击修正[/cell]",
+		"[cell]装填[/cell][cell]数字大于0不能攻击，己方回合开始-1[/cell][cell]剩余回合[/cell]",
+		"[cell]隐蔽[/cell][cell]超过侦察距离不显示，近距或侦察可揭露[/cell][cell]揭露条件[/cell]",
+		"[cell]干扰[/cell][cell]降低视野，关闭标记与共享视野[/cell][cell]范围与来源[/cell]",
+		"[cell]驻扎[/cell][cell]消耗本回合，在建筑范围内恢复生命[/cell][cell]恢复量[/cell]",
+		"[cell]升级中[/cell][cell]建筑可继续生产，新功能等待完成[/cell][cell]剩余回合[/cell]",
+		"[cell]后勤[/cell][cell]只提高已完工资源采集器的每回合金币；最高已研究倍率生效，倍率不叠加[/cell][cell]当前倍率、采集器预计收入[/cell]",
+		"[cell]占领中断[/cell][cell]据点易手后升级清零并进入收入恢复期[/cell][cell]恢复阶段[/cell][/table]", "",
+		"所有状态必须同时显示文字、剩余回合和悬停说明，不能只依靠颜色。悬停卡中的“生效加成”会列出相邻阵型、装备、标记或干扰来源。", "",
+		"[color=#f2c14e][font_size=20]后勤是什么意思[/font_size][/color]",
+		"后勤代表采集、运输和分配资源的效率。在当前版本中，它只影响资源采集器收入，不影响单位移动、攻击、视野、驻扎回血、生产时间或编制容量。", "",
+		"[code]第 n 座采集器收入 = 4.5 × 0.8^(n-1) × 当前后勤倍率[/code]",
+		"同一玩家的采集器按编号计算边际递减：第一座基础4.50金，第二座3.60金，第三座2.88金。后勤科技取已完成研究中的最高倍率，不会把1.10、1.20等倍率相乘。", "",
+		"[table=4][cell][b]阶段[/b][/cell][cell][b]后勤科技[/b][/cell][cell][b]倍率[/b][/cell][cell][b]第一/第二座收入[/b][/cell]",
+		"[cell]E1[/cell][cell]基础后勤[/cell][cell]×1.00[/cell][cell]4.50 / 3.60[/cell]",
+		"[cell]E2[/cell][cell]道路驿站[/cell][cell]×1.10[/cell][cell]4.95 / 3.96[/cell]",
+		"[cell]E3[/cell][cell]工业化后勤[/cell][cell]×1.20[/cell][cell]5.40 / 4.32[/cell]",
+		"[cell]E4[/cell][cell]无线电火控[/cell][cell]×1.30[/cell][cell]5.85 / 4.68[/cell]",
+		"[cell]E5[/cell][cell]智能后勤[/cell][cell]×1.40[/cell][cell]6.30 / 5.04[/cell][/table]", "",
+		"[b]指挥容量[/b]  E1-E5基础上限：22 / 24 / 26 / 28 / 30。战线和支援占1；机动和火力占2；基础据点+1，战斗据点+2。", "[b]战役优势[/b]  0-3点显示在顶部栏；3点触发总攻窗口。"
+	])
 
 func _encyclopedia_rules_bbcode() -> String:
 	var lines = [
@@ -2235,7 +3381,7 @@ func _encyclopedia_rules_bbcode() -> String:
 		var unit = db.unit_data(str(unit_type))
 		lines.append("[cell]%s[/cell][cell]%d[/cell][cell]射程 %.1f + 移速 %d[/cell]" % [str(unit_type), int(unit.get("vision", 0)), float(unit.get("range", 0.0)), int(unit.get("speed", 0))])
 	lines.append("[cell]大本营[/cell][cell]7 / 8 / 9[/cell][cell]随等级提升[/cell]")
-	lines.append("[cell]据点 / 资源采集器[/cell][cell]5 / 3[/cell][cell]据点 4.5 金/回合；采集器按 4.5 × 0.8^编号产金[/cell]")
+	lines.append("[cell]据点 / 资源采集器[/cell][cell]5 / 3[/cell][cell]据点收入按时代与分支计算；采集器造价12金，按 4.5 × 0.8^编号产金[/cell]")
 	lines.append("[cell]SpaceX 星链计划[/cell][cell]全图[/cell][cell]T3 战略科技[/cell][/table]")
 	lines.append("")
 	lines.append("[color=#e8dcc8][b]耐打计算[/b][/color]")
@@ -2299,11 +3445,7 @@ func _encyclopedia_buildings_bbcode() -> String:
 		lines.append("[color=#f0e6c0][font_size=20]%s[/font_size][/color]" % str(building_type))
 		lines.append("[table=5][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]收入[/b][/cell][cell][b]视野[/b][/cell][cell][b]说明[/b][/cell]")
 		lines.append("[cell]%.1f[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%d[/cell][cell]%s[/cell][/table]" % [float(building.get("hp", 0.0)), float(building.get("armor", 0.0)), float(building.get("gold", 0.0)), int(building.get("vision", 0)), _building_note(str(building_type))])
-	lines.append("")
-	lines.append("[color=#e8dcc8][b]据点 T2 分支[/b][/color]")
-	lines.append("[table=6][cell][b]分支[/b][/cell][cell][b]升级[/b][/cell][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]收入[/b][/cell][cell][b]说明[/b][/cell]")
-	lines.append("[cell]战斗型[/cell][cell]10 金 / 1 回合[/cell][cell]30[/cell][cell]0.5[/cell][cell]6[/cell][cell]更适合前线驻扎[/cell]")
-	lines.append("[cell]经济型[/cell][cell]10 金 / 3 回合[/cell][cell]20[/cell][cell]0[/cell][cell]9[/cell][cell]更适合后方滚经济[/cell][/table]")
+	lines.append(_outpost_rules_bbcode())
 	return "\n".join(lines)
 
 func _encyclopedia_tech_bbcode() -> String:
@@ -2363,17 +3505,63 @@ func _unit_quote(unit_type: String) -> String:
 func _equipment_delta_lines(unit_type: String, equip: Dictionary) -> Array:
 	var unit = db.unit_data(unit_type)
 	var lines = []
-	_collect_delta_line(lines, "价格", unit.get("price", 0.0), equip.get("cost", null))
 	_collect_delta_line(lines, "生命", unit.get("hp", 0.0), equip.get("hp", null))
 	_collect_delta_line(lines, "护甲", unit.get("armor", 0.0), equip.get("armor", null))
 	_collect_delta_line(lines, "伤害", unit.get("damage", 0.0), equip.get("dmg", null))
 	_collect_delta_line(lines, "射程", unit.get("range", 0.0), equip.get("range", null))
 	_collect_delta_line(lines, "移速", unit.get("speed", 0.0), equip.get("speed", null))
+	_collect_delta_line(lines, "视野", unit.get("vision", 0.0), equip.get("vision", null))
+	_collect_delta_line(lines, "攻击次数", unit.get("attacks", 1), equip.get("attacks", null))
 	if equip.has("blast"):
 		lines.append("爆炸范围：%.1f → %.1f" % [float(unit.get("blast", 0.0)), float(equip.get("blast", 0.0))])
+	if equip.has("reload"):
+		lines.append("攻击后装填：%d 回合" % int(equip.get("reload", 0)))
 	if bool(equip.get("can_target_air", false)):
 		lines.append("新增：可以攻击空军")
+	if bool(equip.get("self_destruct", false)):
+		lines.append("新增：攻击后自毁")
+	var effects = equip.get("effects", {})
+	if effects is Dictionary:
+		for key in effects.keys():
+			lines.append(_equipment_effect_text(str(key), effects[key]))
 	return lines
+
+func _append_equipment_encyclopedia_stats(unit_type: String, equip: Dictionary) -> void:
+	encyclopedia_content.append_text("[color=#d8cda8]研究 %.1f 金 / %d 回合　安装 %.1f 金[/color]\n" % [float(equip.get("research_cost", 0.0)), int(equip.get("research_time", 1)), float(equip.get("cost", 0.0))])
+	var delta_lines = _equipment_delta_lines(unit_type, equip)
+	if delta_lines.is_empty():
+		encyclopedia_content.append_text("　无直接属性变化\n")
+		return
+	for line in delta_lines:
+		encyclopedia_content.append_text("　%s\n" % str(line))
+
+func _equipment_effect_text(key: String, value) -> String:
+	var number = float(value) if value is int or value is float else 0.0
+	match key:
+		"charge_damage": return "冲锋首次攻击额外伤害：+%.1f" % number
+		"vs_armored_damage": return "对装甲目标额外伤害：+%.1f" % number
+		"vs_building_damage": return "对建筑额外伤害：+%.1f" % number
+		"vs_line_damage": return "对战线单位额外伤害：+%.1f" % number
+		"vs_mobile_damage": return "对机动单位额外伤害：+%.1f" % number
+		"range_one_vs_building_damage": return "距离1攻击建筑额外伤害：+%.1f" % number
+		"range_one_vs_mobile_damage": return "距离1攻击机动单位额外伤害：+%.1f" % number
+		"damage_per_attack": return "每次攻击伤害修正：%+.1f" % number
+		"attacks_set": return "攻击次数设为：%d" % int(value)
+		"mark_duration": return "标记持续时间：%d 回合" % int(value)
+		"marked_target_artillery_range": return "攻击已标记目标时炮兵射程：+%.1f" % number
+		"marked_target_firepower_range": return "攻击已标记目标时火力射程：+%.1f" % number
+		"stationary_armor": return "静止时护甲：+%.1f" % number
+		"stationary_vision": return "静止时视野：+%.1f" % number
+		"first_effective_damage_reduction_per_turn": return "每回合首次有效伤害减免：%.1f" % number
+		"conceal_beyond": return "与敌军距离超过 %d 格时隐蔽" % int(value)
+		"reveal_distance": return "被近距离揭露的距离：%d 格" % int(value)
+		"radius": return "作用半径：%d 格" % int(value)
+		"enemy_vision": return "范围内敌军视野：%+.1f" % number
+		"concealed_when_stationary": return "静止时进入隐蔽" if bool(value) else "静止隐蔽关闭"
+		"disable_shared_vision": return "范围内阻断敌方共享视野" if bool(value) else "不阻断共享视野"
+		"disable_mark": return "范围内阻断敌方标记" if bool(value) else "不阻断标记"
+		"ignore_building_armor": return "攻击建筑时无视护甲" if bool(value) else "攻击建筑不无视护甲"
+		_: return "%s：%s" % [key, str(value)]
 
 func _collect_delta_line(lines: Array, label: String, base_value, delta_value) -> void:
 	if delta_value == null:
@@ -2422,8 +3610,8 @@ func _render_encyclopedia_units_content() -> void:
 	encyclopedia_content.append_text("[color=#6a6a7a]第一章 · 已收录 %d 个兵种，包含基础属性、装备研究与定位说明[/color]\n\n" % db.units.size())
 	for unit_type in db.units.keys():
 		var unit = db.unit_data(str(unit_type))
-		_add_encyclopedia_image(str(unit.get("texture", "")), str(unit_type))
-		encyclopedia_content.append_text("[color=#f0e6c0][font_size=20]%s[/font_size][/color]\n" % str(unit_type))
+		_add_encyclopedia_image(db.texture_path_for_unit(str(unit_type)), str(unit_type))
+		encyclopedia_content.append_text("[color=#f2c14e][font_size=20]%s[/font_size][/color]\n" % str(unit_type))
 		encyclopedia_content.append_text(_unit_quote(str(unit_type)) + "\n")
 		encyclopedia_content.append_text("[table=8][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]移速[/b][/cell][cell][b]价格[/b][/cell][cell][b]伤害[/b][/cell][cell][b]射程[/b][/cell][cell][b]攻击[/b][/cell][cell][b]视野[/b][/cell]")
 		encyclopedia_content.append_text("[cell]%.1f[/cell][cell]%.1f[/cell][cell]%d[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%d[/cell][cell]%d[/cell][/table]\n" % [float(unit.get("hp", 0.0)), float(unit.get("armor", 0.0)), int(unit.get("speed", 0)), float(unit.get("price", 0.0)), float(unit.get("damage", 0.0)), float(unit.get("range", 0.0)), int(unit.get("attacks", 0)), int(unit.get("vision", 0))])
@@ -2434,45 +3622,66 @@ func _render_encyclopedia_units_content() -> void:
 		if not equips.is_empty():
 			encyclopedia_content.append_text("[color=#a0a0b0][b]装备研究[/b][/color]\n")
 			for equip in equips:
-				var equip_path = "res://assets/images/%s-%s.png" % [str(unit_type), str(equip.get("name", ""))]
-				_add_encyclopedia_image(equip_path, "%s-%s" % [str(unit_type), str(equip.get("name", ""))])
-				encyclopedia_content.append_text("  [color=#e0d4c0]%s[/color]  研究 %.1f 金 / 需求 T%d\n" % [str(equip.get("name", "")), float(equip.get("research_cost", 0.0)), int(equip.get("tier", 1))])
-				for line in _equipment_delta_lines(str(unit_type), equip):
-					encyclopedia_content.append_text("    " + line + "\n")
+				_add_encyclopedia_image(db.texture_path_for_equipment(equip), "%s：%s" % [str(unit_type), str(equip.get("name", ""))])
+				_append_equipment_encyclopedia_stats(str(unit_type), equip)
 		encyclopedia_content.append_text("\n")
 	encyclopedia_content.append_text("[color=#e8dcc8][b]兵种数据速查[/b][/color]\n")
 	encyclopedia_content.append_text(_unit_quick_table_bbcode())
 
 func _render_encyclopedia_buildings_content() -> void:
 	encyclopedia_content.append_text("[font_size=26][color=#f0e6c0]建筑大全[/color][/font_size]\n")
-	encyclopedia_content.append_text("[color=#6a6a7a]第二章 · 大本营、据点与资源建筑[/color]\n\n")
-	_add_encyclopedia_image("res://assets/images/大本营 T1.png", "大本营 T1")
+	encyclopedia_content.append_text("[color=#9a9aa8]第二章 · 30张时代建筑、据点分支与战略设施贴图[/color]\n")
+	_add_building_images_to_encyclopedia()
+	encyclopedia_content.append_text("\n")
 	encyclopedia_content.append_text("[color=#f0e6c0][font_size=20]大本营[/font_size][/color]\n")
-	encyclopedia_content.append_text("核心建筑，提供收入、视野和单位生产。大本营升级完成后推进 T2/T3 解锁；被摧毁会直接影响胜负。\n")
-	var hq = db.building_data("大本营")
+	encyclopedia_content.append_text("核心建筑，提供收入、视野、指挥容量和单位生产。升级完成后推进E1-E5，被摧毁会直接影响胜负。\n")
 	encyclopedia_content.append_text("[table=6][cell][b]等级[/b][/cell][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]收入[/b][/cell][cell][b]视野[/b][/cell][cell][b]升级费用[/b][/cell]")
-	var idx = 1
-	for tier in hq.get("tiers", []):
-		encyclopedia_content.append_text("[cell]T%d[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%d[/cell][cell]%s[/cell]" % [idx, float(tier.get("hp", 0.0)), float(tier.get("armor", 0.0)), float(tier.get("gold", 0.0)), int(tier.get("vision", 0)), str(tier.get("upgrade_cost", "满级"))])
-		idx += 1
+	var hq_tiers: Array = db.building_data("大本营").get("tiers", [])
+	for index in range(hq_tiers.size()):
+		var tier: Dictionary = hq_tiers[index]
+		var upgrade_text := "满级" if index == hq_tiers.size() - 1 else "%.1f金 / %d回合" % [float(tier.get("upgrade_cost", 0.0)), int(tier.get("upgrade_time", 1))]
+		encyclopedia_content.append_text("[cell]E%d[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%d[/cell][cell]%s[/cell]" % [index + 1, float(tier.get("hp", 0.0)), float(tier.get("armor", 0.0)), float(tier.get("gold", 0.0)), int(tier.get("vision", 0)), upgrade_text])
 	encyclopedia_content.append_text("[/table]\n")
-	_add_encyclopedia_image("res://assets/images/大本营 T2.png", "大本营 T2")
-	_add_encyclopedia_image("res://assets/images/大本营T3.png", "大本营 T3")
 	for building_type in db.buildings.keys():
 		if str(building_type) == "大本营":
 			continue
 		var building = db.building_data(str(building_type))
 		encyclopedia_content.append_text("\n")
-		_add_encyclopedia_image(str(building.get("texture", "")), str(building_type))
 		encyclopedia_content.append_text("[color=#f0e6c0][font_size=20]%s[/font_size][/color]\n" % str(building_type))
 		encyclopedia_content.append_text("[table=5][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]收入[/b][/cell][cell][b]视野[/b][/cell][cell][b]说明[/b][/cell]")
 		encyclopedia_content.append_text("[cell]%.1f[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%d[/cell][cell]%s[/cell][/table]\n" % [float(building.get("hp", 0.0)), float(building.get("armor", 0.0)), float(building.get("gold", 0.0)), int(building.get("vision", 0)), _building_note(str(building_type))])
-	_add_encyclopedia_image("res://assets/images/资源型T2据点.png", "资源型 T2 据点")
-	_add_encyclopedia_image("res://assets/images/战斗型T2据点.jpg", "战斗型 T2 据点")
-	encyclopedia_content.append_text("\n[color=#e8dcc8][b]据点 T2 分支[/b][/color]\n")
-	encyclopedia_content.append_text("[table=6][cell][b]分支[/b][/cell][cell][b]升级[/b][/cell][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]收入[/b][/cell][cell][b]说明[/b][/cell]")
-	encyclopedia_content.append_text("[cell]战斗型[/cell][cell]10 金 / 1 回合[/cell][cell]30[/cell][cell]0.5[/cell][cell]6[/cell][cell]更适合前线驻扎[/cell]")
-	encyclopedia_content.append_text("[cell]经济型[/cell][cell]10 金 / 3 回合[/cell][cell]20[/cell][cell]0[/cell][cell]9[/cell][cell]更适合后方滚经济[/cell][/table]\n")
+	encyclopedia_content.append_text(_outpost_rules_bbcode())
+
+func _outpost_rules_bbcode() -> String:
+	var lines: Array[String] = [
+		"\n[color=#f2c14e][font_size=22]据点完整功能[/font_size][/color]",
+		"据点是可争夺的前线建筑，提供视野、回合收入、编制容量、驻扎和有限生产；它不能完全代替大本营。中立据点被打到0生命后归攻击者，并以当前玩家时代的基础据点形态和50%生命重新投入使用。", "",
+		"[color=#e8dcc8][b]为什么刚占领不能造兵[/b][/color]",
+		"占领当回合及紧接的一回合处于接管期，不能生产。收入恢复为：接管期0%，下一阶段50%，之后100%；接管期间也不会回血。这样可防止一夺取前线据点就立刻刷兵滚雪球。", "",
+		"[color=#e8dcc8][b]三种据点的生产范围[/b][/color]",
+		"[table=5][cell][b]类型[/b][/cell][cell][b]可生产[/b][/cell][cell][b]不可生产[/b][/cell][cell][b]编制[/b][/cell][cell][b]定位[/b][/cell]",
+		"[cell]基础据点[/cell][cell]当前时代或上一时代的战线单位；E1只有战团[/cell][cell]机动、火力、支援[/cell][cell]+1[/cell][cell]普通补员与区域控制[/cell]",
+		"[cell]战斗据点[/cell][cell]当前时代的战线、机动单位[/cell][cell]火力、支援[/cell][cell]+2[/cell][cell]前线扩军、完整驻扎和单位进化[/cell]",
+		"[cell]经济据点[/cell][cell]上一时代的战线单位[/cell][cell]当前时代、机动、火力、支援[/cell][cell]+0[/cell][cell]高收入、低军事能力[/cell][/table]",
+		"火力和支援单位始终只能从大本营生产。所有据点生产仍要求：对应兵种科技已完成、金币足够、编制未满，并且据点周围8格至少有一个空位。新造单位当回合不能移动或攻击。", "",
+		"[color=#e8dcc8][b]分化、驻扎与易手[/b][/color]",
+		"玩家大本营达到E2后，基础据点才能分化为战斗或经济据点。木栅工事科技解锁驻扎：单位需在据点相邻格，基础据点驻扎恢复20%最大生命、战斗据点驻扎恢复35%、经济据点驻扎恢复10%，并消耗本回合行动。只有大本营和战斗据点允许单位沿路线进化。",
+		"据点易手后，分支、升级进度和现代化全部清零，退回新占领者当前时代的基础据点；升级中被夺取不会退款。", "",
+		"[color=#e8dcc8][b]各时代据点数值[/b][/color]",
+		"[table=7][cell][b]时代[/b][/cell][cell][b]形态[/b][/cell][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]收入[/b][/cell][cell][b]升级费[/b][/cell][cell][b]时间[/b][/cell]"
+	]
+	var eras: Dictionary = db.building_data("据点").get("eras", {})
+	var branch_names := {"base": "基础", "combat": "战斗", "economic": "经济"}
+	for era in range(1, 6):
+		var era_stats: Dictionary = eras.get("E%d" % era, {})
+		for branch in ["base", "combat", "economic"]:
+			if not era_stats.has(branch):
+				continue
+			var stats: Dictionary = era_stats[branch]
+			lines.append("[cell]E%d[/cell][cell]%s[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%.1f[/cell][cell]%s[/cell][cell]%s[/cell]" % [era, branch_names[branch], float(stats.get("hp", 0.0)), float(stats.get("armor", 0.0)), float(stats.get("gold", 0.0)), "占领获得" if branch == "base" else "%.1f金" % float(stats.get("upgrade_cost", 0.0)), "-" if branch == "base" else "%d回合" % int(stats.get("upgrade_time", 1))])
+	lines.append("[/table]")
+	lines.append("同一玩家控制的据点收入按数量递减：第1座100%、第2座75%、第3座55%、第4座及以后40%。")
+	return "\n".join(lines)
 
 func _unit_quick_table_bbcode() -> String:
 	var lines = ["[table=9][cell][b]兵种[/b][/cell][cell][b]生命[/b][/cell][cell][b]护甲[/b][/cell][cell][b]移速[/b][/cell][cell][b]价格[/b][/cell][cell][b]伤害[/b][/cell][cell][b]射程[/b][/cell][cell][b]解锁[/b][/cell][cell][b]装备[/b][/cell]"]
@@ -2537,21 +3746,32 @@ func _short_unit_name(unit_type: String) -> String:
 func _add_unit_images_to_encyclopedia() -> void:
 	encyclopedia_content.append_text("\n\n[b]图片图鉴[/b]\n")
 	for unit_type in db.units.keys():
-		var unit = db.unit_data(str(unit_type))
-		_add_encyclopedia_image(str(unit.get("texture", "")), str(unit_type))
+		_add_encyclopedia_image(db.texture_path_for_unit(str(unit_type)), str(unit_type))
 		for equip in db.equipment_for(str(unit_type)):
-			var equip_path = "res://assets/images/%s-%s.png" % [str(unit_type), str(equip.get("name", ""))]
-			_add_encyclopedia_image(equip_path, "%s-%s" % [str(unit_type), str(equip.get("name", ""))])
+			_add_encyclopedia_image(db.texture_path_for_equipment(equip), "%s：%s" % [str(unit_type), str(equip.get("name", ""))])
 
 func _add_building_images_to_encyclopedia() -> void:
-	encyclopedia_content.append_text("\n\n[b]建筑图片[/b]\n")
-	for building_type in db.buildings.keys():
-		var building = db.building_data(str(building_type))
-		_add_encyclopedia_image(str(building.get("texture", "")), str(building_type))
-	_add_encyclopedia_image("res://assets/images/大本营 T2.png", "大本营 T2")
-	_add_encyclopedia_image("res://assets/images/大本营T3.png", "大本营 T3")
-	_add_encyclopedia_image("res://assets/images/资源型T2据点.png", "资源型 T2 据点")
-	_add_encyclopedia_image("res://assets/images/战斗型T2据点.jpg", "战斗型 T2 据点")
+	encyclopedia_content.append_text("\n[b]建筑图片[/b]\n")
+	var catalog: Dictionary = db.building_texture_catalog()
+	for key in catalog.keys():
+		_add_encyclopedia_image(str(catalog[key]), _building_art_label(str(key)))
+
+func _building_art_label(key: String) -> String:
+	var parts := key.split(":")
+	if key.begins_with("hq:"):
+		return "%s 大本营" % parts[1]
+	if key.begins_with("outpost:"):
+		var branch_names := {"base": "基础据点", "combat": "战斗据点", "economic": "经济据点"}
+		return "%s %s" % [parts[1], branch_names.get(parts[2], parts[2])]
+	if key.begins_with("collector:"):
+		return "%s 资源采集器" % parts[1]
+	if key.begins_with("fortification:"):
+		return "%s 防御工事" % parts[1]
+	if key == "command_point:neutral":
+		return "中央指挥点：中立"
+	if key == "command_point:active":
+		return "中央指挥点：激活"
+	return key
 
 func _add_terrain_images_to_encyclopedia() -> void:
 	encyclopedia_content.append_text("\n\n[b]地形贴图[/b]\n")
@@ -2561,11 +3781,13 @@ func _add_terrain_images_to_encyclopedia() -> void:
 
 func _add_encyclopedia_image(path: String, label: String) -> void:
 	if path.is_empty():
+		encyclopedia_content.append_text("[color=#777783][贴图待补：%s][/color]\n" % label)
 		return
 	var texture = load(path)
 	if texture == null:
+		encyclopedia_content.append_text("[color=#777783][贴图待补：%s][/color]\n" % label)
 		return
-	encyclopedia_content.append_text("\n%s\n" % label)
+	encyclopedia_content.append_text("\n[color=#f2c14e][font_size=18]%s[/font_size][/color]\n" % label)
 	encyclopedia_content.add_image(texture, 96, 96)
 	encyclopedia_content.append_text("\n")
 
